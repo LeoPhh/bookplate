@@ -1,0 +1,15 @@
+.git
+.github
+.next
+node_modules
+uploads
+docs
+.env*
+!.env.example
+*.md
+!README.md
+docker-compose*.yml
+Dockerfile
+.dockerignore
+.DS_Store
+.playwright-mcp

@@ -1,0 +1,43 @@
+# Bookplate — self-hosted reading tracker.
+#
+#   1. Put this file and .env (copied from .env.example) in a folder.
+#   2. Fill in .env — at least AUTH_SECRET, DB_PASSWORD and PUBLIC_URL.
+#   3. docker compose up -d, then open PUBLIC_URL and create your account.
+
+name: bookplate
+
+services:
+  bookplate:
+    image: ${BOOKPLATE_IMAGE:-leophh/bookplate}:${BOOKPLATE_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${BOOKPLATE_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://bookplate:${DB_PASSWORD:?set DB_PASSWORD in .env}@postgres:5432/bookplate
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      REGISTRATION: ${REGISTRATION:-closed}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bookplate
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: bookplate
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookplate -d bookplate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  uploads:
+  pgdata:

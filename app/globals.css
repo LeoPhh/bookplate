@@ -1,0 +1,2881 @@
+/* Bookplate's look: bold editorial / new brutalist print.
+   Newsprint white, heavy black rules, one hot vermilion accent.
+   Nothing is rounded, nothing is blurred: borders are 2px and every
+   shadow is a hard offset with no blur radius. */
+
+:root {
+  --font-display: var(--font-archivo-black);
+  --font-body: var(--font-archivo);
+  --paper: #f4f2ec;
+  --paper-deep: #e6e2d8;
+  --ink: #111111;
+  --ink-deep: #000000;
+  --ink-soft: #6b6862;
+  --line: #111111;
+  --hair: #d6d2c8;
+  --accent: #ff3b1f;
+  --accent-bright: #ff6a4d;
+  --white: #ffffff;
+  --danger: #c2261a;
+  --hard: 4px 4px 0 var(--ink);
+  --hard-lg: 7px 7px 0 var(--ink);
+  --chart-series: #ff3b1f;
+  --chart-series-hover: #111111;
+  --chart-grid: #d6d2c8;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  /* Flat paper: radial washes sized to the body box banded into visible
+     slabs on long pages. */
+  background-color: var(--paper);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.page {
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 40px 28px 96px;
+}
+
+/* ---------- Masthead ---------- */
+
+/* ---------- Masthead: a broadsheet nameplate ---------- */
+
+.masthead {
+  padding-bottom: 26px;
+  position: relative;
+  text-align: left;
+  border-bottom: 3px solid var(--ink);
+  padding: 12px 0 10px;
+  margin-bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+/* Uppercase bold micro-type, for the smallest editorial labels only. */
+
+.masthead-eyebrow,
+.cover-topline,
+.cover-author,
+.ledger th,
+.ledger tfoot td,
+.badge,
+.stat-tile-label,
+.detail-kicker,
+.detail-facts dt,
+.drill-section-title,
+.field > span,
+.search-divider,
+.datepicker-wd,
+.sense-pos,
+.notes-prose th,
+.fmt-btn,
+.notes-prose .callout::before {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
+.masthead-eyebrow {
+  letter-spacing: 0.22em;
+  font-size: 10.5px;
+  color: var(--accent);
+}
+
+.masthead-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  font-size: clamp(46px, 9vw, 96px);
+  letter-spacing: -0.045em;
+  line-height: 0.88;
+  margin: 4px 0 6px;
+}
+
+.masthead-stats {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* ---------- Site nav ---------- */
+
+/* Interface text: bold, but sentence case, so nothing a reader actually
+   reads is shouted. */
+
+.site-nav,
+.sort-label,
+.view-btn,
+.chip,
+.btn,
+.cover-status,
+.drill-back,
+.chart-more,
+.datepicker-link,
+.cropper-zoom,
+.notes-back,
+.notes-vocab-link,
+.colophon {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.site-nav {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 10px;
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  justify-content: flex-end;
+  letter-spacing: 0.01em;
+  font-size: 14px;
+}
+
+.site-nav-link {
+  text-decoration: none;
+  padding-bottom: 2px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  color: var(--ink);
+}
+
+/* Hover is a colour shift, never an underline — the active link already
+   carries one, and two underlines at once read as a glitch. */
+
+/* Inactive labels warm to the vermilion accent; the active block, already
+   vermilion, flips to ink so it still answers the hover. */
+
+.site-nav-link:hover {
+  color: var(--accent);
+}
+
+.site-nav-link--active {
+  background: var(--accent);
+  color: #fff;
+  padding: 3px 8px;
+  border-bottom: none;
+}
+
+.site-nav-sep {
+  color: var(--ink);
+}
+
+/* ---------- Toolbar ---------- */
+
+/* ---------- Controls: hard-edged blocks ---------- */
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 16px;
+  margin: 20px 0 32px;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-row--chips {
+  gap: 8px;
+}
+
+.search,
+.sort-select,
+.book-form input,
+.book-form select,
+.book-form textarea,
+.manual-form input,
+.manual-form textarea,
+.datepicker-toggle {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  font-weight: 500;
+}
+
+.search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 9px 14px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.search:focus,
+.book-form input:focus,
+.book-form select:focus,
+.book-form textarea:focus,
+.manual-form input:focus,
+.manual-form textarea:focus,
+.sort-select:focus,
+.datepicker-toggle:focus-visible,
+.btn:focus-visible {
+  outline-color: var(--accent);
+}
+
+.search:focus,
+.book-form input:focus,
+.book-form select:focus,
+.book-form textarea:focus,
+.sort-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.sort-select {
+  padding: 8px 10px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--hard);
+}
+
+.view-btn {
+  border: none;
+  cursor: pointer;
+  padding: 9px 17px;
+  font-size: 12px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.view-btn + .view-btn {
+  border-left: 2px solid var(--ink);
+}
+
+.view-btn--active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.chip {
+  cursor: pointer;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11.5px;
+  padding: 6px 13px;
+  box-shadow: var(--hard);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.chip:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.chip--active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.chip--notes {
+  margin-left: 10px;
+}
+
+.chip--notes-active {
+  background: var(--accent);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* ---------- Notes bookmark ribbon ---------- */
+
+.note-ribbon {
+  position: absolute;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+  pointer-events: none;
+  z-index: 2;
+  background: var(--accent);
+  box-shadow: none;
+  border: 2px solid var(--ink);
+  border-top: none;
+  width: 16px;
+  height: 36px;
+}
+
+.cover-wrap {
+  position: relative;
+  display: block;
+}
+
+.cover-wrap .note-ribbon {
+  top: -3px;
+  right: 11%;
+}
+
+.note-ribbon--inline {
+  position: static;
+  display: inline-block;
+  margin-left: 9px;
+  vertical-align: -3px;
+  width: 11px;
+  height: 19px;
+  border-width: 1.5px;
+}
+
+.btn {
+  cursor: pointer;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12.5px;
+  padding: 10px 18px;
+  box-shadow: var(--hard);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.btn:hover {
+  border-color: var(--ink);
+  background: #fff;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  border-color: var(--ink-deep);
+  background: var(--ink);
+}
+
+/* Links dressed as buttons (e.g. the Notes action in the book dialog). */
+
+a.btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn--accent {
+  background: var(--accent);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.btn--accent:hover {
+  background: var(--accent);
+}
+
+.btn--danger {
+  background: #fff;
+  border-color: var(--ink);
+  color: var(--danger);
+}
+
+.btn--danger-solid {
+  background: var(--danger);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* ---------- Cover grid ---------- */
+
+/* ---------- Covers: framed and offset-printed ---------- */
+
+.cover-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 40px 30px;
+}
+
+.cover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* The lift happens on the wrapper so the notes ribbon travels with the cover. */
+
+.cover-card .cover-wrap,
+.cover-card .cover {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.cover-card:hover .cover-wrap,
+.cover-card:focus-visible .cover-wrap {
+  transform: translate(-3px, -3px) rotate(0deg);
+}
+
+.cover-card:hover .cover,
+.cover-card:focus-visible .cover {
+  box-shadow: var(--hard-lg);
+}
+
+.cover {
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14% 11%;
+  text-align: center;
+  color: var(--spine-ink);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background-image: linear-gradient(180deg, var(--spine-bg), var(--spine-deep));
+  box-shadow: var(--hard);
+}
+
+.cover--image {
+  padding: 0;
+  background: var(--paper-deep);
+}
+
+.cover--image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.cover-topline,
+.cover-author {
+  letter-spacing: 0.1em;
+  font-size: 9px;
+}
+
+.cover-topline {
+  opacity: 0.75;
+  min-height: 1em;
+}
+
+.cover-title {
+  font-size: clamp(13px, 1.6vw, 17px);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.cover-author {
+  opacity: 0.9;
+}
+
+.cover-caption {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.cover-status {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--ink);
+}
+
+/* ---------- Ledger (list) view ---------- */
+
+/* ---------- Ledger ---------- */
+
+.ledger-wrap {
+  overflow-x: auto;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: var(--hard);
+}
+
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.ledger th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 10.5px;
+  color: var(--accent);
+  border-bottom: 3px solid var(--ink);
+}
+
+.ledger td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(203, 187, 153, 0.45);
+  white-space: nowrap;
+  border-bottom-color: var(--hair);
+  font-weight: 500;
+}
+
+.ledger tbody tr {
+  cursor: pointer;
+}
+
+.ledger tbody tr:hover {
+  background: var(--paper-deep);
+}
+
+.ledger-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.ledger-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 16px;
+  margin-right: 10px;
+  vertical-align: -2px;
+  border-radius: 0;
+  border: 1px solid var(--ink);
+}
+
+.ledger tfoot td {
+  padding: 12px 14px;
+  border-bottom: none;
+  font-size: 10.5px;
+  border-top: 3px solid var(--ink);
+  color: var(--ink);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  letter-spacing: 0.06em;
+  font-size: 10px;
+}
+
+.badge--read {
+  background: var(--accent);
+  color: #fff;
+}
+
+.badge--reading {
+  background: #ffd400;
+  color: var(--ink);
+}
+
+.badge--to-read {
+  background: #fff;
+  color: var(--ink);
+}
+
+/* ---------- Statistics ---------- */
+
+/* The masthead's bottom rule is the page's top divider; the first content
+   block needs the same breathing room below it as the toolbar gets. */
+
+.stats,
+.lookup-panel {
+  margin-top: 20px;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---------- Statistics ---------- */
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 18px;
+}
+
+.stat-tile,
+.chart-card,
+.drill-tile,
+.lookup-panel,
+.vocab-card {
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--hard);
+}
+
+.stat-tile {
+  padding: 14px 16px 12px;
+}
+
+.stat-tile-label {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.stat-tile-value {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.chart-card {
+  padding: 20px 22px 16px;
+}
+
+.chart-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.chart-sub {
+  font-style: normal;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+
+.chart-plot {
+  position: relative;
+}
+
+.chart-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-tick {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 11.5px;
+  fill: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-cap {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tip {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+  font-size: 12.5px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  z-index: 5;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  font-weight: 700;
+}
+
+.hbar-row {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.hbar-row--narrow {
+  grid-template-columns: 34px 1fr;
+}
+
+.hbar-label {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.hbar-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 16px;
+}
+
+.hbar-fill {
+  transition: background 0.12s ease;
+  height: 20px;
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  border-left: none;
+  background: var(--accent);
+}
+
+.hbar-row:hover .hbar-fill {
+  background: var(--ink);
+}
+
+.hbar-count {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.hbar-row--click {
+  border: none;
+  background: none;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 0;
+}
+
+.hbar-row--click:hover {
+  background: var(--paper-deep);
+}
+
+.drill-section-title,
+.drill-back,
+.chart-more {
+  letter-spacing: 0.01em;
+  font-size: 11.5px;
+  color: var(--accent);
+}
+
+.chart-more {
+  margin-top: 8px;
+}
+
+/* Drill-down dialogs */
+
+.dialog--drill {
+  max-width: 560px;
+}
+
+.dialog--drill .hbar-row {
+  grid-template-columns: 158px 1fr;
+}
+
+.drill-title {
+  font-size: 25px;
+  line-height: 1.15;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.search-note,
+.cover-upload-hint,
+.cropper-hint,
+.empty-note,
+.muted,
+.drill-sub,
+.drill-book-meta,
+.notes-save,
+.notes-blank,
+.notes-meta-item,
+.lookup-phonetic,
+.sense-example,
+.datepicker-placeholder,
+.ledger-copy {
+  font-style: normal;
+}
+
+.drill-sub {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.drill-tiles {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.drill-tile {
+  flex: 1;
+  padding: 8px 12px;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+
+.drill-tile b {
+  display: block;
+  font-size: 21px;
+  color: var(--ink);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+}
+
+.drill-section-title {
+  margin: 14px 0 4px;
+}
+
+.drill-best {
+  padding: 2px 8px;
+  border: 2px solid var(--accent);
+  border-radius: 0;
+  background: rgba(255, 59, 31, 0.07);
+}
+
+.drill-list {
+  list-style: none;
+}
+
+.drill-book {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.drill-list li + li .drill-book {
+  border-top: 1px solid rgba(203, 187, 153, 0.4);
+}
+
+.drill-book:hover {
+  background: var(--paper-deep);
+}
+
+.drill-thumb {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 45px;
+  overflow: hidden;
+  box-shadow: inset -2px 0 3px rgba(0, 0, 0, 0.25);
+  border-radius: 0;
+  border: 1px solid var(--ink);
+}
+
+.drill-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.drill-book-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.drill-book-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.drill-book-meta {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.drill-book-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.drill-book-date {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.drill-back {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.drill-back:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .drill-tiles {
+    flex-direction: column;
+  }
+}
+
+/* ---------- Stars ---------- */
+
+.stars {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.star {
+  position: relative;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-block;
+  color: #c9c5bb;
+}
+
+.star-glyph {
+  display: inline-block;
+}
+
+/* Half-fill overlay: re-render the glyph in the on-color, clipped to 50%. */
+
+.star--half .star-glyph::before {
+  content: "★";
+  position: absolute;
+  inset: 0;
+  width: 50%;
+  overflow: hidden;
+  color: var(--accent);
+}
+
+.star--on {
+  color: var(--accent);
+}
+
+.stars--sm .star {
+  font-size: 13px;
+}
+
+.stars--lg .star {
+  font-size: 24px;
+}
+
+.stars--input .star {
+  background: none;
+  border: none;
+  padding: 0 1px;
+  transition: transform 0.1s ease;
+}
+
+.stars--input .star:hover {
+  transform: scale(1.2);
+}
+
+/* Two invisible click zones covering the left and right half of each star. */
+
+.stars--input .star--zone {
+  cursor: pointer;
+}
+
+.stars--input .star-half,
+.stars--input .star-full {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.stars--input .star-half {
+  left: 0;
+}
+
+.stars--input .star-full {
+  right: 0;
+}
+
+/* ---------- Dialogs ---------- */
+
+/* ---------- Dialogs ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+  background: rgba(17, 17, 17, 0.5);
+  backdrop-filter: none;
+}
+
+.dialog {
+  position: relative;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  width: 100%;
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 12px 12px 0 var(--ink);
+  padding: 34px;
+}
+
+.dialog--detail {
+  max-width: 720px;
+}
+
+.dialog--form {
+  max-width: 640px;
+}
+
+/* Editing the record is a tool of the preview rather than one of its actions,
+   so the pencil sits beside the close button instead of in the button row.
+   Both are the same centred square: a glyph's line box and an SVG have
+   different natural heights, so sharing only `top` would leave the two icons
+   visibly out of line. */
+
+.dialog-close,
+.dialog-edit {
+  position: absolute;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.dialog-close {
+  font-size: 15px;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  top: 12px;
+  right: 12px;
+}
+
+/* Matches the boxed close button, one square to its left. */
+
+.dialog-edit {
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  top: 12px;
+  right: 50px;
+}
+
+.dialog-close:hover,
+.dialog-edit:hover {
+  color: var(--ink);
+}
+
+.dialog-edit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  outline-color: var(--accent);
+  border-radius: 0;
+}
+
+/* The pencil's mass runs to its lower-left, so a geometrically centred icon
+   reads a touch high next to the ✕ — one pixel down settles it. */
+
+.dialog-edit svg {
+  display: block;
+  transform: translateY(1px);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* Detail */
+
+.detail-layout {
+  display: flex;
+  gap: 32px;
+}
+
+.detail-cover {
+  flex: 0 0 200px;
+}
+
+.detail-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-kicker {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  padding: 3px 9px;
+  letter-spacing: 0.12em;
+  font-size: 10.5px;
+}
+
+.detail-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  font-size: 42px;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  margin: 10px 0 6px;
+}
+
+.detail-author {
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-size: 12.5px;
+}
+
+.detail-rating {
+  margin-bottom: 18px;
+}
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  gap: 12px 18px;
+  border-top: 3px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
+  padding: 16px 0;
+}
+
+.detail-facts dt {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.detail-facts dd {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Yes/no facts (Copy, Notes) — the accent marks the yes, a muted cross the no. */
+
+/* Vermilion yes, ink-grey no — both heavy enough to hold the block type. */
+
+.fact-flag {
+  line-height: 1;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.fact-flag--yes {
+  color: var(--accent);
+}
+
+.fact-flag--no {
+  color: var(--ink-soft);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+/* Form */
+
+/* Form */
+
+.form-heading,
+.confirm-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.form-heading {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.book-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field > span {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.field--wide {
+  grid-column: 1 / -1;
+}
+
+.book-form input,
+.book-form select,
+.book-form textarea {
+  padding: 8px 11px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.book-form textarea {
+  resize: vertical;
+}
+
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  cursor: pointer;
+  padding-top: 6px;
+  font-weight: 500;
+}
+
+.checkline input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.ledger-copy {
+  text-align: center;
+  color: var(--ink-deep);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-top: 3px;
+}
+
+.swatch {
+  width: 26px;
+  height: 34px;
+  cursor: pointer;
+  border-radius: 0;
+  box-shadow: none;
+  border: 2px solid var(--ink);
+}
+
+.swatch--active {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--ink);
+}
+
+.genre-new {
+  display: flex;
+  gap: 8px;
+}
+
+.genre-new input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Catalogue search ---------- */
+
+.search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.search-row input {
+  flex: 1;
+}
+
+.search-note {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
+
+.search-note--error {
+  color: var(--danger);
+}
+
+.search-results {
+  list-style: none;
+  margin-top: 8px;
+  max-height: 264px;
+  overflow-y: auto;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+}
+
+.search-results li + li {
+  border-top: 2px solid var(--hair);
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-result:hover {
+  background: var(--paper-deep);
+}
+
+.search-thumb {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 45px;
+  overflow: hidden;
+  background: var(--paper-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset -1px 0 2px rgba(0, 0, 0, 0.15);
+  border-radius: 0;
+  border: 1px solid var(--ink);
+}
+
+.search-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.search-thumb-blank {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.search-result-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-result-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: -0.02em;
+  font-size: 14px;
+}
+
+.search-result-meta {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.search-divider {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 10px;
+  color: var(--accent);
+}
+
+/* ---------- Cover upload ---------- */
+
+.cover-upload {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.cover-mini {
+  flex: none;
+  width: 86px;
+  aspect-ratio: 2 / 3;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  background: var(--paper-deep);
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  box-shadow: none;
+  font-style: normal;
+}
+
+.cover-mini img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-upload-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Small inline buttons shouldn't carry the full offset. */
+
+.sense-add,
+.cover-upload-actions .btn {
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.cover-upload-hint {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  max-width: 340px;
+}
+
+/* ---------- Cover cropper ---------- */
+
+.dialog--cropper {
+  max-width: 520px;
+}
+
+.cropper-hint {
+  margin: -12px 0 14px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.cropper-stage {
+  position: relative;
+  height: 380px;
+  overflow: hidden;
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+}
+
+.cropper-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+}
+
+.cropper-zoom input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+/* ---------- Date picker ---------- */
+
+.datepicker {
+  position: relative;
+}
+
+.datepicker-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 11px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.datepicker-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.datepicker-placeholder {
+  color: var(--ink-soft);
+}
+
+.datepicker-caret {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+/* Date picker */
+
+.datepicker-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: 268px;
+  padding: 12px;
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 8px 8px 0 var(--ink);
+}
+
+.datepicker-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.datepicker-month {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.datepicker-nav {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 15px;
+  line-height: 1.3;
+  border-radius: 0;
+  color: var(--ink);
+}
+
+.datepicker-nav:hover,
+.datepicker-day:hover {
+  background: var(--paper-deep);
+}
+
+.datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.datepicker-wd,
+.datepicker-link {
+  font-size: 10px;
+}
+
+.datepicker-wd {
+  color: var(--ink-soft);
+  padding: 3px 0;
+}
+
+.datepicker-day {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 5px 0;
+  font-size: 13.5px;
+  color: var(--ink);
+  border-radius: 0;
+  font-weight: 500;
+}
+
+.datepicker-day--today {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.datepicker-day--selected,
+.datepicker-day--selected:hover {
+  background: var(--ink);
+  color: #fff;
+}
+
+.datepicker-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 2px solid var(--ink);
+}
+
+.datepicker-link {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--accent);
+}
+
+.datepicker-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Confirm prompt ---------- */
+
+.overlay--top {
+  z-index: 60;
+}
+
+.dialog--confirm {
+  max-width: 420px;
+  text-align: center;
+}
+
+/* Confirm + cropper */
+
+.confirm-ornament {
+  font-size: 19px;
+  margin-bottom: 4px;
+  color: var(--accent);
+}
+
+.confirm-title {
+  font-size: 25px;
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  color: var(--ink-soft);
+}
+
+.dialog--confirm .dialog-actions {
+  justify-content: center;
+}
+
+/* ---------- Finished-reading prompt ---------- */
+
+.dialog--finish {
+  max-width: 460px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  /* Reserve room for the open datepicker calendar, which is absolutely
+     positioned and would otherwise be clipped by the dialog's overflow-y. */
+  min-height: 580px;
+}
+
+/* The ❦ ornament belongs to confirmations, not this prompt. */
+
+.dialog--finish .confirm-ornament {
+  display: none;
+}
+
+.finish-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 18px 0 4px;
+}
+
+.finish-fields .field > span {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.dialog--finish .dialog-actions {
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* ---------- Vocabulary ---------- */
+
+.lookup-panel {
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.lookup-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.lookup-result {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 3px solid var(--ink);
+}
+
+.lookup-headword {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* ---------- Vocabulary ---------- */
+
+.lookup-word,
+.vocab-word {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.lookup-word {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.lookup-phonetic {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.sense-list {
+  list-style: none;
+  margin-top: 6px;
+}
+
+.sense {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.sense + .sense {
+  border-top: 2px solid var(--hair);
+}
+
+.sense-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sense-pos {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 10.5px;
+}
+
+.sense-def {
+  font-size: 15px;
+}
+
+.sense-example {
+  color: var(--ink-soft);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.sense-syn {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.sense-add {
+  flex: none;
+}
+
+.sense-add:disabled {
+  border-color: var(--line);
+  color: var(--ink-soft);
+  cursor: default;
+  background: none;
+}
+
+.lookup-manual-link {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 8px;
+  font: inherit;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  font-size: 11.5px;
+  color: var(--accent);
+}
+
+.lookup-manual-link:hover {
+  text-decoration: underline;
+}
+
+.manual-form {
+  margin-top: 12px;
+}
+
+.manual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+  margin-top: 10px;
+}
+
+.manual-form input,
+.manual-form textarea {
+  padding: 8px 11px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.manual-form input:focus,
+.manual-form textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.manual-form textarea {
+  resize: vertical;
+}
+
+.manual-form .dialog-actions {
+  margin-top: 14px;
+}
+
+.vocab-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.vocab-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px 14px;
+}
+
+.vocab-headword {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding-right: 24px;
+}
+
+.vocab-word {
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+.vocab-def {
+  font-size: 14.5px;
+}
+
+.vocab-meta {
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.vocab-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 4px;
+  opacity: 0.6;
+}
+
+.vocab-delete:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .manual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Book notes page ---------- */
+
+.page--notes {
+  max-width: 880px;
+}
+
+.notes-breadcrumb {
+  margin-bottom: 18px;
+}
+
+/* ---------- Notes page ---------- */
+
+.notes-back,
+.notes-vocab-link {
+  font-size: 11.5px;
+  color: var(--accent);
+}
+
+.notes-back {
+  text-decoration: none;
+}
+
+.notes-back:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.notes-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 26px;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.notes-head-cover {
+  flex: 0 0 120px;
+}
+
+.notes-head-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-title,
+.notes-section-title {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.notes-title {
+  font-size: clamp(28px, 5vw, 42px);
+  margin: 4px 0 2px;
+}
+
+.notes-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.notes-meta-item {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.notes-section {
+  margin-bottom: 36px;
+}
+
+.notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.notes-section-title {
+  flex: 1;
+  font-size: 21px;
+}
+
+.notes-save {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.notes-save--error {
+  color: var(--danger);
+  font-style: normal;
+}
+
+.notes-vocab-link {
+  text-decoration: none;
+}
+
+.notes-vocab-link:hover {
+  text-decoration: underline;
+}
+
+/* Rendered markdown / inline editor */
+
+/* Reading mode is bare page copy — no frame, no padding. The writing box
+   only appears while editing (.notes-prose--editing). */
+
+.notes-prose {
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+.notes-prose h1,
+.notes-prose h2,
+.notes-prose h3,
+.notes-prose h4 {
+  line-height: 1.25;
+  margin: 22px 0 8px;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.notes-prose h1:first-child,
+.notes-prose h2:first-child,
+.notes-prose h3:first-child,
+.notes-prose p:first-child {
+  margin-top: 0;
+}
+
+.notes-prose h1 {
+  font-size: 27px;
+}
+
+.notes-prose h2 {
+  font-size: 22px;
+}
+
+.notes-prose h3 {
+  font-size: 18px;
+}
+
+.notes-prose p {
+  margin: 10px 0;
+}
+
+.notes-prose ul,
+.notes-prose ol {
+  margin: 10px 0;
+  padding-left: 26px;
+}
+
+.notes-prose li {
+  margin: 3px 0;
+}
+
+.notes-prose blockquote {
+  margin: 14px 0;
+  padding: 4px 18px;
+  border-left: 4px solid var(--accent);
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.notes-prose code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.88em;
+  padding: 1px 5px;
+  background: var(--paper-deep);
+  border-radius: 0;
+}
+
+.notes-prose pre {
+  padding: 12px 16px;
+  overflow-x: auto;
+  margin: 14px 0;
+  background: var(--paper-deep);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+
+.notes-prose pre code {
+  background: none;
+  padding: 0;
+}
+
+.notes-prose img {
+  display: block;
+  max-width: 100%;
+  margin: 16px auto;
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  box-shadow: var(--hard);
+}
+
+.notes-prose hr {
+  border: none;
+  margin: 22px 0;
+  border-top: 2px solid var(--ink);
+}
+
+.notes-prose a {
+  color: var(--accent);
+}
+
+/* The notes editor is the rendered view itself (TipTap/ProseMirror): the same
+   markup reads as page copy, then gains a box once editing starts. The box
+   pads outwards — the negative margin cancels padding plus border — so the
+   words stay on the same line when the mode flips. */
+
+.notes-prose--editing {
+  --notes-pad-x: 20px;
+  --notes-pad-y: 20px;
+  padding: var(--notes-pad-y) var(--notes-pad-x);
+  margin-inline: calc(-1 * (var(--notes-pad-x) + var(--notes-edge)));
+  cursor: text;
+  --notes-edge: 2px;
+  border: var(--notes-edge) solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: var(--hard);
+}
+
+/* An empty document still renders one paragraph; hide it behind the blank
+   line so reading mode doesn't open with a stray gap. */
+
+.notes-prose--blank {
+  display: none;
+}
+
+.notes-blank {
+  color: var(--ink-soft);
+}
+
+.notes-prose .ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.notes-prose--editing .ProseMirror {
+  min-height: 320px;
+}
+
+/* Formatting bar — lines the top of the writing box and stays in reach while
+   a long note scrolls past. It bleeds out to the box edges, hence the
+   negative margins mirroring the box padding. */
+
+/* Formatting bar: hard black rules, square, vermilion when engaged. */
+
+.notes-fmt {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: calc(-1 * var(--notes-pad-y)) calc(-1 * var(--notes-pad-x)) 18px;
+  padding: 10px var(--notes-pad-x);
+  background: inherit;
+  border-bottom: var(--notes-edge) solid var(--line);
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  cursor: default;
+  border-bottom-width: 2px;
+}
+
+.fmt-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fmt-group,
+.fmt-btn--wide,
+.fmt-link-input {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+
+.fmt-group {
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.fmt-btn {
+  min-width: 32px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-variant: normal;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.fmt-btn + .fmt-btn {
+  border-left: 2px solid var(--ink);
+}
+
+.fmt-btn:hover {
+  background: var(--paper-deep);
+}
+
+.fmt-btn:focus-visible,
+.fmt-link-input:focus {
+  outline-color: var(--accent);
+}
+
+.fmt-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* :hover would otherwise out-specify the pressed state and wash the button
+   out under the pointer — exactly when you have just clicked it. */
+
+.fmt-btn--active,
+.fmt-btn--active:hover {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.fmt-btn--bold {
+  font-weight: 700;
+}
+
+.fmt-btn--italic {
+  font-style: italic;
+}
+
+.fmt-btn--strike {
+  text-decoration: line-through;
+}
+
+.fmt-btn--code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-variant: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+/* The link field opens under the bar rather than in a browser prompt. */
+
+.fmt-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fmt-link-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 14px;
+  background: var(--white);
+  color: var(--ink);
+}
+
+.fmt-link-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Callouts — the boxed asides written as GitHub-style alerts (lib/callout.ts) */
+
+.notes-prose .callout {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--accent);
+  border: 2px solid var(--ink);
+  border-left-width: 8px;
+  border-radius: 0;
+  background: var(--paper-deep);
+}
+
+.notes-prose .callout::before {
+  content: "Note";
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  color: var(--ink);
+}
+
+.notes-prose .callout[data-callout="tip"]::before {
+  content: "Tip";
+}
+
+.notes-prose .callout[data-callout="important"]::before {
+  content: "Important";
+}
+
+.notes-prose .callout[data-callout="warning"]::before {
+  content: "Warning";
+}
+
+.notes-prose .callout[data-callout="caution"]::before {
+  content: "Caution";
+}
+
+.notes-prose .callout[data-callout="warning"],
+.notes-prose .callout[data-callout="caution"] {
+  border-left-color: var(--danger);
+  border-color: var(--accent);
+  background: var(--paper-deep);
+}
+
+.notes-prose .callout[data-callout="warning"]::before,
+.notes-prose .callout[data-callout="caution"]::before {
+  color: var(--accent);
+}
+
+.notes-prose .callout > :first-of-type {
+  margin-top: 0;
+}
+
+.notes-prose .callout > :last-child {
+  margin-bottom: 0;
+}
+
+/* Only when the whole document is empty — not every empty paragraph. */
+
+.notes-prose .ProseMirror .is-editor-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.notes-prose .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  outline-color: var(--accent);
+}
+
+.notes-prose table {
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14.5px;
+}
+
+.notes-prose th,
+.notes-prose td {
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+}
+
+.notes-prose th {
+  font-size: 10.5px;
+  color: var(--accent);
+}
+
+/* Notes preview inside the book dialog */
+
+.vocab-book-link {
+  color: inherit;
+}
+
+.vocab-book-link:hover {
+  color: var(--ink-deep);
+}
+
+@media (max-width: 640px) {
+  .notes-head {
+    gap: 18px;
+  }
+
+  .notes-head-cover {
+    flex-basis: 90px;
+  }
+
+  .notes-prose--editing {
+    --notes-pad-x: 16px;
+    --notes-pad-y: 16px;
+  }
+}
+
+/* ---------- Misc ---------- */
+
+.empty-note {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 60px 0;
+}
+
+/* ---------- Misc ---------- */
+
+.colophon {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  border-top: 3px solid var(--ink);
+  padding-top: 14px;
+  margin-top: 56px;
+}
+
+@media (max-width: 640px) {
+  .detail-layout {
+    flex-direction: column;
+  }
+
+  .detail-cover {
+    flex-basis: auto;
+    max-width: 190px;
+    margin: 0 auto;
+  }
+
+  .book-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+
+}
+
+.site-nav-link--active:hover {
+  background: var(--ink);
+  color: #fff;
+}
+
+.search::placeholder {
+  color: #9a968e;
+}
+
+/* ---------- Phones ---------- */
+
+/* Touch devices get no hover, so the press that .btn, .chip and the covers
+   play on hover would stick after a tap. There it plays while the finger is
+   down instead. */
+
+@media (hover: none) {
+  .btn:hover,
+  .chip:hover {
+    transform: none;
+    box-shadow: var(--hard);
+  }
+
+  .btn:active,
+  .chip:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .cover-card:hover .cover-wrap {
+    transform: none;
+  }
+
+  .cover-card:hover .cover {
+    box-shadow: var(--hard);
+  }
+
+  .cover-card:active .cover-wrap {
+    transform: translate(2px, 2px);
+  }
+
+  .cover-card:active .cover {
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .ledger tbody tr:hover {
+    background: none;
+  }
+
+  .ledger tbody tr:active {
+    background: var(--paper-deep);
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+a,
+button,
+select,
+[role="tab"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ---------- Sign-in, setup and settings ---------- */
+
+.auth-card {
+  max-width: 440px;
+  margin: 56px auto 0;
+}
+
+.auth-lede,
+.settings-lede {
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.auth-form {
+  grid-template-columns: 1fr;
+}
+
+.settings {
+  display: grid;
+  gap: 40px;
+  max-width: 720px;
+  padding-top: 36px;
+}
+
+.settings-section {
+  border-top: 3px solid var(--ink);
+  padding-top: 18px;
+}
+
+.settings-section .form-heading {
+  margin-bottom: 10px;
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-note {
+  margin-top: 12px;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.settings-note--error {
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 24px max(18px, env(safe-area-inset-right))
+      calc(96px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  }
+
+  .masthead {
+    grid-template-columns: 1fr;
+  }
+
+  .masthead-eyebrow {
+    letter-spacing: 0.12em;
+  }
+
+  /* The section nav becomes a tab bar pinned to the bottom of the screen,
+     where a thumb can reach it. */
+
+  .site-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: #fff;
+    border-top: 3px solid var(--ink);
+    font-size: 13px;
+  }
+
+  .site-nav-sep {
+    display: none;
+  }
+
+  .site-nav-link,
+  .site-nav-link--active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    padding: 0;
+  }
+
+  .site-nav-link + .site-nav-sep + .site-nav-link {
+    border-left: 2px solid var(--ink);
+  }
+
+  /* Inputs under 16px make iOS zoom the page on focus. */
+
+  .search,
+  .sort-select,
+  .book-form input,
+  .book-form select,
+  .book-form textarea,
+  .manual-form input,
+  .manual-form textarea,
+  .search-row input {
+    font-size: 16px;
+  }
+
+  .search {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  .sort-label {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .sort-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toolbar-row .view-toggle {
+    flex: 1;
+  }
+
+  .view-btn {
+    flex: 1;
+    padding: 12px 10px;
+  }
+
+  .toolbar-row .btn--primary {
+    padding: 12px 16px;
+  }
+
+  .chip {
+    padding: 9px 14px;
+  }
+
+  .chip--notes {
+    margin-left: 0;
+  }
+
+  /* Dialogs rise from the bottom edge as a sheet. */
+
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog {
+    max-width: none;
+    max-height: calc(100dvh - 32px);
+    border-width: 3px 0 0;
+    box-shadow: none;
+    padding: 30px 20px calc(24px + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+    animation: sheet-up 0.22s ease-out;
+  }
+
+  .dialog-close,
+  .dialog-edit {
+    width: 40px;
+    height: 40px;
+    top: 10px;
+  }
+
+  .dialog-close {
+    right: 12px;
+  }
+
+  .dialog-edit {
+    right: 60px;
+  }
+
+  .dialog-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Always two covers a row: below ~340px the 150px minimum left one
+     screen-filling cover. */
+
+  .cover-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 20px;
+  }
+
+  .stat-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  /* Five digits and a comma outran a half-width tile at 44px. */
+
+  .stat-tile-value {
+    font-size: clamp(28px, 9vw, 44px);
+  }
+
+  /* Centred in a column, the cover shrank to its content: nothing. */
+
+  .detail-cover {
+    width: 100%;
+    max-width: 160px;
+  }
+
+  /* The ledger drops to a list: title over author, rating at the side. */
+
+  .ledger,
+  .ledger tbody,
+  .ledger tfoot,
+  .ledger tfoot tr,
+  .ledger tfoot td {
+    display: block;
+  }
+
+  .ledger thead {
+    display: none;
+  }
+
+  .ledger tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .ledger tbody td {
+    padding: 0;
+    border: none;
+    white-space: normal;
+  }
+
+  .ledger tbody td:nth-child(3),
+  .ledger tbody td:nth-child(4),
+  .ledger tbody td:nth-child(6) {
+    display: none;
+  }
+
+  .ledger tbody td:nth-child(2) {
+    grid-row: 2;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .ledger tbody td:nth-child(5) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .vocab-delete {
+    top: 4px;
+    right: 4px;
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .notes-back {
+    display: inline-block;
+    padding: 12px 0;
+    font-size: 13px;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog {
+    animation: none;
+  }
+}

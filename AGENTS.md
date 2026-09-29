@@ -1,0 +1,51 @@
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+
+# Data and auth
+
+- Data lives in Postgres (Drizzle, `lib/db/schema.ts`); images go through
+  `lib/storage/`. Every row and every storage key belongs to a user.
+- Route handlers start with `requireUser()` from `lib/auth.ts` and only call
+  the user-scoped helpers in `lib/library.ts`. `proxy.ts` is only an
+  optimistic redirect, never the real check.
+- Schema change → `npm run db:generate` and commit the new `drizzle/` file.
+- All configuration comes from environment variables (`lib/config.ts`).
+
+# Styling
+
+There is one look (bold editorial: newsprint white, heavy black rules, one
+vermilion accent, hard offset shadows with no blur), and all of it lives in
+`app/globals.css`.
+
+- Design tokens (`--ink`, `--accent`, `--hair`, `--hard`, …) are defined on
+  `:root` at the top of `globals.css`; use them rather than raw colours.
+- Chart colours come from `--chart-series`, `--chart-series-hover` and
+  `--chart-grid`, so the SVG charts restyle without touching TSX.
+- `lib/palette.ts` holds the twelve binding colours for generated covers. A
+  book stores an index into it, so only ever append — reordering recolours
+  existing books.
+- Fonts load in `app/layout.tsx` (`--font-archivo-black`, `--font-archivo`);
+  `globals.css` points `--font-display` / `--font-body` at them.
+- Two selector lists near the top of `globals.css` set label type: tiny
+  editorial labels (eyebrows, table heads, badges, field labels) are uppercase
+  micro-type; interface text (buttons, chips, nav, links) is bold sentence
+  case. Titles are never uppercased. Put any new label in the right list.
+- Switching branches can break the Turbopack Google-font cache
+  (`Can't resolve '@vercel/turbopack-next/internal/font/google/font'`).
+  `rm -rf .next/cache` and restart the dev server.
+
+# Browser investigations: clean up after yourself
+
+A Playwright MCP server is configured for this machine and can drive a
+headless browser to verify UI changes (open a modal, read back element
+bounding boxes, screenshot a component). When you
+use it, the MCP writes snapshot YAML, console logs, and screenshots to a
+`.playwright-mcp/` directory in the project root.
+
+**Always clean up these artifacts at the end of an investigation.** Run
+`rm -rf .playwright-mcp/` before reporting done. The directory is gitignored,
+but leaving it around clutters the working tree and can confuse later
+sessions. Treat it like scratchpad output, not a repo file.

@@ -1,0 +1,256 @@
+# 📚 Bookplate
+
+A personal reading tracker with a bold editorial look. Books carry ratings,
+reading dates, and their own notes pages, and can wear real cover photos —
+searched from a catalogue, uploaded, or pasted straight from the clipboard. A
+vocabulary registry keeps the words learned along the way.
+
+Bookplate is **self-hosted**: you run it on your own machine or server with
+Docker, and your library never leaves it. Everything can be exported at any
+time as a zip of plain JSON, markdown and image files.
+
+![The covers view](docs/covers.png)
+
+## Features
+
+### The look
+
+Newsprint white, heavy black rules, one hot vermilion accent, Archivo Black
+set in sentence case, and hard offset shadows with no blur. Books without a
+cover photo get a generated cloth cover in one of twelve binding colours.
+
+### Three views of the library
+
+- **Covers** — a grid of front covers. Books without a photo wear a
+  generated cloth cover in one of twelve binding colours; books with one
+  show the real thing.
+- **Ledger** — a sortable table of every volume with status badges, ratings,
+  and dates, ending in a count row (respects the active search/filter).
+- **Statistics** — stat tiles (books read, read this year, pages, average
+  rating) plus charts: books finished per year, ratings distribution, genres,
+  and sources. Everything drills down: click a year column for that year's
+  books (with a highest-rated section), a genre/rating/source row for its
+  books, or "see all genres" for the full breakdown — and any book in a
+  drill-down opens its detail dialog.
+
+![The statistics view](docs/statistics.png)
+
+![Drilling into a year](docs/drill-down.png)
+
+![The ledger view](docs/ledger.png)
+
+### A notes page per book
+
+Every book has its own page (`/books/<id>`), opened with the **Notes** button
+in its detail dialog. Notes are written in a **Notion-style inline editor**:
+markdown renders as you type (`## ` becomes a heading, `**bold**` turns
+bold), and **images pasted or dropped into the text appear inline
+immediately**. Large pastes are downscaled in the browser (long edge capped
+at 1600 px, re-encoded as JPEG) so multi-megabyte screenshots don't bloat
+storage. Notes are stored as markdown; Cancel discards the edits — and both
+return to the library.
+
+Nothing orphans: every save garbage-collects stored images the text no
+longer references, Cancel bins images pasted during the session, and
+deleting a book removes its notes, images, and cover together.
+
+The detail dialog shows a text excerpt and thumbnail strip of the notes, and
+a **Show notes** toggle in the toolbar drapes a bookmark ribbon over every
+book that has notes — in every library view.
+
+### Vocabulary
+
+A second page (linked from the masthead) is a registry of words learned
+while reading. Type a word and it's looked up in **Wiktionary** (keyless,
+proxied): pick the sense to keep — with its part of speech and an example —
+or write your own definition when the dictionary comes up empty.
+Words can be tagged with the book they came from; each book's notes page
+shows its own words, and the registry can be searched, sorted, and filtered
+by book.
+
+### Adding books
+
+The add dialog searches the **Open Library catalogue** (no API key) — picking
+a result autofills the title, author, and page count, fetches the cover, and
+opens it in the crop dialog. Everything can also be entered fully by hand.
+
+![Adding a book via catalogue search](docs/add-book.png)
+
+Each book carries: title, author, genre, page count, source (book store /
+Kindle / audiobook / borrowed / second hand / gifted / library), status
+(read / reading / to read), whether a physical copy lives at home, a 1–5
+star rating, the date finished (picked with a calendar), and its
+notes page.
+
+![The book detail dialog](docs/detail.png)
+
+### Cover images
+
+- Covers arrive three ways: fetched from the catalogue, uploaded as a file,
+  or **pasted from the clipboard** (⌘V anywhere in the add/edit dialog).
+- All of them pass through a **crop dialog** locked to book proportions
+  (2 : 3), then are compressed in the browser to a JPEG capped at 600 × 900
+  (~40–80 KB) before being stored.
+- Cover downloads try Open Library first and fall back to iTunes ebook
+  artwork — useful on networks where Open Library's image host (archive.org)
+  is unreachable. All external fetches are proxied through the app's own API
+  routes, so the browser never talks to third-party hosts.
+- Books without an image keep their generated cover; nothing external is
+  ever required.
+
+### Search, filter, sort
+
+Free-text search across titles, authors, genres, and notes; status filter
+chips; a **Show notes** toggle marking every book with notes; sorting by
+title, author, rating, date finished, or recently added.
+
+## Install with Docker
+
+You need Docker with the Compose plugin. Bookplate runs as two containers:
+the app and a Postgres database.
+
+```bash
+mkdir bookplate && cd bookplate
+curl -fsSLO https://raw.githubusercontent.com/LeoPhh/bookplate/main/docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/LeoPhh/bookplate/main/.env.example -o .env
+```
+
+Edit `.env`:
+
+| Setting | What to put there |
+| --- | --- |
+| `AUTH_SECRET` | a random string — `openssl rand -base64 32` |
+| `DB_PASSWORD` | a random string — `openssl rand -hex 24` |
+| `PUBLIC_URL` | the address you'll open it at, e.g. `http://192.168.1.20:3000` or `https://books.example.com` |
+
+Then start it:
+
+```bash
+docker compose up -d
+```
+
+Open `PUBLIC_URL`. The first visit asks you to create your account — the
+owner of this Bookplate. After that, sign-up is closed.
+
+Images run on both `amd64` and `arm64` (Raspberry Pi, Apple Silicon, most
+NAS boxes) and are published to Docker Hub (`leophh/bookplate`) and GitHub
+Container Registry (`ghcr.io/leophh/bookplate`).
+
+### Updating
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Database changes are applied automatically when the new version starts.
+To stay on a particular release, set `BOOKPLATE_VERSION=0.1.0` in `.env`.
+
+### Backups
+
+The easy way: **Settings → Export library** downloads everything — books,
+notes, pasted images, covers and vocabulary — as one zip. **Settings →
+Import** reads it back into any Bookplate.
+
+For full server backups, save both volumes:
+
+```bash
+docker compose exec postgres pg_dump -U bookplate bookplate > bookplate.sql
+docker compose cp bookplate:/data/uploads ./uploads-backup
+```
+
+### HTTPS and reverse proxies
+
+Bookplate speaks plain HTTP on port 3000. To put it on the internet, run it
+behind a reverse proxy that handles HTTPS — for example with Caddy:
+
+```
+books.example.com {
+    reverse_proxy localhost:3000
+}
+```
+
+and set `PUBLIC_URL=https://books.example.com`. If you'd rather not expose it
+publicly, a VPN such as Tailscale works well too.
+
+### Coming from the original app
+
+If you ran the earlier git-based version of Bookplate, zip its `data/`
+folder and use **Settings → Import**. Books, covers, notes, pasted images
+and vocabulary all come across.
+
+## Configuration
+
+| Variable | Default | |
+| --- | --- | --- |
+| `DATABASE_URL` | — | Postgres connection string (set for you by the compose file) |
+| `AUTH_SECRET` | — | signs session cookies; required |
+| `PUBLIC_URL` | `http://localhost:3000` | the address Bookplate is reached at |
+| `REGISTRATION` | `closed` | `open` lets anyone who can reach the server create their own separate library |
+| `UPLOADS_DIR` | `/data/uploads` in Docker | where covers and pasted images are stored |
+
+Bookplate sends no telemetry. The only outside services it talks to are Open
+Library and iTunes (book search and covers) and Wiktionary (word lookups),
+and only when you use those features.
+
+## Development
+
+```bash
+npm install
+npm run db:up        # Postgres in Docker on port 5433 (docker-compose.dev.yml)
+cp .env.example .env.local
+# set DATABASE_URL=postgres://bookplate:bookplate@localhost:5433/bookplate
+# plus AUTH_SECRET and PUBLIC_URL=http://localhost:3000
+npm run dev
+```
+
+Changing `lib/db/schema.ts`? Run `npm run db:generate` to write a new
+migration into `drizzle/`, and commit it.
+
+## Tech notes
+
+- **Next.js 16** (App Router, TypeScript), built as a standalone server for
+  the Docker image.
+- **Postgres** through **Drizzle ORM**. Every record belongs to a user, and
+  every query is scoped to the signed-in user.
+- **Better Auth** for accounts and sessions, stored in the same database.
+- Images live behind a small storage interface (`lib/storage/`); the local
+  disk driver writes to `UPLOADS_DIR`.
+- **No UI framework**: hand-written CSS, all in `app/globals.css`. Covers,
+  charts, the calendar, and the dialogs are all plain CSS.
+- Runtime dependencies beyond React/Next: `react-easy-crop` for the cover
+  crop gesture, **TipTap** (`@tiptap/react` + `tiptap-markdown`) for the
+  inline notes editor — content is stored as markdown, not editor JSON — and
+  `fflate` for export zips.
+
+## Project structure
+
+```
+app/
+  page.tsx              # the library UI state lives here
+  vocabulary/           # the word registry page
+  books/[id]/           # per-book notes page (TipTap inline editor)
+  settings/             # export, import, sign out
+  login/, setup/        # sign-in and first-run account creation
+  api/books/            # list books; PUT/DELETE one book
+  api/covers/           # store, serve, delete cropped covers
+  api/booksearch/       # Open Library search + cover proxy w/ iTunes fallback
+  api/notes/            # notes markdown + pasted images (+ orphan GC on save)
+  api/vocabulary/       # list words; PUT/DELETE one word
+  api/define/           # Wiktionary definition proxy
+  api/export/, import/  # library zip out and in
+  api/health/           # used by the Docker healthcheck
+components/             # CoverGrid, ListView, StatsView, SiteNav, BookDetail, …
+lib/
+  db/                   # Drizzle schema, connection, migration runner
+  storage/              # image storage interface + local disk driver
+  auth.ts               # Better Auth setup, requireUser()
+  library.ts            # all reads and writes, scoped per user
+  archive.ts            # export / import format
+drizzle/                # SQL migrations (generated — don't edit by hand)
+proxy.ts                # sends signed-out visitors to /login
+```
+
+## License
+
+Bookplate is licensed under the [Apache License 2.0](LICENSE). The name and
+logo are not covered by the license — see [TRADEMARK.md](TRADEMARK.md).
