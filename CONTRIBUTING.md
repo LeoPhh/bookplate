@@ -9,6 +9,7 @@ Thanks for helping! Bug reports, ideas and pull requests are all welcome.
   and commit the new file in `drizzle/`.
 - Every query must be scoped to the signed-in user — use the helpers in
   `lib/library.ts` and `requireUser()` in route handlers.
+- Releases and Docker image tags are covered in [RELEASING.md](RELEASING.md).
 
 By submitting a contribution you agree that it is licensed under the
 project's [Apache License 2.0](LICENSE).
