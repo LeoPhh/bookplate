@@ -53,12 +53,17 @@ export async function compressForNotes(file: Blob): Promise<Blob> {
   }
 }
 
-// Renders the chosen crop region to a 2:3 JPEG, capped at 600×900 so covers
-// stay small on disk without visible quality loss at display sizes.
-export async function cropToJpegBlob(src: string, area: CropArea): Promise<Blob> {
+// Renders the chosen crop region to a JPEG of the given proportions, capped
+// in width so images stay small on disk without visible quality loss at
+// display sizes. Defaults suit covers: 2:3, at most 600×900.
+export async function cropToJpegBlob(
+  src: string,
+  area: CropArea,
+  { aspect = 2 / 3, maxWidth = 600 }: { aspect?: number; maxWidth?: number } = {}
+): Promise<Blob> {
   const img = await loadImage(src);
-  const width = Math.max(1, Math.min(600, Math.round(area.width)));
-  const height = Math.round(width * 1.5);
+  const width = Math.max(1, Math.min(maxWidth, Math.round(area.width)));
+  const height = Math.round(width / aspect);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;

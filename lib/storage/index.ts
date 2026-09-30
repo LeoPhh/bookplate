@@ -66,9 +66,12 @@ export function contentTypeOf(name: string): string {
 }
 
 export const keys = {
+  userDir: (userId: string) => `${userId}/`,
   cover: (userId: string, name: string) => `${userId}/covers/${name}`,
   notesDir: (userId: string, bookId: string) => `${userId}/notes/${bookId}/`,
   notesImage: (userId: string, bookId: string, name: string) => `${userId}/notes/${bookId}/${name}`,
+  avatarDir: (userId: string) => `${userId}/avatar/`,
+  avatar: (userId: string, name: string) => `${userId}/avatar/${name}`,
 };
 
 // The URLs the app stores in books and notes. They carry no user id: the
@@ -76,4 +79,5 @@ export const keys = {
 export const urls = {
   cover: (name: string) => `/api/covers/${name}`,
   notesImage: (bookId: string, name: string) => `/api/notes/images/${bookId}/${name}`,
+  avatar: (name: string) => `/api/avatar/${name}`,
 };

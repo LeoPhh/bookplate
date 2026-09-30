@@ -6,7 +6,7 @@ import { PALETTE } from "@/lib/palette";
 import { fileToDataUrl } from "@/lib/image";
 import StarRating from "./StarRating";
 import DatePicker from "./DatePicker";
-import CoverCropper from "./CoverCropper";
+import ImageCropper from "./ImageCropper";
 
 // What should happen to the stored cover file when the form is saved.
 export type CoverAction = { type: "keep" } | { type: "remove" } | { type: "upload"; blob: Blob };
@@ -440,7 +440,7 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
             </button>
           </div>
         </form>
-        {rawImage && <CoverCropper imageSrc={rawImage} onConfirm={cropDone} onCancel={() => setRawImage(null)} />}
+        {rawImage && <ImageCropper imageSrc={rawImage} onConfirm={cropDone} onCancel={() => setRawImage(null)} />}
       </div>
     </div>
   );

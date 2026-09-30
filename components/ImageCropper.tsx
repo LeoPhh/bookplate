@@ -8,9 +8,26 @@ interface Props {
   imageSrc: string;
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
+  // Defaults crop a book cover; the profile photo passes a round 1:1 crop.
+  aspect?: number;
+  round?: boolean;
+  maxWidth?: number;
+  title?: string;
+  hint?: string;
+  confirmLabel?: string;
 }
 
-export default function CoverCropper({ imageSrc, onConfirm, onCancel }: Props) {
+export default function ImageCropper({
+  imageSrc,
+  onConfirm,
+  onCancel,
+  aspect = 2 / 3,
+  round = false,
+  maxWidth = 600,
+  title = "Crop the cover",
+  hint = "Drag to position the image; the frame keeps the 2 : 3 cover proportions.",
+  confirmLabel = "Use this cover",
+}: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [area, setArea] = useState<CropArea | null>(null);
@@ -33,7 +50,7 @@ export default function CoverCropper({ imageSrc, onConfirm, onCancel }: Props) {
     if (!area || busy) return;
     setBusy(true);
     try {
-      onConfirm(await cropToJpegBlob(imageSrc, area));
+      onConfirm(await cropToJpegBlob(imageSrc, area, { aspect, maxWidth }));
     } catch {
       setBusy(false);
     }
@@ -45,17 +62,18 @@ export default function CoverCropper({ imageSrc, onConfirm, onCancel }: Props) {
         className="dialog dialog--cropper"
         role="dialog"
         aria-modal="true"
-        aria-label="Crop cover image"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="form-heading">Crop the cover</h2>
-        <p className="cropper-hint">Drag to position the image; the frame keeps the 2 : 3 cover proportions.</p>
+        <h2 className="form-heading">{title}</h2>
+        <p className="cropper-hint">{hint}</p>
         <div className="cropper-stage">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={2 / 3}
+            aspect={aspect}
+            cropShape={round ? "round" : "rect"}
             showGrid={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}
@@ -69,7 +87,7 @@ export default function CoverCropper({ imageSrc, onConfirm, onCancel }: Props) {
         </label>
         <div className="dialog-actions">
           <button type="button" className="btn btn--primary" onClick={confirm} disabled={!area || busy}>
-            {busy ? "Preparing…" : "Use this cover"}
+            {busy ? "Preparing…" : confirmLabel}
           </button>
           <button type="button" className="btn" onClick={onCancel}>
             Cancel

@@ -2,6 +2,9 @@
 
 import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { fileToDataUrl } from "@/lib/image";
+import Avatar from "./Avatar";
+import ImageCropper from "./ImageCropper";
 
 interface ImportSummary {
   books: number;
@@ -9,6 +12,118 @@ interface ImportSummary {
   notes: number;
   images: number;
   skipped: number;
+}
+
+interface ProfileUser {
+  name: string;
+  email: string;
+  image: string | null;
+}
+
+// Tells every useSession() on the page (the avatar in the masthead) to
+// fetch the account again after the photo changes.
+function refreshSession() {
+  authClient.$store.notify("$sessionSignal");
+}
+
+function Profile({ user }: { user: ProfileUser }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [image, setImage] = useState(user.image);
+  const [rawImage, setRawImage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pick = async (file: File) => {
+    setError(null);
+    try {
+      setRawImage(await fileToDataUrl(file));
+    } catch {
+      setError("That image could not be opened.");
+    }
+  };
+
+  const upload = async (blob: Blob) => {
+    setRawImage(null);
+    setBusy(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", blob, "avatar.jpg");
+      const res = await fetch("/api/avatar", { method: "POST", body: fd });
+      const data: { image?: string; error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.image) throw new Error(data.error ?? "The photo could not be saved.");
+      setImage(data.image);
+      refreshSession();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The photo could not be saved.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/avatar", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setImage(null);
+      refreshSession();
+    } catch {
+      setError("The photo could not be removed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="profile">
+      <Avatar image={image} size={112} />
+      <div className="profile-body">
+        <p className="profile-name">{user.name}</p>
+        <p className="profile-email">{user.email}</p>
+        <div className="settings-row">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void pick(file);
+              e.target.value = "";
+            }}
+          />
+          <button type="button" className="btn" disabled={busy} onClick={() => fileRef.current?.click()}>
+            {busy ? "Saving…" : image ? "Change photo…" : "Add a photo…"}
+          </button>
+          {image && (
+            <button type="button" className="btn" disabled={busy} onClick={remove}>
+              Remove photo
+            </button>
+          )}
+        </div>
+        {error && (
+          <p className="settings-note settings-note--error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+      {rawImage && (
+        <ImageCropper
+          imageSrc={rawImage}
+          aspect={1}
+          round
+          maxWidth={256}
+          title="Crop your photo"
+          hint="Drag to position the photo and zoom to fit; the circle is what shows."
+          confirmLabel="Use this photo"
+          onConfirm={upload}
+          onCancel={() => setRawImage(null)}
+        />
+      )}
+    </div>
+  );
 }
 
 function ChangePassword() {
@@ -91,7 +206,82 @@ function ChangePassword() {
   );
 }
 
-export default function SettingsPanel() {
+// Permanently deletes the account and its whole library, after the password.
+function DeleteAccount() {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        const data: { error?: string } = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "The account could not be deleted.");
+      }
+      window.location.href = "/login";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The account could not be deleted.");
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button type="button" className="btn btn--danger" onClick={() => setOpen(true)}>
+        Delete account
+      </button>
+    );
+  }
+
+  return (
+    <form className="book-form settings-password" onSubmit={submit}>
+      <label className="field field--wide">
+        <span>Your password, to confirm</span>
+        <input
+          type="password"
+          required
+          autoFocus
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+        />
+      </label>
+      {error && (
+        <p className="settings-note settings-note--error field--wide" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="field--wide settings-row">
+        <button type="submit" className="btn btn--danger-solid" disabled={busy || !password}>
+          {busy ? "Deleting…" : "Delete my account and library"}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={() => {
+            setOpen(false);
+            setPassword("");
+            setError(null);
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export default function SettingsPanel({ user }: { user: ProfileUser }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -124,13 +314,13 @@ export default function SettingsPanel() {
     }
   };
 
-  const signOut = async () => {
-    await authClient.signOut();
-    window.location.href = "/login";
-  };
-
   return (
     <div className="settings">
+      <section className="settings-section">
+        <h2 className="form-heading">Profile</h2>
+        <Profile user={user} />
+      </section>
+
       <section className="settings-section">
         <h2 className="form-heading">Export</h2>
         <p className="settings-lede">
@@ -175,11 +365,13 @@ export default function SettingsPanel() {
         <ChangePassword />
       </section>
 
-      <section className="settings-section">
-        <h2 className="form-heading">Account</h2>
-        <button type="button" className="btn" onClick={signOut}>
-          Sign out
-        </button>
+      <section className="settings-section settings-section--danger">
+        <h2 className="form-heading">Danger zone</h2>
+        <p className="settings-lede">
+          Deleting your account permanently removes it along with every book, note, pasted image, cover and word in
+          it. This can&rsquo;t be undone — export your library first if you might want it back.
+        </p>
+        <DeleteAccount />
       </section>
     </div>
   );
