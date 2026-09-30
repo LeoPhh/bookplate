@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Book } from "@/lib/types";
 import { apiFetch, putJson } from "@/lib/api";
+import { newId } from "@/lib/id";
 import Toolbar, { StatusFilter, ViewMode } from "@/components/Toolbar";
 import CoverGrid from "@/components/CoverGrid";
 import ListView from "@/components/ListView";
@@ -143,7 +144,7 @@ export default function Home() {
   }, [books]);
 
   const handleSave = async (draft: Omit<Book, "id" | "addedAt" | "coverImage">, cover: CoverAction) => {
-    const id = editing?.id ?? crypto.randomUUID();
+    const id = editing?.id ?? newId();
     let coverImage = editing?.coverImage;
     try {
       if (cover.type === "upload") {

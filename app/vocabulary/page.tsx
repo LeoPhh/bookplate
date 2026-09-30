@@ -6,6 +6,7 @@ import { Book, VocabEntry } from "@/lib/types";
 import SiteNav from "@/components/SiteNav";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { apiFetch, putJson } from "@/lib/api";
+import { newId } from "@/lib/id";
 
 interface DefineSense {
   partOfSpeech: string;
@@ -156,7 +157,7 @@ export default function VocabularyPage() {
   const saveEntry = (draft: Omit<VocabEntry, "id" | "addedAt" | "bookId">) => {
     const entry: VocabEntry = {
       ...draft,
-      id: crypto.randomUUID(),
+      id: newId(),
       bookId: bookId || undefined,
       addedAt: new Date().toISOString(),
     };
