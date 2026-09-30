@@ -32,6 +32,10 @@
 
 html {
   height: 100%;
+  /* Always reserve the scrollbar's width, so switching between a long page
+     (the library) and a short one (vocabulary) never shifts the layout
+     sideways when scrollbars are set to always show. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -111,6 +115,13 @@ button {
   letter-spacing: -0.045em;
   line-height: 0.88;
   margin: 4px 0 6px;
+}
+
+/* Without a stats line underneath, give the title's descenders (the g in
+   Settings, the y in Vocabulary) room above the masthead rule. */
+
+.masthead-title:has(+ .site-nav) {
+  margin-bottom: 16px;
 }
 
 .masthead-stats {
@@ -2778,6 +2789,13 @@ select,
   font-size: 15px;
   margin: 4px 0 14px;
   overflow-wrap: anywhere;
+}
+
+.settings-version {
+  margin-top: 48px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .settings-password {

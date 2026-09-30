@@ -15,12 +15,12 @@ export default async function SettingsPage() {
       <header className="masthead">
         <p className="masthead-eyebrow">Your Own Personal, Digital Library</p>
         <h1 className="masthead-title">Settings</h1>
-        <p className="masthead-stats">Your account and your library&rsquo;s backups · Bookplate {config.version}</p>
         <SiteNav />
       </header>
       <SettingsPanel
         user={{ name: session.user.name, email: session.user.email, image: session.user.image ?? null }}
       />
+      <p className="settings-version">Bookplate version {config.version}</p>
       <footer className="colophon">— ex libris —</footer>
     </main>
   );
