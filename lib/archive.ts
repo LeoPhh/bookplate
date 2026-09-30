@@ -2,7 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync, Zippable } from "fflate";
 import { importRecords, listBooks, listVocabulary } from "./library";
 import { getDb, schema } from "./db";
 import { eq } from "drizzle-orm";
-import { getStorage, isSafeFileName, isSafeId, keys } from "./storage";
+import { contentTypeOf, detectImageType, getStorage, isSafeFileName, isSafeId, keys } from "./storage";
 import { isValidBook, isValidVocab } from "./validate";
 import { Book, VocabEntry } from "./types";
 import { config } from "./config";
@@ -126,9 +126,11 @@ export async function importArchive(userId: string, zip: Uint8Array): Promise<Im
     if ((m = rel.match(/^notes\/([^/]+)\.md$/)) && isSafeId(m[1])) {
       notes[m[1]] = strFromU8(data);
     } else if ((m = rel.match(/^notes\/images\/([^/]+)\/([^/]+)$/)) && isSafeId(m[1]) && isSafeFileName(m[2])) {
-      images.push({ key: keys.notesImage(userId, m[1], m[2]), data });
+      if (isImageNamed(m[2], data)) images.push({ key: keys.notesImage(userId, m[1], m[2]), data });
+      else skipped++;
     } else if ((m = rel.match(/^covers\/([^/]+)$/)) && isSafeFileName(m[1])) {
-      images.push({ key: keys.cover(userId, m[1]), data });
+      if (isImageNamed(m[1], data)) images.push({ key: keys.cover(userId, m[1]), data });
+      else skipped++;
     }
   }
 
@@ -144,6 +146,11 @@ export async function importArchive(userId: string, zip: Uint8Array): Promise<Im
     images: images.length,
     skipped,
   };
+}
+
+// Only store files whose contents really are the image type their name says.
+function isImageNamed(name: string, data: Uint8Array): boolean {
+  return detectImageType(data) === contentTypeOf(name);
 }
 
 function readJson(data: Uint8Array | undefined): unknown {

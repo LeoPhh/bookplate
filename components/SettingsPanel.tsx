@@ -11,6 +11,86 @@ interface ImportSummary {
   skipped: number;
 }
 
+function ChangePassword() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (next !== confirm) {
+      setResult({ ok: false, text: "The new passwords don't match." });
+      return;
+    }
+    setBusy(true);
+    setResult(null);
+    const { error } = await authClient.changePassword({
+      currentPassword: current,
+      newPassword: next,
+      // Anyone signed in elsewhere (another browser, a lost phone) is signed out.
+      revokeOtherSessions: true,
+    });
+    setBusy(false);
+    if (error) {
+      setResult({ ok: false, text: error.message ?? "The password could not be changed." });
+      return;
+    }
+    setCurrent("");
+    setNext("");
+    setConfirm("");
+    setResult({ ok: true, text: "Password changed. Other devices have been signed out." });
+  };
+
+  return (
+    <form className="book-form settings-password" onSubmit={submit}>
+      <label className="field field--wide">
+        <span>Current password</span>
+        <input
+          type="password"
+          required
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          autoComplete="current-password"
+        />
+      </label>
+      <label className="field">
+        <span>New password</span>
+        <input
+          type="password"
+          required
+          minLength={8}
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          autoComplete="new-password"
+        />
+      </label>
+      <label className="field">
+        <span>Repeat new password</span>
+        <input
+          type="password"
+          required
+          minLength={8}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          autoComplete="new-password"
+        />
+      </label>
+      {result && (
+        <p className={result.ok ? "settings-note field--wide" : "settings-note settings-note--error field--wide"} role="status">
+          {result.text}
+        </p>
+      )}
+      <div className="field--wide">
+        <button type="submit" className="btn btn--primary" disabled={busy}>
+          {busy ? "Changing…" : "Change password"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function SettingsPanel() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -34,7 +114,7 @@ export default function SettingsPanel() {
         text:
           `Imported ${s.books} ${s.books === 1 ? "book" : "books"}, ${s.words} ${s.words === 1 ? "word" : "words"}, ` +
           `${s.notes} notes and ${s.images} images.` +
-          (s.skipped ? ` ${s.skipped} unreadable records were skipped.` : ""),
+          (s.skipped ? ` ${s.skipped} unreadable items were skipped.` : ""),
       });
     } catch {
       setResult({ ok: false, text: "The import failed — is the server still running?" });
@@ -88,6 +168,11 @@ export default function SettingsPanel() {
             {result.text}
           </p>
         )}
+      </section>
+
+      <section className="settings-section">
+        <h2 className="form-heading">Password</h2>
+        <ChangePassword />
       </section>
 
       <section className="settings-section">

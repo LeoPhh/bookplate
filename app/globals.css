@@ -2635,6 +2635,10 @@ select,
   gap: 12px;
 }
 
+.settings-password {
+  max-width: 520px;
+}
+
 .settings-note {
   margin-top: 12px;
   font-size: 14.5px;

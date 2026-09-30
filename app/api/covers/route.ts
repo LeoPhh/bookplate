@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { getStorage, isSafeId, keys, urls } from "@/lib/storage";
+import { detectImageType, getStorage, isSafeId, keys, urls } from "@/lib/storage";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
@@ -16,7 +16,12 @@ export async function POST(request: Request) {
   if (file.size > MAX_BYTES) {
     return Response.json({ error: "Image too large" }, { status: 413 });
   }
+  const data = new Uint8Array(await file.arrayBuffer());
+  // The browser always sends a cropped JPEG; anything else isn't a cover.
+  if (detectImageType(data) !== "image/jpeg") {
+    return Response.json({ error: "Covers must be JPEG images" }, { status: 415 });
+  }
   const name = `${id}.jpg`;
-  await getStorage().put(keys.cover(auth.userId, name), new Uint8Array(await file.arrayBuffer()));
+  await getStorage().put(keys.cover(auth.userId, name), data);
   return Response.json({ path: urls.cover(name) });
 }

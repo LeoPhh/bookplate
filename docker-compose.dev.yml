@@ -1,4 +1,10 @@
 # Postgres for local development: `npm run db:up`, then `npm run dev`.
+#
+# Its own project name keeps it apart from a real Bookplate server on the
+# same machine: the production compose file is also named "bookplate", and
+# sharing the name would let one replace the other's database container.
+name: bookplate-dev
+
 services:
   postgres:
     image: postgres:17-alpine
