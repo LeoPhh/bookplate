@@ -22,17 +22,25 @@ interface SearchResult {
 interface Props {
   book: Book | null; // null = adding a new book
   genres: string[]; // existing genres across the library, for the dropdown
+  languages: string[]; // existing languages, including custom entries
   onSave: (draft: Omit<Book, "id" | "addedAt" | "coverImage">, cover: CoverAction) => void;
   onClose: () => void;
 }
 
 // Sentinel option value that switches the genre dropdown into free-text mode.
 const NEW_GENRE = "__new__";
+const NEW_LANGUAGE = "__new_language__";
+const COMMON_LANGUAGES = [
+  "Arabic", "Chinese", "Dutch", "English", "French", "German", "Greek",
+  "Hindi", "Italian", "Japanese", "Korean", "Latin", "Polish", "Portuguese",
+  "Russian", "Spanish", "Swedish", "Turkish", "Ukrainian",
+];
 
 interface Draft {
   title: string;
   author: string;
   genre: string;
+  language: string;
   pages: string;
   format: BookFormat | "";
   status: BookStatus;
@@ -48,6 +56,7 @@ function draftFrom(book: Book | null): Draft {
       title: "",
       author: "",
       genre: "",
+      language: "",
       pages: "",
       format: "",
       status: "to-read",
@@ -61,6 +70,7 @@ function draftFrom(book: Book | null): Draft {
     title: book.title,
     author: book.author,
     genre: book.genre ?? "",
+    language: book.language ?? "",
     pages: book.pages?.toString() ?? "",
     format: book.format ?? "",
     status: book.status,
@@ -71,9 +81,10 @@ function draftFrom(book: Book | null): Draft {
   };
 }
 
-export default function BookForm({ book, genres, onSave, onClose }: Props) {
+export default function BookForm({ book, genres, languages, onSave, onClose }: Props) {
   const [d, setD] = useState<Draft>(() => draftFrom(book));
   const [addingGenre, setAddingGenre] = useState(false);
+  const [addingLanguage, setAddingLanguage] = useState(false);
   const [coverAction, setCoverAction] = useState<CoverAction>({ type: "keep" });
   const [coverPreview, setCoverPreview] = useState<string | null>(book?.coverImage ?? null);
   const [rawImage, setRawImage] = useState<string | null>(null); // selected file awaiting crop
@@ -102,6 +113,11 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
     d.genre && !addingGenre && !genres.includes(d.genre)
       ? [...genres, d.genre].sort((a, b) => a.localeCompare(b))
       : genres;
+  const languageOptions = [...new Set([
+    ...COMMON_LANGUAGES,
+    ...languages,
+    ...(!addingLanguage && d.language ? [d.language] : []),
+  ])].sort((a, b) => a.localeCompare(b));
 
   const runSearch = async () => {
     const q = searchQ.trim();
@@ -203,6 +219,7 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
         title: d.title.trim(),
         author: d.author.trim(),
         genre: d.genre.trim() || undefined,
+        language: d.language.trim() || undefined,
         pages: d.pages ? Number(d.pages) : undefined,
         format: d.format || undefined,
         status: d.status,
@@ -364,6 +381,51 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
                   </option>
                 ))}
                 <option value={NEW_GENRE}>＋ Add a category…</option>
+              </select>
+            )}
+          </div>
+          <div className="field">
+            <span><label htmlFor="book-language">Language</label></span>
+            {addingLanguage ? (
+              <div className="language-new">
+                <input
+                  id="book-language"
+                  value={d.language}
+                  onChange={(e) => set("language", e.target.value)}
+                  placeholder="New language"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setAddingLanguage(false);
+                    set("language", "");
+                  }}
+                  aria-label="Back to the language list"
+                  title="Back to the language list"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <select
+                id="book-language"
+                value={d.language}
+                onChange={(e) => {
+                  if (e.target.value === NEW_LANGUAGE) {
+                    setAddingLanguage(true);
+                    set("language", "");
+                  } else {
+                    set("language", e.target.value);
+                  }
+                }}
+              >
+                <option value="">—</option>
+                {languageOptions.map((language) => (
+                  <option key={language} value={language}>{language}</option>
+                ))}
+                <option value={NEW_LANGUAGE}>＋ Add a language…</option>
               </select>
             )}
           </div>

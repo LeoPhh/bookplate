@@ -180,6 +180,15 @@ export default function Home() {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [books]);
 
+  const languages = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of books ?? []) {
+      const language = b.language?.trim();
+      if (language) set.add(language);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [books]);
+
   const stats = useMemo(() => {
     if (!books || books.length === 0) return null;
     const read = books.filter((b) => b.status === "read");
@@ -304,6 +313,7 @@ export default function Home() {
         <BookForm
           book={editing}
           genres={genres}
+          languages={languages}
           onSave={handleSave}
           onClose={() => {
             setFormOpen(false);
