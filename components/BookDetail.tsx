@@ -105,6 +105,10 @@ export default function BookDetail({
                 <dd>{book.genre ?? "—"}</dd>
               </div>
               <div>
+                <dt>Language</dt>
+                <dd>{book.language ?? "—"}</dd>
+              </div>
+              <div>
                 <dt>Pages</dt>
                 <dd>{book.pages ?? "—"}</dd>
               </div>

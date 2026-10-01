@@ -76,7 +76,8 @@ opens it in the crop dialog. Everything can also be entered fully by hand.
 
 ![Adding a book via catalogue search](docs/add-book.png)
 
-Each book carries: title, author, genre, page count, source (book store /
+Each book carries: title, author, genre, language (with common choices and
+custom entries), page count, source (book store /
 Kindle / audiobook / borrowed / second hand / gifted / library), status
 (read / reading / to read), whether a physical copy lives at home, a 1–5
 star rating, the date finished (picked with a calendar), and its

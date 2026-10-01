@@ -1577,12 +1577,14 @@ a.btn {
   border-color: var(--ink);
 }
 
-.genre-new {
+.genre-new,
+.language-new {
   display: flex;
   gap: 8px;
 }
 
-.genre-new input {
+.genre-new input,
+.language-new input {
   flex: 1;
   min-width: 0;
 }
