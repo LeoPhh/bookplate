@@ -82,6 +82,7 @@ export const book = pgTable(
     title: text("title").notNull(),
     author: text("author").notNull(),
     isbn: text("isbn"), // ISBN-13 or ISBN-10, digits only (plus a trailing X)
+    olWorkId: text("ol_work_id"), // Open Library work, e.g. OL893415W (books added from the catalogue)
     genre: text("genre"),
     pages: integer("pages"),
     format: text("format"),

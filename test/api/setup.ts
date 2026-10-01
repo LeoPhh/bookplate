@@ -3,8 +3,8 @@ import { cpSync, existsSync, mkdtempSync, rmSync } from "fs";
 import { createServer } from "net";
 import { tmpdir } from "os";
 import path from "path";
-import { Client } from "pg";
 import type { TestProject } from "vitest/node";
+import { createDatabase, dropDatabase } from "./db";
 
 // Starts the real production build (.next/standalone/server.js) against a
 // fresh database for the API tests, and removes both afterwards.
@@ -20,7 +20,6 @@ declare module "vitest" {
 
 const ROOT = path.resolve(__dirname, "../..");
 const SERVER = path.join(ROOT, ".next/standalone/server.js");
-const ADMIN_URL = process.env.TEST_DATABASE_ADMIN_URL ?? "postgres://bookplate:bookplate@localhost:5433/bookplate";
 
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -33,16 +32,6 @@ function freePort(): Promise<number> {
   });
 }
 
-async function admin<T>(fn: (c: Client) => Promise<T>): Promise<T> {
-  const client = new Client({ connectionString: ADMIN_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.end();
-  }
-}
-
 export default async function setup(project: TestProject) {
   if (!existsSync(SERVER)) {
     throw new Error("The API tests run against the production build — run `npm run build` first.");
@@ -51,12 +40,7 @@ export default async function setup(project: TestProject) {
   cpSync(path.join(ROOT, "drizzle"), path.join(ROOT, ".next/standalone/drizzle"), { recursive: true });
 
   const dbName = `bookplate_test_${process.pid}`;
-  await admin(async (c) => {
-    await c.query(`DROP DATABASE IF EXISTS ${dbName}`);
-    await c.query(`CREATE DATABASE ${dbName}`);
-  });
-  const dbUrl = new URL(ADMIN_URL);
-  dbUrl.pathname = `/${dbName}`;
+  const dbUrl = await createDatabase(dbName);
 
   const uploads = mkdtempSync(path.join(tmpdir(), "bookplate-test-uploads-"));
   const port = await freePort();
@@ -74,7 +58,7 @@ export default async function setup(project: TestProject) {
       NODE_ENV: "production",
       PORT: String(port),
       HOSTNAME: "127.0.0.1",
-      DATABASE_URL: dbUrl.toString(),
+      DATABASE_URL: dbUrl,
       AUTH_SECRET: "test-secret-that-is-long-enough-for-better-auth",
       PUBLIC_URL: baseUrl,
       UPLOADS_DIR: uploads,
@@ -105,6 +89,6 @@ export default async function setup(project: TestProject) {
     child.kill("SIGTERM");
     await new Promise((r) => child.once("exit", r));
     rmSync(uploads, { recursive: true, force: true });
-    await admin((c) => c.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`));
+    await dropDatabase(dbName);
   };
 }

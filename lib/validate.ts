@@ -1,3 +1,4 @@
+import { isWorkId } from "./openLibrary";
 import { Book, ProgressEntry, VocabEntry } from "./types";
 
 const ID_RE = /^[a-zA-Z0-9_-]+$/;
@@ -20,6 +21,7 @@ export function isValidBook(b: unknown): b is Book {
     optional(o, "pages", "number") &&
     optional(o, "genre", "string") &&
     optional(o, "isbn", "string") &&
+    (o.olWorkId === undefined || o.olWorkId === null || isWorkId(o.olWorkId)) &&
     optional(o, "format", "string") &&
     optional(o, "copy", "boolean") &&
     optional(o, "dateRead", "string") &&

@@ -7,6 +7,7 @@ export interface Book {
   title: string;
   author: string;
   isbn?: string; // digits only; set by Goodreads/StoryGraph imports
+  olWorkId?: string; // Open Library work id, e.g. OL893415W; set when added from the catalogue
   genre?: string;
   pages?: number;
   format?: BookFormat;

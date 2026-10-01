@@ -12,7 +12,7 @@ const sortById = (books: Book[]) => [...books].sort((a, b) => a.id.localeCompare
 describe("export and import", () => {
   it("round-trips a library into another account", async () => {
     const a = await reader("A");
-    await a.json("/api/books/b1", "PUT", book("b1", { title: "Dune", pages: 412, coverImage: "/api/covers/b1.jpg" }));
+    await a.json("/api/books/b1", "PUT", book("b1", { title: "Dune", pages: 412, coverImage: "/api/covers/b1.jpg", olWorkId: "OL893414W" }));
     await a.json("/api/books/b2", "PUT", book("b2", { status: "reading", pages: 300 }));
     await a.upload("/api/covers", { file: jpeg(), id: "b1" });
     await a.json("/api/notes/b1", "PUT", { notes: "Spice." });

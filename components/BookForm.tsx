@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import type { SearchResult } from "@/lib/openLibrary";
 import { Book, BookFormat, BookStatus, FORMAT_LABELS, STATUS_LABELS } from "@/lib/types";
 import { PALETTE } from "@/lib/palette";
 import { fileToDataUrl } from "@/lib/image";
@@ -11,13 +12,6 @@ import ImageCropper from "./ImageCropper";
 // What should happen to the stored cover file when the form is saved.
 export type CoverAction = { type: "keep" } | { type: "remove" } | { type: "upload"; blob: Blob };
 
-interface SearchResult {
-  title: string;
-  author: string;
-  pages: number | null;
-  coverId: number | null;
-  year: number | null;
-}
 
 interface Props {
   book: Book | null; // null = adding a new book
@@ -40,6 +34,7 @@ interface Draft {
   rating: number;
   dateRead: string;
   colorIndex: number;
+  olWorkId: string; // set when a catalogue result is picked
 }
 
 function draftFrom(book: Book | null): Draft {
@@ -55,6 +50,7 @@ function draftFrom(book: Book | null): Draft {
       rating: 0,
       dateRead: "",
       colorIndex: Math.floor(Math.random() * PALETTE.length),
+      olWorkId: "",
     };
   }
   return {
@@ -68,6 +64,7 @@ function draftFrom(book: Book | null): Draft {
     rating: book.rating,
     dateRead: book.dateRead ?? "",
     colorIndex: book.colorIndex,
+    olWorkId: book.olWorkId ?? "",
   };
 }
 
@@ -129,6 +126,7 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
       title: r.title,
       author: r.author || prev.author,
       pages: r.pages ? String(r.pages) : prev.pages,
+      olWorkId: r.workId ?? prev.olWorkId,
     }));
     setResults([]);
     setSearched(false);
@@ -212,6 +210,7 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
         // Notes are deliberately absent: they live in the book's markdown
         // notes page, and omitting the key preserves any legacy short note.
         colorIndex: d.colorIndex,
+        olWorkId: d.olWorkId || undefined,
       },
       coverAction
     );

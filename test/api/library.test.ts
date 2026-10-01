@@ -14,6 +14,15 @@ describe("books", () => {
     expect(books.find((b) => b.id === "b1")).toMatchObject({ title: "Dune", rating: 5 });
   });
 
+  it("keep the Open Library work id they were added with", async () => {
+    const r = await reader();
+    await r.json("/api/books/b1", "PUT", book("b1", { title: "Dune", olWorkId: "OL893414W" }));
+    // Editing the book (the form sends the whole book back) keeps it.
+    await r.json("/api/books/b1", "PUT", book("b1", { title: "Dune", rating: 5, olWorkId: "OL893414W" }));
+    expect((await r.get<{ books: Book[] }>("/api/books")).books[0]).toMatchObject({ olWorkId: "OL893414W", rating: 5 });
+    expect((await r.json("/api/books/b2", "PUT", book("b2", { olWorkId: "/works/OL1W" }))).status).toBe(400);
+  });
+
   it("refuses malformed books", async () => {
     const r = await reader();
     expect((await r.json("/api/books/b1", "PUT", book("b2"))).status).toBe(400); // id mismatch

@@ -9,6 +9,11 @@ describe("isValidBook", () => {
     expect(isValidBook({ id: "b", title: "T", author: "A", pages: "many" })).toBe(false);
     expect(isValidBook(null)).toBe(false);
   });
+
+  it("accepts only real Open Library work ids", () => {
+    expect(isValidBook({ id: "b", title: "T", author: "A", olWorkId: "OL893414W" })).toBe(true);
+    expect(isValidBook({ id: "b", title: "T", author: "A", olWorkId: "not-an-id" })).toBe(false);
+  });
 });
 
 describe("isValidVocab", () => {
