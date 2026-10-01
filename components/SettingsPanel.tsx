@@ -498,7 +498,57 @@ function CsvImport() {
   );
 }
 
-export default function SettingsPanel({ user }: { user: ProfileUser }) {
+// Whether this server can send email, and a way to check that it works.
+function EmailStatus({ email, to }: { email: { from: string } | null; to: string }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  if (!email) {
+    return (
+      <p className="settings-lede">
+        Email isn’t set up, so forgotten passwords are reset by whoever runs the server, with{" "}
+        <code>reset-password</code>. Add <code>SMTP_HOST</code> and the other email settings to let people reset their
+        own — see{" "}
+        <a href="https://bookplate.dev/docs#configuration" target="_blank" rel="noopener noreferrer">
+          the documentation
+        </a>
+        .
+      </p>
+    );
+  }
+
+  const send = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/email/test", { method: "POST" });
+      const data: { to?: string; error?: string } = await res.json().catch(() => ({}));
+      setResult(res.ok ? { ok: true, text: `Sent to ${data.to}. Check your inbox.` } : { ok: false, text: data.error ?? "It didn’t send." });
+    } catch {
+      setResult({ ok: false, text: "It didn’t send — is the server still running?" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <p className="settings-lede">
+        Email is set up, sending as <strong>{email.from}</strong>. Password-reset links go out by email.
+      </p>
+      <button type="button" className="btn" disabled={busy} onClick={send}>
+        {busy ? "Sending…" : `Send a test email to ${to}`}
+      </button>
+      {result && (
+        <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
+          {result.text}
+        </p>
+      )}
+    </>
+  );
+}
+
+export default function SettingsPanel({ user, email }: { user: ProfileUser; email: { from: string } | null }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -581,6 +631,11 @@ export default function SettingsPanel({ user }: { user: ProfileUser }) {
       <section className="settings-section">
         <h2 className="form-heading">Password</h2>
         <ChangePassword />
+      </section>
+
+      <section className="settings-section">
+        <h2 className="form-heading">Email</h2>
+        <EmailStatus email={email} to={user.email} />
       </section>
 
       <section className="settings-section settings-section--danger">

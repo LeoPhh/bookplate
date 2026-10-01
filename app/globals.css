@@ -2925,6 +2925,37 @@ select,
   grid-template-columns: 1fr;
 }
 
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-links a {
+  color: var(--ink);
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+.auth-links a:hover {
+  color: var(--accent);
+}
+
+.auth-command {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: var(--ink);
+  color: #fff;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .settings {
   display: grid;
   gap: 40px;

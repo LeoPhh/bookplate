@@ -31,6 +31,10 @@ COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 # SQL migrations, applied automatically when the server starts.
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
+# `docker compose exec bookplate reset-password you@example.com`
+COPY --from=build --chown=node:node /app/scripts/reset-password.mjs ./scripts/reset-password.mjs
+RUN printf '#!/bin/sh\nexec node /app/scripts/reset-password.mjs "$@"\n' > /usr/local/bin/reset-password \
+ && chmod 755 /usr/local/bin/reset-password
 
 USER node
 EXPOSE 3000

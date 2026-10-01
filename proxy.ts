@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // An optimistic gate: anyone without a session cookie is sent to sign in.
 // Real checks happen in every route handler (requireUser), which also
 // verifies the session itself.
-const PUBLIC = ["/login", "/setup", "/api/auth", "/api/health"];
+const PUBLIC = ["/login", "/setup", "/signup", "/forgot-password", "/reset-password", "/api/auth", "/api/health"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

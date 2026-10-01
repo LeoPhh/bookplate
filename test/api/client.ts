@@ -7,22 +7,26 @@ import { inject } from "vitest";
 // per-IP sign-up limit treats each test visitor separately).
 
 export const baseUrl = () => inject("baseUrl");
+export const emailBaseUrl = () => inject("emailBaseUrl");
 
 export class Visitor {
   cookie = "";
   readonly ip: string;
+  readonly base: string;
 
-  // A random private address per visitor, unique across test files.
-  constructor(ip?: string) {
+  // A random private address per visitor, unique across test files. `base`
+  // picks the test server (the plain one unless given).
+  constructor(ip?: string, base?: string) {
     this.ip = ip ?? `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+    this.base = base ?? baseUrl();
   }
 
   async fetch(path: string, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers);
-    headers.set("Origin", baseUrl());
+    headers.set("Origin", this.base);
     headers.set("X-Forwarded-For", this.ip);
     if (this.cookie) headers.set("Cookie", this.cookie);
-    const res = await fetch(baseUrl() + path, { ...init, headers, redirect: "manual" });
+    const res = await fetch(path.startsWith("http") ? path : this.base + path, { ...init, headers, redirect: "manual" });
     const set = res.headers.getSetCookie();
     if (set.length) this.cookie = set.map((c) => c.split(";")[0]).join("; ");
     return res;
@@ -54,12 +58,13 @@ export interface Reader extends Visitor {
   password: string;
 }
 
-// A new signed-in account.
-export async function reader(name = "Reader"): Promise<Reader> {
-  const v = new Visitor() as Reader;
+// A new account. On the plain server it's signed in straight away; on the
+// email server it still has to confirm its address (see confirmedReader).
+export async function reader(name = "Reader", base?: string): Promise<Reader> {
+  const v = new Visitor(undefined, base) as Reader;
   v.email = `${randomUUID()}@example.com`;
   v.password = `pw-${randomUUID()}`;
-  const res = await v.json("/api/auth/sign-up/email", "POST", { name, email: v.email, password: v.password });
+  const res = await v.json("/api/auth/sign-up/email", "POST", { name, email: v.email, password: v.password, callbackURL: "/login" });
   if (!res.ok) throw new Error(`sign-up failed: ${res.status} ${await res.text()}`);
   return v;
 }
@@ -80,3 +85,14 @@ export const book = (id: string, over: Record<string, unknown> = {}) => ({
   addedAt: "2026-01-01T00:00:00.000Z",
   ...over,
 });
+
+// A new account on the email server that has confirmed its address by
+// following the link in its welcome email — and is signed in as a result.
+export async function confirmedReader(name = "Reader"): Promise<Reader> {
+  const { waitForMail, linkIn } = await import("./mailpit");
+  const r = await reader(name, emailBaseUrl());
+  const mail = await waitForMail(r.email, "Confirm your email");
+  const res = await r.fetch(linkIn(mail, `${emailBaseUrl()}/api/auth/verify-email`));
+  if (res.status !== 302 && res.status !== 307) throw new Error(`confirming failed: ${res.status}`);
+  return r;
+}

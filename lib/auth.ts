@@ -7,9 +7,30 @@ import { headers } from "next/headers";
 import { config } from "./config";
 import { getDb, schema } from "./db";
 import { clearThrottle, recordFailure, throttleWait } from "./authThrottle";
+import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
 
 const signInKey = (body: unknown) =>
   `sign-in:${String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase()}`;
+
+// At most 3 emails of each kind per address per 15 minutes, so nobody can
+// flood someone's inbox. Over the limit, nothing is sent and nothing is said:
+// the request still looks successful, which also gives nothing away about
+// which addresses have accounts.
+const SENDS_PER_WINDOW = 3;
+
+async function sendLimited(kind: string, email: Email): Promise<void> {
+  const key = `${kind}:${email.to.toLowerCase()}`;
+  if ((await throttleWait(key, SENDS_PER_WINDOW)) > 0) return;
+  await recordFailure(key);
+  try {
+    await sendEmail(email);
+  } catch (e) {
+    // Logged for the server's owner, not shown: an error here would only
+    // happen for real accounts, revealing which addresses exist. Settings →
+    // "Send test email" is where mail problems show up.
+    console.error(`[email] could not send the ${kind} email:`, e instanceof Error ? e.message : e);
+  }
+}
 
 // Created on first use, not at import, so `next build` doesn't need a
 // database or secret.
@@ -31,7 +52,33 @@ function createAuth() {
       }
       return origins;
     },
-    emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      // Only with open registration and email set up (see lib/config.ts).
+      requireEmailVerification: config.requireEmailVerification,
+      // Password reset by email, when email is set up. Without it, the
+      // server's owner resets passwords with `reset-password` on the server.
+      sendResetPassword: config.email.enabled
+        ? ({ user, url }) => sendLimited("reset", resetPasswordEmail(user.email, url))
+        : undefined,
+      resetPasswordTokenExpiresIn: 60 * 60, // one hour; each link works once
+      revokeSessionsOnPasswordReset: true, // sign every device out
+      onPasswordReset: async ({ user }) => {
+        // A fresh password lifts any wrong-password block on the account.
+        await clearThrottle(`sign-in:${user.email.toLowerCase()}`);
+      },
+    },
+    emailVerification: config.email.enabled
+      ? {
+          sendVerificationEmail: ({ user, url }) => sendLimited("verify", verifyEmail(user.email, url)),
+          sendOnSignUp: config.requireEmailVerification,
+          // Signing in before confirming sends a fresh link (still limited).
+          sendOnSignIn: config.requireEmailVerification,
+          autoSignInAfterVerification: true,
+          expiresIn: 60 * 60,
+        }
+      : undefined,
     telemetry: { enabled: false },
     // Better Auth quietly skips its cross-site (origin/CSRF) checks when it
     // thinks it's under test — e.g. a stray TEST=true in the environment.

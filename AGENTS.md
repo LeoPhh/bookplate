@@ -13,8 +13,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
   optimistic redirect, never the real check.
 - Schema change → `npm run db:generate` and commit the new `drizzle/` file.
 - All configuration comes from environment variables (`lib/config.ts`).
+- Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
+  check `config.email.enabled`. Emails that reveal whether an account exists
+  (reset, verification) never report send errors to the visitor.
 - Tests: `npm test` (unit, `test/unit/`) and `npm run test:api` (HTTP tests
-  against `npm run build` + the dev Postgres, `test/api/`). Add a test with
+  against `npm run build` + the dev Postgres and Mailpit, `test/api/`; the
+  setup starts a server without email and one with it). Add a test with
   every behaviour change; CI blocks image builds on failures.
 
 # Styling

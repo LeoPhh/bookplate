@@ -39,6 +39,12 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # A fake mail server: the password-reset tests read its inbox.
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       TEST_DATABASE_ADMIN_URL: postgres://bookplate:bookplate@localhost:5432/bookplate
       NEXT_TELEMETRY_DISABLED: 1

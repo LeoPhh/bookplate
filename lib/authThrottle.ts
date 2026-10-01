@@ -19,8 +19,9 @@ const { authThrottle } = schema;
 // server's UTC offset.
 const WINDOW = sql.raw(`interval '${WINDOW_MS / 1000} seconds'`);
 
-// Minutes until the account can be tried again, or 0 when it isn't blocked.
-export async function throttleWait(key: string): Promise<number> {
+// Minutes until the key can be tried again, or 0 when it isn't blocked.
+// `max` is how many attempts the window allows (5 wrong passwords by default).
+export async function throttleWait(key: string, max = MAX_FAILURES): Promise<number> {
   const [row] = await getDb()
     .select({
       failures: authThrottle.failures,
@@ -28,7 +29,7 @@ export async function throttleWait(key: string): Promise<number> {
     })
     .from(authThrottle)
     .where(eq(authThrottle.key, key));
-  if (!row || row.failures < MAX_FAILURES) return 0;
+  if (!row || row.failures < max) return 0;
   const left = Number(row.secondsLeft);
   return left > 0 ? Math.ceil(left / 60) : 0;
 }

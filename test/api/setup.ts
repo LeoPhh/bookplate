@@ -5,16 +5,23 @@ import { tmpdir } from "os";
 import path from "path";
 import type { TestProject } from "vitest/node";
 import { createDatabase, dropDatabase } from "./db";
+import { MAILPIT_URL, SMTP_PORT } from "./mailpit";
 
-// Starts the real production build (.next/standalone/server.js) against a
-// fresh database for the API tests, and removes both afterwards.
+// Starts the real production build (.next/standalone/server.js) for the API
+// tests — twice, each with its own fresh database — and removes it all after:
 //
-// Needs `npm run build` and a Postgres you can create databases on — the dev
-// one from `npm run db:up` by default, or TEST_DATABASE_ADMIN_URL.
+//   baseUrl       no email, open registration: most tests
+//   emailBaseUrl  email via Mailpit, open registration, so new accounts must
+//                 confirm their address: the password-reset and verification tests
+//
+// Needs `npm run build` and `npm run db:up` (Postgres and Mailpit), or
+// TEST_DATABASE_ADMIN_URL / MAILPIT_URL pointing elsewhere.
 
 declare module "vitest" {
   export interface ProvidedContext {
     baseUrl: string;
+    dbUrl: string;
+    emailBaseUrl: string;
   }
 }
 
@@ -32,25 +39,24 @@ function freePort(): Promise<number> {
   });
 }
 
-export default async function setup(project: TestProject) {
-  if (!existsSync(SERVER)) {
-    throw new Error("The API tests run against the production build — run `npm run build` first.");
-  }
-  // The server applies migrations from ./drizzle next to server.js on start.
-  cpSync(path.join(ROOT, "drizzle"), path.join(ROOT, ".next/standalone/drizzle"), { recursive: true });
+interface Server {
+  url: string;
+  dbUrl: string;
+  stop: () => Promise<void>;
+}
 
-  const dbName = `bookplate_test_${process.pid}`;
+async function startServer(name: string, extraEnv: Record<string, string>): Promise<Server> {
+  const dbName = `bookplate_test_${name}_${process.pid}`;
   const dbUrl = await createDatabase(dbName);
-
   const uploads = mkdtempSync(path.join(tmpdir(), "bookplate-test-uploads-"));
   const port = await freePort();
-  const baseUrl = `http://127.0.0.1:${port}`;
+  const url = `http://127.0.0.1:${port}`;
   let log = "";
 
   // Run the server exactly as in production: drop the test runner's own
   // variables (TEST, VITEST…), which libraries use to switch off safeguards.
   const env = Object.fromEntries(
-    Object.entries(process.env).filter(([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL)$/.test(k))
+    Object.entries(process.env).filter(([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*)$/.test(k))
   );
   const child: ChildProcess = spawn(process.execPath, [SERVER], {
     env: {
@@ -60,10 +66,11 @@ export default async function setup(project: TestProject) {
       HOSTNAME: "127.0.0.1",
       DATABASE_URL: dbUrl,
       AUTH_SECRET: "test-secret-that-is-long-enough-for-better-auth",
-      PUBLIC_URL: baseUrl,
+      PUBLIC_URL: url,
       UPLOADS_DIR: uploads,
-      // Several test users per run; the closed default is covered separately.
+      // Several test readers per run.
       REGISTRATION: "open",
+      ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -72,23 +79,50 @@ export default async function setup(project: TestProject) {
 
   const deadline = Date.now() + 60_000;
   for (;;) {
-    if (child.exitCode !== null) throw new Error(`The test server exited early:\n${log}`);
+    if (child.exitCode !== null) throw new Error(`The ${name} test server exited early:\n${log}`);
     try {
-      const res = await fetch(`${baseUrl}/api/health`);
-      if (res.ok) break;
+      if ((await fetch(`${url}/api/health`)).ok) break;
     } catch {
       // not listening yet
     }
-    if (Date.now() > deadline) throw new Error(`The test server didn't become healthy:\n${log}`);
+    if (Date.now() > deadline) throw new Error(`The ${name} test server didn't become healthy:\n${log}`);
     await new Promise((r) => setTimeout(r, 250));
   }
 
-  project.provide("baseUrl", baseUrl);
+  return {
+    url,
+    dbUrl,
+    stop: async () => {
+      child.kill("SIGTERM");
+      await new Promise((r) => child.once("exit", r));
+      rmSync(uploads, { recursive: true, force: true });
+      await dropDatabase(dbName);
+    },
+  };
+}
+
+export default async function setup(project: TestProject) {
+  if (!existsSync(SERVER)) {
+    throw new Error("The API tests run against the production build — run `npm run build` first.");
+  }
+  try {
+    await fetch(`${MAILPIT_URL}/api/v1/messages`);
+  } catch {
+    throw new Error(`Mailpit isn't reachable at ${MAILPIT_URL} — run \`npm run db:up\` (it starts Postgres and Mailpit).`);
+  }
+  // The server applies migrations from ./drizzle next to server.js on start.
+  cpSync(path.join(ROOT, "drizzle"), path.join(ROOT, ".next/standalone/drizzle"), { recursive: true });
+
+  const [plain, email] = await Promise.all([
+    startServer("plain", {}),
+    startServer("email", { SMTP_HOST: new URL(MAILPIT_URL).hostname, SMTP_PORT: String(SMTP_PORT), SMTP_FROM: "Bookplate <bookplate@test.local>" }),
+  ]);
+
+  project.provide("baseUrl", plain.url);
+  project.provide("dbUrl", plain.dbUrl);
+  project.provide("emailBaseUrl", email.url);
 
   return async () => {
-    child.kill("SIGTERM");
-    await new Promise((r) => child.once("exit", r));
-    rmSync(uploads, { recursive: true, force: true });
-    await dropDatabase(dbName);
+    await Promise.all([plain.stop(), email.stop()]);
   };
 }

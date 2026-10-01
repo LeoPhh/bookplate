@@ -19,6 +19,7 @@ export default async function SettingsPage() {
       </header>
       <SettingsPanel
         user={{ name: session.user.name, email: session.user.email, image: session.user.image ?? null }}
+        email={config.email.enabled ? { from: config.email.from } : null}
       />
       <p className="settings-version">Bookplate version {config.version}</p>
       <footer className="colophon">— ex libris —</footer>

@@ -187,6 +187,23 @@ and vocabulary all come across.
 | `PUBLIC_URL` | `http://localhost:3000` | the address Bookplate is reached at |
 | `REGISTRATION` | `closed` | `open` lets anyone who can reach the server create their own separate library |
 | `UPLOADS_DIR` | `/data/uploads` in Docker | where covers and pasted images are stored |
+| `SMTP_HOST` | — | your mail server; setting it switches on email (password reset by email, and confirming new accounts' addresses when registration is open) |
+| `SMTP_PORT` | `587` | `465` for a direct encrypted connection |
+| `SMTP_SECURE` | follows the port | `true` / `false` to override |
+| `SMTP_USER`, `SMTP_PASSWORD` | — | the mail server's login, if it needs one |
+| `SMTP_FROM` | `Bookplate <bookplate@localhost>` | who emails come from, e.g. `Bookplate <books@example.com>` |
+
+### Forgotten passwords
+
+With email set up, use **Forgot password?** on the sign-in page. Without it,
+whoever runs the server resets it with one command:
+
+```bash
+docker compose exec bookplate reset-password you@example.com
+```
+
+It asks for the new password twice and signs out every device. Settings →
+**Send a test email** checks that your email settings work.
 
 Bookplate sends no telemetry. The only outside services it talks to are Open
 Library and iTunes (book search and covers) and Wiktionary (word lookups),
@@ -196,12 +213,17 @@ and only when you use those features.
 
 ```bash
 npm install
-npm run db:up        # Postgres in Docker on port 5433 (docker-compose.dev.yml)
+npm run db:up        # Postgres (port 5433) and Mailpit, a fake mail server (docker-compose.dev.yml)
 cp .env.example .env.local
 # set DATABASE_URL=postgres://bookplate:bookplate@localhost:5433/bookplate
 # plus AUTH_SECRET and PUBLIC_URL=http://localhost:3000
 npm run dev
 ```
+
+To try email locally, add `SMTP_HOST=localhost` and `SMTP_PORT=1025` to
+`.env.local`; every email Bookplate sends then shows up at
+http://localhost:8025. `npm run reset-password -- you@example.com` resets a
+password from the terminal.
 
 Changing `lib/db/schema.ts`? Run `npm run db:generate` to write a new
 migration into `drizzle/`, and commit it.
@@ -211,7 +233,7 @@ migration into `drizzle/`, and commit it.
 ```bash
 npm test            # unit tests (no database needed)
 npm run build       # the API tests run against the production build…
-npm run test:api    # …and a throwaway database on the dev Postgres
+npm run test:api    # …and throwaway databases on the dev Postgres, plus Mailpit
 ```
 
 The API tests start the real server on a free port with a fresh database,

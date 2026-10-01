@@ -10,7 +10,8 @@
     "db:up": "docker compose -f docker-compose.dev.yml up -d",
     "test": "vitest run --project unit",
     "test:api": "vitest run --project api",
-    "test:all": "vitest run"
+    "test:all": "vitest run",
+    "reset-password": "node --env-file-if-exists=.env.local scripts/reset-password.mjs"
   },
   "dependencies": {
     "@tiptap/extension-image": "^3.28.0",
@@ -22,6 +23,7 @@
     "drizzle-orm": "^0.45.3",
     "fflate": "^0.8.3",
     "next": "16.2.10",
+    "nodemailer": "^10.0.13",
     "pg": "^8.23.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",

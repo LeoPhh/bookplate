@@ -1,4 +1,6 @@
-# Postgres for local development: `npm run db:up`, then `npm run dev`.
+# Postgres and a fake mail server for local development: `npm run db:up`,
+# then `npm run dev`. Every email Bookplate sends shows up in Mailpit's
+# inbox at http://localhost:8025 instead of being delivered.
 #
 # Its own project name keeps it apart from a real Bookplate server on the
 # same machine: the production compose file is also named "bookplate", and
@@ -16,6 +18,12 @@ services:
       - "5433:5432"
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025" # SMTP: SMTP_HOST=localhost SMTP_PORT=1025
+      - "8025:8025" # web inbox
 
 volumes:
   pgdata-dev:

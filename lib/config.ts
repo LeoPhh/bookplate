@@ -24,6 +24,28 @@ export const config = {
   },
   // The URL people use to reach Bookplate, e.g. https://books.example.com.
   publicUrl: process.env.PUBLIC_URL ?? "http://localhost:3000",
+  // Email is optional. With SMTP_HOST set, Bookplate can send password-reset
+  // links and (with open registration) verify new accounts' addresses.
+  email: {
+    get enabled() {
+      return Boolean(process.env.SMTP_HOST);
+    },
+    host: process.env.SMTP_HOST ?? "",
+    port: Number(process.env.SMTP_PORT ?? 587),
+    // Implicit TLS (port 465) vs STARTTLS (587/25); follows the port unless set.
+    get secure() {
+      const v = process.env.SMTP_SECURE;
+      return v ? v === "true" : this.port === 465;
+    },
+    user: process.env.SMTP_USER ?? "",
+    password: process.env.SMTP_PASSWORD ?? "",
+    from: process.env.SMTP_FROM ?? "Bookplate <bookplate@localhost>",
+  },
+  // New accounts must confirm their address when strangers can sign up and
+  // there's email to confirm it with. A single-owner server never asks.
+  get requireEmailVerification() {
+    return this.registration === "open" && this.email.enabled;
+  },
   version: pkg.version,
 };
 
