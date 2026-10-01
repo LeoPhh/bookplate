@@ -1,11 +1,15 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { config } from "./config";
 import { getDb, schema } from "./db";
+import { clearThrottle, recordFailure, throttleWait } from "./authThrottle";
+
+const signInKey = (body: unknown) =>
+  `sign-in:${String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase()}`;
 
 // Created on first use, not at import, so `next build` doesn't need a
 // database or secret.
@@ -29,6 +33,32 @@ function createAuth() {
     },
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     telemetry: { enabled: false },
+    // Better Auth quietly skips its cross-site (origin/CSRF) checks when it
+    // thinks it's under test — e.g. a stray TEST=true in the environment.
+    // Pin them on so no environment variable can switch them off.
+    advanced: { disableOriginCheck: false, disableCSRFCheck: false },
+    // Too many wrong passwords for one account blocks it for a while,
+    // whichever IP address the attempts claim (see lib/authThrottle.ts).
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/email") return;
+        const wait = await throttleWait(signInKey(ctx.body));
+        if (wait > 0) {
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: `Too many wrong passwords — try again in ${wait} minute${wait === 1 ? "" : "s"}.`,
+          });
+        }
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/email") return;
+        const result = ctx.context.returned;
+        if (isAPIError(result)) {
+          if (result.statusCode === 401) await recordFailure(signInKey(ctx.body));
+        } else {
+          await clearThrottle(signInKey(ctx.body));
+        }
+      }),
+    },
     databaseHooks: {
       user: {
         create: {

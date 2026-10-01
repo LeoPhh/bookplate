@@ -7,7 +7,10 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:up": "docker compose -f docker-compose.dev.yml up -d"
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "test": "vitest run --project unit",
+    "test:api": "vitest run --project api",
+    "test:all": "vitest run"
   },
   "dependencies": {
     "@tiptap/extension-image": "^3.28.0",
@@ -33,7 +36,8 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "license": "Apache-2.0",
   "private": true

@@ -13,6 +13,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
   optimistic redirect, never the real check.
 - Schema change → `npm run db:generate` and commit the new `drizzle/` file.
 - All configuration comes from environment variables (`lib/config.ts`).
+- Tests: `npm test` (unit, `test/unit/`) and `npm run test:api` (HTTP tests
+  against `npm run build` + the dev Postgres, `test/api/`). Add a test with
+  every behaviour change; CI blocks image builds on failures.
 
 # Styling
 

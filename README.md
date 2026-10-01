@@ -206,6 +206,18 @@ npm run dev
 Changing `lib/db/schema.ts`? Run `npm run db:generate` to write a new
 migration into `drizzle/`, and commit it.
 
+### Tests
+
+```bash
+npm test            # unit tests (no database needed)
+npm run build       # the API tests run against the production build…
+npm run test:api    # …and a throwaway database on the dev Postgres
+```
+
+The API tests start the real server on a free port with a fresh database,
+then drop it afterwards. GitHub Actions runs all of them on every push and
+pull request, and only builds the Docker image when they pass.
+
 ## Tech notes
 
 - **Next.js 16** (App Router, TypeScript), built as a standalone server for

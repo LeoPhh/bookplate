@@ -70,14 +70,14 @@ export function cleanDate(value: string): string | undefined {
 }
 
 // Bookplate rates in half stars; StoryGraph uses quarters.
-function cleanRating(value: string): number {
+export function cleanRating(value: string): number {
   const n = parseFloat(value);
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.min(5, Math.max(0.5, Math.round(n * 2) / 2));
 }
 
 // Goodreads appends the series to titles: "Dune (Dune, #1)" → "Dune".
-function cleanTitle(value: string): string {
+export function cleanTitle(value: string): string {
   return value.replace(/\s*\([^()]*#\s*[\d.]+[^()]*\)\s*$/, "").trim();
 }
 

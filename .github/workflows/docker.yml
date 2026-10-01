@@ -1,13 +1,15 @@
-# Builds the Docker image for amd64 and arm64 and publishes it to Docker Hub
-# and GitHub Container Registry.
+# Tests every push and pull request, then — only if the tests pass — builds
+# the Docker image for amd64 and arm64 and publishes it to Docker Hub and
+# GitHub Container Registry.
 #
 #   push to main  → :edge
 #   tag v1.2.3    → :1.2.3, :1.2, :1, :latest
+#   pull request  → tests and a test build, nothing published
 #
 # Needs two repository secrets: DOCKERHUB_USERNAME and DOCKERHUB_TOKEN
 # (a Docker Hub access token with read/write scope).
 
-name: Docker image
+name: Test and build
 
 on:
   push:
@@ -20,8 +22,48 @@ permissions:
   packages: write
 
 jobs:
-  image:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bookplate
+          POSTGRES_PASSWORD: bookplate
+          POSTGRES_DB: bookplate
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bookplate"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_ADMIN_URL: postgres://bookplate:bookplate@localhost:5432/bookplate
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: API tests
+        run: npm run test:api
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

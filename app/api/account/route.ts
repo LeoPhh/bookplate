@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getAuth, requireUser } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { getStorage, keys } from "@/lib/storage";
+import { clearThrottle, recordFailure, throttleWait } from "@/lib/authThrottle";
 
 // DELETE permanently removes the signed-in account and everything in it.
 // The password is always required, even for a fresh session, so a stolen
@@ -21,12 +22,21 @@ export async function DELETE(request: Request) {
   if (typeof password !== "string" || !password) {
     return Response.json({ error: "Enter your password to delete your account." }, { status: 400 });
   }
+  const throttleKey = `password:${auth.userId}`;
+  const wait = await throttleWait(throttleKey);
+  if (wait > 0) {
+    return Response.json({ error: `Too many wrong passwords — try again in ${wait} minutes.` }, { status: 429 });
+  }
   try {
     await getAuth().api.verifyPassword({ body: { password }, headers: await headers() });
   } catch (e) {
-    if (isAPIError(e)) return Response.json({ error: "That password isn't right." }, { status: 403 });
+    if (isAPIError(e)) {
+      await recordFailure(throttleKey);
+      return Response.json({ error: "That password isn't right." }, { status: 403 });
+    }
     throw e;
   }
+  await clearThrottle(throttleKey);
 
   // Sessions, the login, books, notes and words all go with the user row
   // (foreign keys cascade); the files are removed after it.

@@ -6,12 +6,15 @@
 | ----------------------- | ---------------------------------------------------------------- |
 | a commit to `main`      | `:edge` — overwritten every push; nobody gets it unless they opt in |
 | a tag `v1.2.3`          | `:1.2.3` (never changes), and moves `:1.2`, `:1` and `:latest` to it |
-| a pull request          | a test build only, nothing published                             |
+| a pull request          | tests and a test build, nothing published                        |
 
 Images go to both registries:
 
 - Docker Hub — `leophh/bookplate`
 - GitHub Container Registry — `ghcr.io/leophh/bookplate`
+
+Every run starts with the tests (lint, typecheck, unit and API tests).
+**If they fail, nothing is built or published** — not even `:edge`.
 
 `latest` only moves when you tag a release. Self-hosters on the default
 compose file get the new version on their next
@@ -30,7 +33,8 @@ The version in `package.json` shows up on the Settings page and in
 
 ## Releasing a new version
 
-1. Make sure `main` is committed, pushed, and the latest Actions run is green.
+1. Make sure `main` is committed, pushed, and the latest Actions run is green
+   (run `npm test` and `npm run test:api` locally first to catch failures early).
 2. Pick the bump:
    - **patch**: bug fixes (`0.1.0 → 0.1.1`)
    - **minor**: new features (`0.1.1 → 0.2.0`)

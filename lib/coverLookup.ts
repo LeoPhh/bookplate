@@ -3,7 +3,7 @@ import { detectImageType } from "./storage";
 
 const UA = { "User-Agent": USER_AGENT };
 
-interface ItunesResult {
+export interface ItunesResult {
   trackName?: string;
   artistName?: string;
   artworkUrl100?: string;
@@ -18,7 +18,7 @@ const norm = (v: string) =>
     .trim();
 
 // The title (before any subtitle) and the author's surname must both match.
-function sameBook(r: ItunesResult, title: string, author: string): boolean {
+export function sameBook(r: ItunesResult, title: string, author: string): boolean {
   const want = norm(title.split(/[:(]/)[0]);
   const got = norm((r.trackName ?? "").split(/[:(]/)[0]);
   const surname = norm(author).split(" ").pop();
