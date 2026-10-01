@@ -1,4 +1,4 @@
-import { Book, VocabEntry } from "./types";
+import { Book, ProgressEntry, VocabEntry } from "./types";
 
 const ID_RE = /^[a-zA-Z0-9_-]+$/;
 
@@ -26,6 +26,24 @@ export function isValidBook(b: unknown): b is Book {
     optional(o, "notes", "string") &&
     optional(o, "coverImage", "string") &&
     optional(o, "addedAt", "string")
+  );
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidProgress(p: unknown): p is ProgressEntry {
+  if (typeof p !== "object" || p === null) return false;
+  const o = p as Record<string, unknown>;
+  return (
+    typeof o.bookId === "string" &&
+    ID_RE.test(o.bookId) &&
+    typeof o.date === "string" &&
+    DATE_RE.test(o.date) &&
+    typeof o.percent === "number" &&
+    Number.isFinite(o.percent) &&
+    o.percent >= 0 &&
+    o.percent <= 100 &&
+    (o.page === undefined || o.page === null || (Number.isInteger(o.page) && (o.page as number) >= 0))
   );
 }
 

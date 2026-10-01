@@ -89,6 +89,7 @@ button {
 .stat-tile-label,
 .detail-kicker,
 .detail-facts dt,
+.progress-label,
 .drill-section-title,
 .field > span,
 .search-divider,
@@ -546,6 +547,201 @@ a.btn {
   font-style: normal;
   font-size: 10px;
   color: var(--ink);
+}
+
+/* ---------- Reading progress ---------- */
+
+.progress-bar {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 2px solid var(--ink);
+}
+
+.progress-bar--md {
+  height: 12px;
+}
+
+.progress-bar--sm {
+  height: 7px;
+  border-width: 1.5px;
+}
+
+.progress-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* Under a Reading book's cover, in place of the status label. */
+.cover-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 150px;
+}
+
+.cover-progress-value {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* In the book dialog */
+.progress-panel {
+  border-bottom: 3px solid var(--ink);
+  padding: 16px 0;
+}
+
+.progress-label {
+  font-size: 10px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.progress-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.progress-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.progress-input input {
+  width: 84px;
+  padding: 6px 9px;
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-percent {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-meta {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.progress-error {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.progress-finish {
+  margin-top: 12px;
+}
+
+.progress-log {
+  list-style: none;
+  margin-top: 12px;
+  padding: 0;
+  font-size: 13.5px;
+}
+
+.progress-log li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--hair);
+}
+
+.progress-log-date {
+  width: 64px;
+  color: var(--ink-soft);
+}
+
+.progress-log-remove {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.progress-log-remove:hover {
+  color: var(--danger);
+}
+
+/* "Currently reading" on the statistics page */
+.reading-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reading-list li + li {
+  border-top: 1px solid var(--hair);
+}
+
+.reading-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 48px minmax(0, 0.9fr);
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reading-row:hover .reading-title {
+  color: var(--accent);
+}
+
+.reading-title {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 0;
+}
+
+.reading-author {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.reading-percent {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.reading-meta {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.reading-footnote {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
 }
 
 /* ---------- Ledger (list) view ---------- */
@@ -2870,6 +3066,20 @@ select,
 
   .user-menu {
     top: 8px;
+  }
+
+  .reading-row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 6px 12px;
+  }
+
+  .reading-row .progress-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .reading-meta {
+    grid-column: 1 / -1;
   }
 
   .profile {

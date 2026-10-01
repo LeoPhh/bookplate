@@ -103,6 +103,24 @@ export const note = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.bookId] })]
 );
 
+// Reading progress: one entry per book per day (a second update on the same
+// day replaces it). The percentage is always stored; the page too when the
+// book has a page count. The first entry marks when the book was started.
+export const readingProgress = pgTable(
+  "reading_progress",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    bookId: text("book_id").notNull(),
+    date: text("date").notNull(), // ISO yyyy-mm-dd, the reader's local date
+    page: integer("page"),
+    percent: real("percent").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.bookId, t.date] })]
+);
+
 export const vocabEntry = pgTable(
   "vocab_entry",
   {

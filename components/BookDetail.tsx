@@ -2,13 +2,18 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Book, FORMAT_LABELS, STATUS_LABELS } from "@/lib/types";
+import { Book, FORMAT_LABELS, ProgressEntry, STATUS_LABELS } from "@/lib/types";
+import { plural, summarize } from "@/lib/progress";
 import BookCover from "./BookCover";
+import ProgressPanel from "./ProgressPanel";
 import StarRating from "./StarRating";
 
 interface Props {
   book: Book;
   hasNotes: boolean;
+  progress: ProgressEntry[];
+  onLogProgress: (entry: ProgressEntry) => void;
+  onRemoveProgress: (date: string) => void;
   onEdit: () => void;
   onDelete: () => void;
   onFinish: () => void;
@@ -33,7 +38,20 @@ function Flag({ on }: { on: boolean }) {
   );
 }
 
-export default function BookDetail({ book, hasNotes, onEdit, onDelete, onFinish, onClose }: Props) {
+export default function BookDetail({
+  book,
+  hasNotes,
+  progress,
+  onLogProgress,
+  onRemoveProgress,
+  onEdit,
+  onDelete,
+  onFinish,
+  onClose,
+}: Props) {
+  // For finished books whose reading was tracked: how long it took.
+  const readInDays = book.status === "read" ? summarize(book, progress)?.readInDays : undefined;
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -111,7 +129,22 @@ export default function BookDetail({ book, hasNotes, onEdit, onDelete, onFinish,
                   <Flag on={hasNotes} />
                 </dd>
               </div>
+              {readInDays !== undefined && (
+                <div>
+                  <dt>Read in</dt>
+                  <dd>{plural(readInDays, "day")}</dd>
+                </div>
+              )}
             </dl>
+            {book.status === "reading" && (
+              <ProgressPanel
+                book={book}
+                progress={progress}
+                onLog={onLogProgress}
+                onRemove={onRemoveProgress}
+                onFinish={onFinish}
+              />
+            )}
             <div className="dialog-actions">
               {book.status !== "read" && (
                 <button type="button" className="btn btn--primary" onClick={onFinish}>

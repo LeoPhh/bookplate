@@ -1,12 +1,12 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { getStorage, keys } from "./storage";
-import { Book, BookFormat, BookStatus, VocabEntry } from "./types";
+import { Book, BookFormat, BookStatus, ProgressEntry, VocabEntry } from "./types";
 
 // Every function takes the signed-in user's id and only ever touches that
 // user's rows and files.
 
-const { book, note, vocabEntry } = schema;
+const { book, note, vocabEntry, readingProgress } = schema;
 
 // ── Books ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +58,14 @@ export async function listBooks(userId: string): Promise<Book[]> {
   return rows.map(toBook);
 }
 
+export async function getBook(userId: string, id: string): Promise<Book | null> {
+  const [row] = await getDb()
+    .select()
+    .from(book)
+    .where(and(eq(book.userId, userId), eq(book.id, id)));
+  return row ? toBook(row) : null;
+}
+
 export async function upsertBook(userId: string, b: Book): Promise<void> {
   const row = toBookRow(userId, b);
   const changes: Partial<BookRow> = { ...row };
@@ -77,6 +85,7 @@ export async function deleteBook(userId: string, id: string): Promise<void> {
     .where(and(eq(book.userId, userId), eq(book.id, id)))
     .returning({ coverImage: book.coverImage });
   await deleteNotes(userId, id);
+  await db.delete(readingProgress).where(and(eq(readingProgress.userId, userId), eq(readingProgress.bookId, id)));
   const coverName = row?.coverImage?.match(/\/api\/covers\/([^/?]+)/)?.[1];
   if (coverName) await getStorage().delete(keys.cover(userId, coverName));
 }
@@ -121,6 +130,32 @@ export async function deleteNotes(userId: string, bookId: string): Promise<void>
     .delete(note)
     .where(and(eq(note.userId, userId), eq(note.bookId, bookId)));
   await getStorage().deletePrefix(keys.notesDir(userId, bookId));
+}
+
+// ── Reading progress ───────────────────────────────────────────────────────
+
+export async function listProgress(userId: string): Promise<ProgressEntry[]> {
+  const rows = await getDb()
+    .select()
+    .from(readingProgress)
+    .where(eq(readingProgress.userId, userId))
+    .orderBy(readingProgress.date);
+  return rows.map((r) => ({ bookId: r.bookId, date: r.date, page: r.page ?? undefined, percent: r.percent }));
+}
+
+// Saves a day's progress, replacing any earlier update from the same day.
+export async function upsertProgress(userId: string, entry: ProgressEntry): Promise<void> {
+  const values = { page: entry.page ?? null, percent: entry.percent, updatedAt: new Date() };
+  await getDb()
+    .insert(readingProgress)
+    .values({ userId, bookId: entry.bookId, date: entry.date, ...values })
+    .onConflictDoUpdate({ target: [readingProgress.userId, readingProgress.bookId, readingProgress.date], set: values });
+}
+
+export async function deleteProgress(userId: string, bookId: string, date: string): Promise<void> {
+  await getDb()
+    .delete(readingProgress)
+    .where(and(eq(readingProgress.userId, userId), eq(readingProgress.bookId, bookId), eq(readingProgress.date, date)));
 }
 
 // ── Vocabulary ─────────────────────────────────────────────────────────────
@@ -184,7 +219,7 @@ export async function deleteVocab(userId: string, id: string): Promise<void> {
 // ids are overwritten; nothing else is removed.
 export async function importRecords(
   userId: string,
-  data: { books: Book[]; words: VocabEntry[]; notes: Record<string, string> }
+  data: { books: Book[]; words: VocabEntry[]; notes: Record<string, string>; progress?: ProgressEntry[] }
 ): Promise<void> {
   await getDb().transaction(async (tx) => {
     for (let i = 0; i < data.books.length; i += 500) {
@@ -198,6 +233,13 @@ export async function importRecords(
         .delete(vocabEntry)
         .where(and(eq(vocabEntry.userId, userId), inArray(vocabEntry.id, rows.map((r) => r.id))));
       await tx.insert(vocabEntry).values(rows);
+    }
+    for (const p of data.progress ?? []) {
+      const values = { page: p.page ?? null, percent: p.percent, updatedAt: new Date() };
+      await tx
+        .insert(readingProgress)
+        .values({ userId, bookId: p.bookId, date: p.date, ...values })
+        .onConflictDoUpdate({ target: [readingProgress.userId, readingProgress.bookId, readingProgress.date], set: values });
     }
     for (const [bookId, markdown] of Object.entries(data.notes)) {
       await tx

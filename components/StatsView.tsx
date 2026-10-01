@@ -1,7 +1,9 @@
 "use client";
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Book, BookFormat, FORMAT_LABELS } from "@/lib/types";
+import { Book, BookFormat, FORMAT_LABELS, ProgressEntry } from "@/lib/types";
+import { fmtShortDate, plural, summarize } from "@/lib/progress";
+import ProgressBar from "./ProgressBar";
 import { paletteFor } from "@/lib/palette";
 import StarRating from "./StarRating";
 
@@ -259,10 +261,72 @@ function DrillDialog({
 
 interface Props {
   books: Book[];
+  progress: ProgressEntry[];
   onSelect: (id: string) => void;
 }
 
-export default function StatsView({ books, onSelect }: Props) {
+// Books being read, with how far along each one is.
+function CurrentlyReading({
+  books,
+  progress,
+  onSelect,
+}: {
+  books: Book[];
+  progress: ProgressEntry[];
+  onSelect: (id: string) => void;
+}) {
+  const reading = books
+    .filter((b) => b.status === "reading")
+    .map((b) => ({ book: b, s: summarize(b, progress) }))
+    .sort((a, b) => (b.s?.percent ?? -1) - (a.s?.percent ?? -1));
+  const tracked = books
+    .filter((b) => b.status === "read")
+    .map((b) => summarize(b, progress)?.readInDays)
+    .filter((d): d is number => d !== undefined);
+  if (reading.length === 0 && tracked.length === 0) return null;
+  const avg = tracked.length ? Math.round(tracked.reduce((a, b) => a + b, 0) / tracked.length) : null;
+
+  return (
+    <div className="chart-card">
+      <h2 className="chart-title">Currently reading</h2>
+      <p className="chart-sub">Click a book to update where you are</p>
+      {reading.length > 0 ? (
+        <ul className="reading-list">
+          {reading.map(({ book, s }) => (
+            <li key={book.id}>
+              <button type="button" className="reading-row" onClick={() => onSelect(book.id)}>
+                <span className="reading-title">
+                  {book.title}
+                  <span className="reading-author">{book.author}</span>
+                </span>
+                <ProgressBar percent={s?.percent ?? 0} />
+                <span className="reading-percent">{s ? `${s.percent}%` : "—"}</span>
+                <span className="reading-meta">
+                  {!s
+                    ? "No progress logged yet"
+                    : s.percent >= 100
+                      ? "On the last page"
+                      : s.daysLeft !== undefined
+                        ? `About ${plural(s.daysLeft, "day")} left`
+                        : `Started ${fmtShortDate(s.started)}`}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="empty-note">Nothing on the go — mark a book as Reading to track it here.</p>
+      )}
+      {avg !== null && (
+        <p className="reading-footnote">
+          Books you tracked took {plural(avg, "day")} on average to finish ({plural(tracked.length, "book")}).
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function StatsView({ books, progress, onSelect }: Props) {
   const [drill, setDrill] = useState<Drill | null>(null);
 
   const stats = useMemo(() => {
@@ -455,6 +519,8 @@ export default function StatsView({ books, onSelect }: Props) {
           <p className="stat-tile-value">{stats.avg ? stats.avg.toFixed(1) : "—"}</p>
         </div>
       </div>
+
+      <CurrentlyReading books={books} progress={progress} onSelect={onSelect} />
 
       <div className="chart-card">
         <h2 className="chart-title">Books finished by year</h2>

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Book } from "@/lib/types";
+import { Book, ProgressEntry } from "@/lib/types";
+import { summarize } from "@/lib/progress";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
 import Toolbar, { StatusFilter, ViewMode } from "@/components/Toolbar";
@@ -33,6 +34,7 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [notedFileIds, setNotedFileIds] = useState<string[]>([]);
+  const [progress, setProgress] = useState<ProgressEntry[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Book | null>(null);
@@ -70,6 +72,17 @@ export default function Home() {
         if (!cancelled) setLoadError(true);
       }
     })();
+    // Reading-progress updates — for the cover bars and the book dialog.
+    (async () => {
+      try {
+        const res = await apiFetch("/api/progress");
+        if (!res.ok) return;
+        const data: { progress: ProgressEntry[] } = await res.json();
+        if (!cancelled) setProgress(data.progress);
+      } catch {
+        // The library works without it; the bars just don't show.
+      }
+    })();
     // Which books have notes files — used by the "Show notes" toggle.
     (async () => {
       try {
@@ -97,6 +110,27 @@ export default function Home() {
   };
   const saveBook = (book: Book) => persist(putJson(`/api/books/${book.id}`, book));
   const removeBook = (id: string) => persist(apiFetch(`/api/books/${id}`, { method: "DELETE" }));
+
+  // One update per book per day: a second one the same day replaces it.
+  const logProgress = (entry: ProgressEntry) => {
+    setProgress((prev) => [...prev.filter((e) => !(e.bookId === entry.bookId && e.date === entry.date)), entry]);
+    persist(putJson(`/api/progress/${entry.bookId}`, entry));
+  };
+  const removeProgress = (bookId: string, date: string) => {
+    setProgress((prev) => prev.filter((e) => !(e.bookId === bookId && e.date === date)));
+    persist(apiFetch(`/api/progress/${bookId}?date=${date}`, { method: "DELETE" }));
+  };
+
+  // Percent read for each Reading book with updates, for the cover bars.
+  const coverProgress = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const b of books ?? []) {
+      if (b.status !== "reading") continue;
+      const s = summarize(b, progress);
+      if (s) m.set(b.id, s.percent);
+    }
+    return m;
+  }, [books, progress]);
 
   const visible = useMemo(() => {
     if (!books) return [];
@@ -228,7 +262,9 @@ export default function Home() {
             </p>
           )}
         <section className="view-area">
-          {view === "covers" && <CoverGrid books={visible} onSelect={setSelectedId} marked={marked} />}
+          {view === "covers" && (
+            <CoverGrid books={visible} onSelect={setSelectedId} marked={marked} progress={coverProgress} />
+          )}
           {view === "list" && <ListView books={visible} onSelect={setSelectedId} marked={marked} />}
         </section>
         </>
@@ -240,6 +276,9 @@ export default function Home() {
         <BookDetail
           book={selected}
           hasNotes={noted.has(selected.id)}
+          progress={progress}
+          onLogProgress={logProgress}
+          onRemoveProgress={(date) => removeProgress(selected.id, date)}
           onEdit={() => {
             setEditing(selected);
             setFormOpen(true);
@@ -286,6 +325,7 @@ export default function Home() {
             // The server removes the cover, notes and pasted images with it.
             removeBook(pendingDelete.id);
             setBooks((prev) => prev!.filter((b) => b.id !== pendingDelete.id));
+            setProgress((prev) => prev.filter((e) => e.bookId !== pendingDelete.id));
             setPendingDelete(null);
             setSelectedId(null);
           }}

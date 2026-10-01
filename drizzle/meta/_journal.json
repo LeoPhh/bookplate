@@ -15,6 +15,13 @@
       "when": 1790821490530,
       "tag": "0001_book_isbn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790851892838,
+      "tag": "0002_reading_progress",
+      "breakpoints": true
     }
   ]
 }

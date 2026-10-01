@@ -1,10 +1,10 @@
 import { strFromU8, strToU8, unzipSync, zipSync, Zippable } from "fflate";
-import { importRecords, listBooks, listVocabulary } from "./library";
+import { importRecords, listBooks, listProgress, listVocabulary } from "./library";
 import { getDb, schema } from "./db";
 import { eq } from "drizzle-orm";
 import { contentTypeOf, detectImageType, getStorage, isSafeFileName, isSafeId, keys } from "./storage";
-import { isValidBook, isValidVocab } from "./validate";
-import { Book, VocabEntry } from "./types";
+import { isValidBook, isValidProgress, isValidVocab } from "./validate";
+import { Book, ProgressEntry, VocabEntry } from "./types";
 import { config } from "./config";
 
 // The export format: a zip laid out like the original Bookplate data/ folder,
@@ -13,6 +13,7 @@ import { config } from "./config";
 //   manifest.json                     { format: "bookplate-export", formatVersion: 1, … }
 //   library.json                      { books: [...] }
 //   vocabulary.json                   { words: [...] }
+//   progress.json                     { progress: [...] } reading-progress log (optional)
 //   notes/<bookId>.md                 one markdown file per book
 //   notes/images/<bookId>/<file>      images pasted into those notes
 //   covers/<bookId>.jpg               cropped covers
@@ -24,9 +25,10 @@ export const FORMAT_VERSION = 1;
 
 export async function buildExport(userId: string): Promise<Uint8Array> {
   const storage = getStorage();
-  const [books, words, notes] = await Promise.all([
+  const [books, words, progress, notes] = await Promise.all([
     listBooks(userId),
     listVocabulary(userId),
+    listProgress(userId),
     getDb()
       .select({ bookId: schema.note.bookId, markdown: schema.note.markdown })
       .from(schema.note)
@@ -43,6 +45,7 @@ export async function buildExport(userId: string): Promise<Uint8Array> {
     ),
     "library.json": strToU8(JSON.stringify({ books }, null, 2) + "\n"),
     "vocabulary.json": strToU8(JSON.stringify({ words }, null, 2) + "\n"),
+    "progress.json": strToU8(JSON.stringify({ progress }, null, 2) + "\n"),
   };
 
   for (const n of notes) {
@@ -117,6 +120,13 @@ export async function importArchive(userId: string, zip: Uint8Array): Promise<Im
     else skipped++;
   }
 
+  const rawProgress = (readJson(entries[root + "progress.json"]) as { progress?: unknown[] } | null)?.progress ?? [];
+  const progress: ProgressEntry[] = [];
+  for (const p of rawProgress) {
+    if (isValidProgress(p)) progress.push(p);
+    else skipped++;
+  }
+
   const notes: Record<string, string> = {};
   const images: { key: string; data: Uint8Array }[] = [];
   for (const [path, data] of Object.entries(entries)) {
@@ -137,7 +147,7 @@ export async function importArchive(userId: string, zip: Uint8Array): Promise<Im
   // Images first: if the database write fails, a retry just overwrites them.
   const storage = getStorage();
   for (const img of images) await storage.put(img.key, img.data);
-  await importRecords(userId, { books, words, notes });
+  await importRecords(userId, { books, words, notes, progress });
 
   return {
     books: books.length,

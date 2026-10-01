@@ -26,6 +26,14 @@ export const STATUS_LABELS: Record<BookStatus, string> = {
   "to-read": "TBR",
 };
 
+// One day's reading-progress update for a book.
+export interface ProgressEntry {
+  bookId: string;
+  date: string; // ISO yyyy-mm-dd
+  page?: number; // when the book has a page count
+  percent: number; // 0–100
+}
+
 export interface VocabEntry {
   id: string;
   word: string;
