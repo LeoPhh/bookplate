@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { deleteBook, upsertBook } from "@/lib/library";
+import { checkBooks, overLimit } from "@/lib/limits";
 import { isSafeId } from "@/lib/storage";
 import { isValidBook } from "@/lib/validate";
 
@@ -18,6 +19,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!isSafeId(id) || !isValidBook(body) || body.id !== id) {
     return Response.json({ error: "Invalid book" }, { status: 400 });
   }
+  const over = await checkBooks(auth.userId, [id]);
+  if (over) return overLimit(over);
   await upsertBook(auth.userId, body);
   return Response.json({ ok: true });
 }

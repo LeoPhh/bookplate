@@ -1,4 +1,6 @@
 import { randomInt, randomUUID } from "crypto";
+import { solveChallenge } from "altcha-lib";
+import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
 import { inject } from "vitest";
 
 // A tiny browser stand-in for the API tests: keeps the session cookie and
@@ -8,6 +10,7 @@ import { inject } from "vitest";
 
 export const baseUrl = () => inject("baseUrl");
 export const emailBaseUrl = () => inject("emailBaseUrl");
+export const limitedBaseUrl = () => inject("limitedBaseUrl");
 
 export class Visitor {
   cookie = "";
@@ -46,6 +49,24 @@ export class Visitor {
     return this.fetch(path, { method: "POST", body: fd });
   }
 
+  // Solves a sign-up puzzle the way the sign-up page does, returning the
+  // header that carries it (none when the server doesn't use them).
+  async signupChallenge(): Promise<Record<string, string>> {
+    const res = await this.fetch("/api/signup-challenge");
+    if (res.status === 404) return {};
+    const challenge = await res.json();
+    const solution = await solveChallenge({ challenge, deriveKey });
+    return { "x-signup-challenge": Buffer.from(JSON.stringify({ challenge, solution })).toString("base64") };
+  }
+
+  async signUp(email: string, password: string, name = "Reader", headers?: Record<string, string>): Promise<Response> {
+    return this.fetch("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(headers ?? (await this.signupChallenge())) },
+      body: JSON.stringify({ name, email, password, callbackURL: "/login" }),
+    });
+  }
+
   async get<T = unknown>(path: string): Promise<T> {
     const res = await this.fetch(path);
     if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
@@ -64,7 +85,7 @@ export async function reader(name = "Reader", base?: string): Promise<Reader> {
   const v = new Visitor(undefined, base) as Reader;
   v.email = `${randomUUID()}@example.com`;
   v.password = `pw-${randomUUID()}`;
-  const res = await v.json("/api/auth/sign-up/email", "POST", { name, email: v.email, password: v.password, callbackURL: "/login" });
+  const res = await v.signUp(v.email, v.password, name);
   if (!res.ok) throw new Error(`sign-up failed: ${res.status} ${await res.text()}`);
   return v;
 }

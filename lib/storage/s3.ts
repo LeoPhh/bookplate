@@ -71,7 +71,7 @@ export class S3Storage implements Storage {
 
   // Every object key under a prefix, page by page. With `direct`, only the
   // ones right under it (S3 groups deeper ones into "folders" we skip).
-  private async *walk(prefix: string, direct: boolean): AsyncGenerator<string> {
+  private async *walk(prefix: string, direct: boolean): AsyncGenerator<{ key: string; size: number }> {
     let token: string | undefined;
     do {
       const page = await this.s3.send(
@@ -83,15 +83,21 @@ export class S3Storage implements Storage {
           MaxKeys: this.pageSize,
         })
       );
-      for (const o of page.Contents ?? []) if (o.Key) yield o.Key;
+      for (const o of page.Contents ?? []) if (o.Key) yield { key: o.Key, size: o.Size ?? 0 };
       token = page.IsTruncated ? page.NextContinuationToken : undefined;
     } while (token);
   }
 
   async list(prefix: string): Promise<string[]> {
     const keys: string[] = [];
-    for await (const k of this.walk(prefix, true)) keys.push(k.slice(this.prefix.length));
+    for await (const { key } of this.walk(prefix, true)) keys.push(key.slice(this.prefix.length));
     return keys;
+  }
+
+  async usage(prefix: string): Promise<number> {
+    let bytes = 0;
+    for await (const { size } of this.walk(prefix, false)) bytes += size;
+    return bytes;
   }
 
   async deletePrefix(prefix: string): Promise<void> {
@@ -104,8 +110,8 @@ export class S3Storage implements Storage {
       if (res.Errors?.length) throw new Error(`Could not delete ${res.Errors.length} stored files: ${res.Errors[0].Message}`);
       batch = [];
     };
-    for await (const k of this.walk(prefix, false)) {
-      batch.push(k);
+    for await (const { key } of this.walk(prefix, false)) {
+      batch.push(key);
       if (batch.length === 1000) await flush(); // S3's limit per request
     }
     await flush();

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { USER_AGENT } from "@/lib/config";
+import { pace } from "@/lib/outbound";
 
 const UA = { "User-Agent": USER_AGENT };
 
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
   // when we have a title to search by.
   if (size === "L" && title) {
     try {
+      await pace("itunes", 5_000);
       const term = encodeURIComponent(`${title} ${author}`.trim());
       const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=ebook&limit=1`, {
         headers: UA,

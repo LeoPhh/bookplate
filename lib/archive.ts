@@ -6,6 +6,7 @@ import { contentTypeOf, detectImageType, getStorage, isSafeFileName, isSafeId, k
 import { isValidBook, isValidProgress, isValidVocab } from "./validate";
 import { Book, ProgressEntry, VocabEntry } from "./types";
 import { config } from "./config";
+import { checkBooks, checkStorage, checkWords } from "./limits";
 
 // The export format: a zip laid out like the original Bookplate data/ folder,
 // so the files stay readable without the app.
@@ -85,9 +86,21 @@ export class ImportError extends Error {}
 // with the same ids as existing ones are overwritten; nothing is deleted.
 export async function importArchive(userId: string, zip: Uint8Array): Promise<ImportSummary> {
   let entries: Record<string, Uint8Array>;
+  // A small zip can claim to unpack into gigabytes; refuse before unpacking.
+  // Exports are mostly images, which barely compress, so twice the upload
+  // limit is generous.
+  let unpacked = 0;
+  const maxUnpacked = 2 * config.limits.importBytes;
   try {
-    entries = unzipSync(zip);
-  } catch {
+    entries = unzipSync(zip, {
+      filter: (f) => {
+        unpacked += f.originalSize;
+        if (unpacked > maxUnpacked) throw new ImportError("That zip unpacks to more than this server allows.");
+        return true;
+      },
+    });
+  } catch (e) {
+    if (e instanceof ImportError) throw e;
     throw new ImportError("That file isn't a readable zip.");
   }
 
@@ -143,6 +156,12 @@ export async function importArchive(userId: string, zip: Uint8Array): Promise<Im
       else skipped++;
     }
   }
+
+  const over =
+    (await checkBooks(userId, books.map((b) => b.id))) ??
+    (await checkWords(userId, words.map((w) => w.id))) ??
+    (await checkStorage(userId, images.reduce((sum, img) => sum + img.data.length, 0)));
+  if (over) throw new ImportError(over);
 
   // Images first: if the database write fails, a retry just overwrites them.
   const storage = getStorage();

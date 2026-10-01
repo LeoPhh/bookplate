@@ -1,4 +1,5 @@
 import { USER_AGENT } from "./config";
+import { pace } from "./outbound";
 import { detectImageType } from "./storage";
 
 const UA = { "User-Agent": USER_AGENT };
@@ -29,11 +30,13 @@ export function sameBook(r: ItunesResult, title: string, author: string): boolea
 // Finds a cover for a book that has none: Open Library by ISBN first, then
 // iTunes ebook artwork by title and author. Returns JPEG bytes, or null.
 //
-// Open Library allows about 100 ISBN cover lookups per 5 minutes from one
-// address, so callers should pace themselves (the Settings page asks for one
-// cover every few seconds).
+// Both services limit how often one server may ask (lib/outbound.ts). When
+// every reader's imports together need more than that, this throws
+// BusyError rather than queue for long; the Settings page then waits and
+// asks again.
 export async function findCover(isbn: string | undefined, title: string, author: string): Promise<Uint8Array | null> {
   if (isbn) {
+    await pace("coversByIsbn", 10_000);
     try {
       // default=false makes a missing cover a 404 instead of a blank image.
       const res = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`, {
@@ -49,6 +52,7 @@ export async function findCover(isbn: string | undefined, title: string, author:
     }
   }
 
+  await pace("itunes", 10_000);
   try {
     const term = encodeURIComponent(`${title} ${author}`.trim());
     const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=ebook&limit=5`, {

@@ -11,5 +11,7 @@ export default async function SignupPage() {
   if ((await countUsers()) === 0) redirect("/setup");
   if (config.registration !== "open") redirect("/login");
   if (await getSession()) redirect("/");
-  return <AuthForm mode="signup" requireVerification={config.requireEmailVerification} />;
+  return (
+    <AuthForm mode="signup" requireVerification={config.requireEmailVerification} botCheck={config.signupBotCheck} />
+  );
 }

@@ -7,6 +7,8 @@ import { headers } from "next/headers";
 import { config } from "./config";
 import { getDb, schema } from "./db";
 import { clearThrottle, recordFailure, throttleWait } from "./authThrottle";
+import { CHALLENGE_HEADER, checkChallenge } from "./botCheck";
+import { CLIENT_IP_HEADER, clientIp } from "./clientIp";
 import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
 
 const signInKey = (body: unknown) =>
@@ -17,6 +19,12 @@ const signInKey = (body: unknown) =>
 // the request still looks successful, which also gives nothing away about
 // which addresses have accounts.
 const SENDS_PER_WINDOW = 3;
+
+// At most 5 new accounts from one address an hour (see lib/clientIp.ts for
+// how far that address can be trusted).
+const SIGNUPS_PER_IP = 5;
+const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
+const signUpKey = (headers: Headers | undefined) => `sign-up:${clientIp(headers)}`;
 
 async function sendLimited(kind: string, email: Email): Promise<void> {
   const key = `${kind}:${email.to.toLowerCase()}`;
@@ -83,11 +91,30 @@ function createAuth() {
     // Better Auth quietly skips its cross-site (origin/CSRF) checks when it
     // thinks it's under test — e.g. a stray TEST=true in the environment.
     // Pin them on so no environment variable can switch them off.
-    advanced: { disableOriginCheck: false, disableCSRFCheck: false },
+    // Its rate limits read the visitor's address from the header proxy.ts
+    // sets — never straight from X-Forwarded-For, which visitors can fake.
+    advanced: {
+      disableOriginCheck: false,
+      disableCSRFCheck: false,
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
+    },
     // Too many wrong passwords for one account blocks it for a while,
     // whichever IP address the attempts claim (see lib/authThrottle.ts).
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/sign-up/email") {
+          if ((await throttleWait(signUpKey(ctx.headers), SIGNUPS_PER_IP, SIGNUP_WINDOW_MS)) > 0) {
+            throw new APIError("TOO_MANY_REQUESTS", {
+              message: "Too many new accounts from your network — try again in an hour.",
+            });
+          }
+          if (config.signupBotCheck && (await checkChallenge(ctx.headers?.get(CHALLENGE_HEADER)))) {
+            throw new APIError("FORBIDDEN", {
+              message: "The sign-up check didn’t go through — reload the page and try again.",
+            });
+          }
+          return;
+        }
         if (ctx.path !== "/sign-in/email") return;
         const wait = await throttleWait(signInKey(ctx.body));
         if (wait > 0) {
@@ -97,8 +124,12 @@ function createAuth() {
         }
       }),
       after: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== "/sign-in/email") return;
         const result = ctx.context.returned;
+        if (ctx.path === "/sign-up/email") {
+          if (!isAPIError(result)) await recordFailure(signUpKey(ctx.headers), SIGNUP_WINDOW_MS);
+          return;
+        }
+        if (ctx.path !== "/sign-in/email") return;
         if (isAPIError(result)) {
           if (result.statusCode === 401) await recordFailure(signInKey(ctx.body));
         } else {

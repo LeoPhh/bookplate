@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
+import { checkStorage, overLimit } from "@/lib/limits";
 import { detectImageType, getStorage, keys, urls } from "@/lib/storage";
 
 // The browser crops and compresses the photo to a small JPEG first.
@@ -25,6 +26,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Profile photos must be JPEG images" }, { status: 415 });
   }
 
+  const full = await checkStorage(auth.userId, data.length);
+  if (full) return overLimit(full);
   const storage = getStorage();
   const name = `${randomUUID()}.jpg`;
   const key = keys.avatar(auth.userId, name);

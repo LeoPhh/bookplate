@@ -14,6 +14,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
   optimistic redirect, never the real check.
 - Schema change → `npm run db:generate` and commit the new `drizzle/` file.
 - All configuration comes from environment variables (`lib/config.ts`).
+- Anything that adds books, words or images checks the per-account limits
+  first (`lib/limits.ts`). Requests to Open Library or iTunes wait their
+  turn with `pace()` (`lib/outbound.ts`): one server shares one address.
+- A visitor's address comes from `clientIp()` (`lib/clientIp.ts`), never
+  straight from `X-Forwarded-For`, whose leftmost entries anyone can fake.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
   check `config.email.enabled`. Emails that reveal whether an account exists
   (reset, verification) never report send errors to the visitor.

@@ -4,6 +4,17 @@ import pkg from "../package.json";
 // Every setting comes from the environment, so the same image runs anywhere.
 // See .env.example for the full list.
 
+const MB = 1024 * 1024;
+
+// A whole-number setting; anything else is a startup error, not a silent default.
+function limit(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) throw new Error(`${name} must be a whole number, not "${raw}".`);
+  return n;
+}
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable ${name} — see .env.example`);
@@ -68,6 +79,23 @@ export const config = {
     password: process.env.SMTP_PASSWORD ?? "",
     from: process.env.SMTP_FROM ?? "Bookplate <bookplate@localhost>",
   },
+  // Limits for each account, mostly for servers where strangers can sign up.
+  // Unset (or 0) means no limit, except where a default is given.
+  limits: {
+    books: limit("LIMIT_BOOKS", 0),
+    words: limit("LIMIT_WORDS", 0),
+    storageBytes: limit("LIMIT_STORAGE_MB", 0) * MB, // all of one account's images together
+    uploadBytes: limit("LIMIT_UPLOAD_MB", 8) * MB, // one cover or pasted image
+    importBytes: limit("LIMIT_IMPORT_MB", 1024) * MB, // one export zip or CSV file
+  },
+  // Sign-ups must pass an invisible proof-of-work check, so scripts can't
+  // create accounts in bulk. Only matters with open registration.
+  get signupBotCheck() {
+    return this.registration === "open" && process.env.SIGNUP_BOT_CHECK !== "false";
+  },
+  // How many reverse proxies (Caddy, nginx, a cloud load balancer…) stand in
+  // front of Bookplate, to find a visitor's real address in X-Forwarded-For.
+  trustedProxies: Math.max(1, limit("TRUSTED_PROXIES", 1)),
   // New accounts must confirm their address when strangers can sign up and
   // there's email to confirm it with. A single-owner server never asks.
   get requireEmailVerification() {
@@ -76,6 +104,11 @@ export const config = {
   version: pkg.version,
 };
 
+// Who runs this server, for outside services that ask API clients for a
+// contact (Open Library allows three times as many requests with one).
+export const CONTACT_EMAIL = process.env.CONTACT_EMAIL?.trim() || "";
+
 // Sent with every request to Open Library, iTunes and Wiktionary, which ask
 // API clients to identify themselves.
-export const USER_AGENT = `Bookplate/${pkg.version} (+https://github.com/LeoPhh/bookplate)`;
+export const USER_AGENT =
+  `Bookplate/${pkg.version} (+https://github.com/LeoPhh/bookplate` + (CONTACT_EMAIL ? `; ${CONTACT_EMAIL})` : ")");

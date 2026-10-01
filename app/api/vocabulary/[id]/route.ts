@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { deleteVocab, upsertVocab } from "@/lib/library";
+import { checkWords, overLimit } from "@/lib/limits";
 import { isSafeId } from "@/lib/storage";
 import { isValidVocab } from "@/lib/validate";
 
@@ -17,6 +18,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!isSafeId(id) || !isValidVocab(body) || body.id !== id) {
     return Response.json({ error: "Invalid word" }, { status: 400 });
   }
+  const over = await checkWords(auth.userId, [id]);
+  if (over) return overLimit(over);
   await upsertVocab(auth.userId, body);
   return Response.json({ ok: true });
 }

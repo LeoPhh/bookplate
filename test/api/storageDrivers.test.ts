@@ -70,6 +70,17 @@ describe.each(drivers)("%s storage", (_name, make) => {
     expect(await st.get("u2/notes/b1/keep.jpg")).toEqual(bytes(1));
   });
 
+  it("adds up the space used under a folder", async () => {
+    const st = make();
+    await st.put("u1/covers/b1.jpg", new Uint8Array(100));
+    await st.put("u1/notes/b1/a.png", new Uint8Array(250));
+    await st.put("u1/notes/b2/deeper/b.png", new Uint8Array(50));
+    await st.put("u2/covers/b1.jpg", new Uint8Array(999));
+    expect(await st.usage("u1/")).toBe(400);
+    expect(await st.usage("u1/notes/")).toBe(300);
+    expect(await st.usage("nobody/")).toBe(0);
+  });
+
   it("refuses keys that try to escape their folder", async () => {
     const st = make();
     await expect(st.put("../escape.jpg", bytes(1))).rejects.toThrow();

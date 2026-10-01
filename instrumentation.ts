@@ -14,4 +14,6 @@ export async function register() {
     console.error(`Bookplate couldn't start: ${e instanceof Error ? e.message : e}`);
     process.exit(1);
   }
+  const { startHousekeeping } = await import("./lib/housekeeping");
+  startHousekeeping();
 }

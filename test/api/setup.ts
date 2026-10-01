@@ -9,11 +9,13 @@ import { MAILPIT_URL, SMTP_PORT } from "./mailpit";
 import { createBucket, removeBucket, S3_TEST } from "./s3";
 
 // Starts the real production build (.next/standalone/server.js) for the API
-// tests — twice, each with its own fresh database — and removes it all after:
+// tests — three times, each with its own fresh database — and removes it all
+// after:
 //
-//   baseUrl       no email, open registration: most tests
-//   emailBaseUrl  email via Mailpit, open registration, so new accounts must
-//                 confirm their address: the password-reset and verification tests
+//   baseUrl         no email, open registration: most tests
+//   emailBaseUrl    email via Mailpit, open registration, so new accounts must
+//                   confirm their address: the password-reset and verification tests
+//   limitedBaseUrl  tiny per-account limits (LIMIT_*): the limits tests
 //
 // Needs `npm run build` and `npm run db:up` (Postgres, Mailpit, RustFS), or
 // TEST_DATABASE_ADMIN_URL / MAILPIT_URL / TEST_S3_* pointing elsewhere.
@@ -26,6 +28,7 @@ declare module "vitest" {
     baseUrl: string;
     dbUrl: string;
     emailBaseUrl: string;
+    limitedBaseUrl: string;
     s3Bucket: string; // "" unless TEST_STORAGE=s3
   }
 }
@@ -138,7 +141,7 @@ export default async function setup(project: TestProject) {
         }
       : {};
 
-  const [plain, email] = await Promise.all([
+  const [plain, email, limited] = await Promise.all([
     startServer("plain", storage("plain")),
     startServer("email", {
       ...storage("email"),
@@ -146,15 +149,24 @@ export default async function setup(project: TestProject) {
       SMTP_PORT: String(SMTP_PORT),
       SMTP_FROM: "Bookplate <bookplate@test.local>",
     }),
+    startServer("limited", {
+      ...storage("limited"),
+      LIMIT_BOOKS: "3",
+      LIMIT_WORDS: "2",
+      LIMIT_STORAGE_MB: "1",
+      LIMIT_UPLOAD_MB: "1",
+      LIMIT_IMPORT_MB: "1",
+    }),
   ]);
 
   project.provide("baseUrl", plain.url);
   project.provide("dbUrl", plain.dbUrl);
   project.provide("emailBaseUrl", email.url);
+  project.provide("limitedBaseUrl", limited.url);
   project.provide("s3Bucket", bucket ?? "");
 
   return async () => {
-    await Promise.all([plain.stop(), email.stop()]);
+    await Promise.all([plain.stop(), email.stop(), limited.stop()]);
     if (bucket) await removeBucket(bucket);
   };
 }

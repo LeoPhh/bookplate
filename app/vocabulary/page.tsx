@@ -44,6 +44,7 @@ export default function VocabularyPage() {
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<DefineEntry | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [addedSenses, setAddedSenses] = useState<Set<number>>(new Set());
   const [bookId, setBookId] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
@@ -162,7 +163,16 @@ export default function VocabularyPage() {
       addedAt: new Date().toISOString(),
     };
     setEntries((prev) => [entry, ...(prev ?? [])]);
-    void putJson(`/api/vocabulary/${entry.id}`, entry).catch(() => {});
+    setSaveError(null);
+    void putJson(`/api/vocabulary/${entry.id}`, entry)
+      .then(async (res) => {
+        if (res.ok) return;
+        // Refused (e.g. this server's word limit): take the word back off the list.
+        const data: { error?: string } = await res.json().catch(() => ({}));
+        setEntries((prev) => prev?.filter((e) => e.id !== entry.id) ?? prev);
+        setSaveError(data.error ?? "The word could not be saved.");
+      })
+      .catch(() => setSaveError("The word could not be saved — is the server still running?"));
   };
 
   const addSense = (sense: DefineSense, index: number) => {
@@ -249,6 +259,11 @@ export default function VocabularyPage() {
         </form>
 
         {searchError && <p className="search-note search-note--error">{searchError}</p>}
+        {saveError && (
+          <p className="search-note search-note--error" role="alert">
+            {saveError}
+          </p>
+        )}
 
         {result && (
           <div className="lookup-result">

@@ -17,11 +17,12 @@ const { authThrottle } = schema;
 // All time arithmetic happens in the database, against its own clock: mixing
 // JavaScript dates with a timezone-less column skews the window by the
 // server's UTC offset.
-const WINDOW = sql.raw(`interval '${WINDOW_MS / 1000} seconds'`);
+const interval = (ms: number) => sql.raw(`interval '${Math.round(ms / 1000)} seconds'`);
 
 // Minutes until the key can be tried again, or 0 when it isn't blocked.
 // `max` is how many attempts the window allows (5 wrong passwords by default).
-export async function throttleWait(key: string, max = MAX_FAILURES): Promise<number> {
+export async function throttleWait(key: string, max = MAX_FAILURES, windowMs = WINDOW_MS): Promise<number> {
+  const WINDOW = interval(windowMs);
   const [row] = await getDb()
     .select({
       failures: authThrottle.failures,
@@ -35,7 +36,8 @@ export async function throttleWait(key: string, max = MAX_FAILURES): Promise<num
 }
 
 // Counts a failure; a failure after the window has passed starts a new one.
-export async function recordFailure(key: string): Promise<void> {
+export async function recordFailure(key: string, windowMs = WINDOW_MS): Promise<void> {
+  const WINDOW = interval(windowMs);
   const expired = sql`${authThrottle.windowStart} < localtimestamp - ${WINDOW}`;
   await getDb()
     .insert(authThrottle)
@@ -51,4 +53,24 @@ export async function recordFailure(key: string): Promise<void> {
 
 export async function clearThrottle(key: string): Promise<void> {
   await getDb().delete(authThrottle).where(eq(authThrottle.key, key));
+}
+
+// Marks `key` as used for `windowMs`. True the first time; false while it's
+// still marked, even when two requests race for it.
+export async function claimOnce(key: string, windowMs: number): Promise<boolean> {
+  const rows = await getDb()
+    .insert(authThrottle)
+    .values({ key, failures: 1, windowStart: sql`localtimestamp` })
+    .onConflictDoUpdate({
+      target: authThrottle.key,
+      set: { failures: 1, windowStart: sql`localtimestamp` },
+      setWhere: sql`${authThrottle.windowStart} < localtimestamp - ${interval(windowMs)}`,
+    })
+    .returning({ key: authThrottle.key });
+  return rows.length > 0;
+}
+
+// Drops entries whose window ended long ago (run now and then; see lib/housekeeping.ts).
+export async function pruneThrottle(olderThanMs: number): Promise<void> {
+  await getDb().delete(authThrottle).where(sql`${authThrottle.windowStart} < localtimestamp - ${interval(olderThanMs)}`);
 }

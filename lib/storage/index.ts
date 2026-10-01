@@ -12,6 +12,8 @@ export interface Storage {
   delete(key: string): Promise<void>;
   // Keys directly under a prefix ("<userId>/notes/<bookId>/"), non-recursive.
   list(prefix: string): Promise<string[]>;
+  // Total bytes stored under a prefix, at any depth.
+  usage(prefix: string): Promise<number>;
   // Removes everything under a prefix.
   deletePrefix(prefix: string): Promise<void>;
   // Throws a readable error if the storage can't be used (checked at startup).

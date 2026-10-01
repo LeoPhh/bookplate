@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "fs/promises";
 import path from "path";
 import type { Storage } from ".";
 
@@ -40,6 +40,19 @@ export class LocalStorage implements Storage {
     } catch {
       return [];
     }
+  }
+
+  async usage(prefix: string): Promise<number> {
+    let entries;
+    try {
+      entries = await readdir(this.pathFor(prefix), { recursive: true, withFileTypes: true });
+    } catch {
+      return 0;
+    }
+    const sizes = await Promise.all(
+      entries.filter((e) => e.isFile()).map((e) => stat(path.join(e.parentPath, e.name)).then((s) => s.size, () => 0))
+    );
+    return sizes.reduce((a, b) => a + b, 0);
   }
 
   async deletePrefix(prefix: string): Promise<void> {

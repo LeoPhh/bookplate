@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import AuthShell from "./AuthShell";
@@ -21,11 +21,32 @@ interface Props {
   signupOpen?: boolean;
   // Shown on arrival, e.g. after an expired confirmation link.
   notice?: string;
+  // Sign-ups carry a solved proof-of-work puzzle (lib/botCheck.ts).
+  botCheck?: boolean;
+}
+
+// Fetches a sign-up puzzle and solves it in the background; resolves to the
+// header value the server expects, or null if that didn't work.
+async function solvePuzzle(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/signup-challenge", { cache: "no-store" });
+    if (!res.ok) return null;
+    const challenge = await res.json();
+    const [{ solveChallenge }, { deriveKey }] = await Promise.all([
+      import("altcha-lib"),
+      import("altcha-lib/algorithms/web/pbkdf2"),
+    ]);
+    const solution = await solveChallenge({ challenge, deriveKey });
+    if (!solution) return null;
+    return btoa(JSON.stringify({ challenge, solution }));
+  } catch {
+    return null;
+  }
 }
 
 // First-run setup (the owner account), sign-up on open servers, and sign-in
 // share one card.
-export default function AuthForm({ mode, requireVerification = false, signupOpen = false, notice }: Props) {
+export default function AuthForm({ mode, requireVerification = false, signupOpen = false, notice, botCheck = false }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,15 +55,28 @@ export default function AuthForm({ mode, requireVerification = false, signupOpen
   const [checkInbox, setCheckInbox] = useState(false);
   const creating = mode !== "login";
 
+  // Started as soon as the form opens, so it's usually done before anyone
+  // finishes typing. Each puzzle works once: a failed attempt starts another.
+  const puzzle = useRef<Promise<string | null> | null>(null);
+  const startPuzzle = useCallback(() => {
+    puzzle.current = creating && botCheck ? solvePuzzle() : null;
+  }, [creating, botCheck]);
+  useEffect(startPuzzle, [startPuzzle]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     // After confirming their email, new readers land on the sign-in page,
     // which forwards them into the library (or explains a bad link).
+    const solved = puzzle.current ? await puzzle.current : null;
     const { error } = creating
-      ? await authClient.signUp.email({ name: name.trim() || "Reader", email, password, callbackURL: "/login" })
+      ? await authClient.signUp.email(
+          { name: name.trim() || "Reader", email, password, callbackURL: "/login" },
+          solved ? { headers: { "x-signup-challenge": solved } } : undefined
+        )
       : await authClient.signIn.email({ email, password });
+    if (error) startPuzzle();
     setBusy(false);
     if (error) {
       setError(

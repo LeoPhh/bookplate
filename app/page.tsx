@@ -52,7 +52,8 @@ export default function Home() {
   const [pendingFinish, setPendingFinish] = useState<Book | null>(null);
 
   const [loadError, setLoadError] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  // Why the last change wasn't saved, shown above the library.
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -110,16 +111,23 @@ export default function Home() {
     };
   }, [router]);
 
-  // Each change is saved as it happens, one book at a time.
-  const persist = (request: Promise<Response>) => {
+  // Each change is saved as it happens, one book at a time. A refusal from
+  // the server (e.g. a library at this server's book limit) explains itself;
+  // `onRefused` undoes the change on screen.
+  const persist = (request: Promise<Response>, onRefused?: () => void) => {
     request
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        setSaveError(false);
+      .then(async (res) => {
+        if (res.ok) return setSaveError(null);
+        const data: { error?: string } = await res.json().catch(() => ({}));
+        if (res.status === 403 && data.error) {
+          onRefused?.();
+          return setSaveError(data.error);
+        }
+        throw new Error();
       })
-      .catch(() => setSaveError(true));
+      .catch(() => setSaveError("The last change could not be saved — is the server still running?"));
   };
-  const saveBook = (book: Book) => persist(putJson(`/api/books/${book.id}`, book));
+  const saveBook = (book: Book, onRefused?: () => void) => persist(putJson(`/api/books/${book.id}`, book), onRefused);
   const removeBook = (id: string) => persist(apiFetch(`/api/books/${id}`, { method: "DELETE" }));
 
   // One update per book per day: a second one the same day replaces it.
@@ -200,6 +208,9 @@ export default function Home() {
         if (res.ok) {
           const data: { path: string } = await res.json();
           coverImage = `${data.path}?v=${Date.now()}`;
+        } else {
+          const data: { error?: string } = await res.json().catch(() => ({}));
+          setSaveError(data.error ?? "The cover could not be saved.");
         }
       } else if (cover.type === "remove" && coverImage) {
         deleteCoverFile(coverImage);
@@ -215,7 +226,7 @@ export default function Home() {
     } else {
       const book: Book = { ...draft, coverImage, id, addedAt: new Date().toISOString() };
       setBooks((prev) => [book, ...(prev ?? [])]);
-      saveBook(book);
+      saveBook(book, () => setBooks((prev) => prev!.filter((b) => b.id !== id)));
     }
     setFormOpen(false);
     setEditing(null);
@@ -269,7 +280,7 @@ export default function Home() {
         <>
           {saveError && (
             <p className="empty-note" role="alert">
-              The last change could not be saved — is the server still running?
+              {saveError}
             </p>
           )}
         <section className="view-area">

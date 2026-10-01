@@ -376,7 +376,20 @@ function CsvImport() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ bookId: ids[i] }),
         });
-        const data: { found?: boolean } = await res.json().catch(() => ({}));
+        const data: { found?: boolean; error?: string; busy?: boolean; retryAfterMs?: number } = await res
+          .json()
+          .catch(() => ({}));
+        if (data.busy) {
+          // The server is pacing lookups for everyone: wait, then try this book again.
+          await new Promise((r) => setTimeout(r, Math.min(data.retryAfterMs ?? 10_000, 30_000)));
+          i--;
+          continue;
+        }
+        if (res.status === 403) {
+          // Out of image space: stop, and say so.
+          setError(data.error ?? "No room for more covers.");
+          break;
+        }
         if (data.found) found++;
       } catch {
         // skip this one

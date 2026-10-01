@@ -199,6 +199,31 @@ and vocabulary all come across.
 | `SMTP_SECURE` | follows the port | `true` / `false` to override |
 | `SMTP_USER`, `SMTP_PASSWORD` | — | the mail server's login, if it needs one |
 | `SMTP_FROM` | `Bookplate <bookplate@localhost>` | who emails come from, e.g. `Bookplate <books@example.com>` |
+| `SIGNUP_BOT_CHECK` | `true` | with open registration, sign-ups solve an invisible puzzle first (see below); `false` turns it off |
+| `TRUSTED_PROXIES` | `1` | how many reverse proxies stand in front of Bookplate; `2` for e.g. Cloudflare in front of Caddy |
+| `LIMIT_BOOKS`, `LIMIT_WORDS` | no limit | the most books / vocabulary words one account may have |
+| `LIMIT_STORAGE_MB` | no limit | the most image space one account may use (covers, pasted images, profile photo) |
+| `LIMIT_UPLOAD_MB` | `8` | the largest single image |
+| `LIMIT_IMPORT_MB` | `1024` | the largest export zip or CSV that can be imported |
+| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
+
+### Open registration
+
+With `REGISTRATION=open`, anyone who can reach Bookplate can make an account,
+so it guards the door:
+
+- **An invisible check.** The sign-up page has the browser solve a small
+  puzzle (an [ALTCHA](https://altcha.org) proof of work) while the person types:
+  a moment's computing for them, but slow and costly for a script making
+  accounts in bulk. No picture puzzles, and nothing is sent anywhere else.
+- **Five new accounts an hour per address.** Bookplate finds the address the
+  way your reverse proxy reports it; set `TRUSTED_PROXIES` if there's more
+  than one in front of it. Reached directly, without a proxy, the address can
+  be faked and this limit doesn't hold.
+- **Confirmed email addresses**, when email is set up — and accounts that
+  never confirm (and so never stored anything) are removed after 7 days.
+- **Limits per account** with the `LIMIT_*` settings, so one account can't
+  fill your disk or bucket.
 
 ### Image storage
 
@@ -227,7 +252,9 @@ It asks for the new password twice and signs out every device. Settings →
 
 Bookplate sends no telemetry. The only outside services it talks to are Open
 Library and iTunes (book search and covers) and Wiktionary (word lookups),
-and only when you use those features.
+and only when you use those features. It paces its requests to stay within
+their limits, so on a busy server, finding covers after a big import can
+take a little longer.
 
 ## Development
 
