@@ -71,5 +71,18 @@ The version in `package.json` shows up on the Settings page and in
 - Docker Hub login errors: check **Settings → Secrets and variables →
   Actions** → Repository secrets `DOCKERHUB_USERNAME` (`leophh`) and
   `DOCKERHUB_TOKEN` (a Read & Write access token from Docker Hub).
-- `npm ci` errors about the lock file: run `npm install` locally and commit
-  the updated `package-lock.json`.
+- `npm ci` fails with "Missing: … from lock file": installing packages on a
+  Mac can leave out ones only Linux needs. Regenerate the lock file from
+  scratch and commit it:
+
+  ```bash
+  rm -rf node_modules package-lock.json && npm install
+  ```
+
+  To check before pushing, run the same install GitHub does, in Linux:
+
+  ```bash
+  docker run --rm -v "$PWD/package.json:/app/package.json:ro" \
+    -v "$PWD/package-lock.json:/app/package-lock.json:ro" -w /app \
+    node:24 npm ci --ignore-scripts
+  ```
