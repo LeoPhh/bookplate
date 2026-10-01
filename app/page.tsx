@@ -21,16 +21,27 @@ function deleteCoverFile(coverImage: string) {
 }
 
 
-// Most recently finished first; books without a date finished fall to the end.
+// Books on the go come first, so a book you've just added is easy to find:
+// Reading, then TBR (newest added first), then Read — most recently finished
+// first, with read books missing a finish date (common in imports) at the end.
+const STATUS_ORDER: Record<Book["status"], number> = { reading: 0, "to-read": 1, read: 2 };
+
 function compare(a: Book, b: Book): number {
-  return (b.dateRead ?? "").localeCompare(a.dateRead ?? "");
+  const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+  if (byStatus !== 0) return byStatus;
+  if (a.status === "read") {
+    const byFinished = (b.dateRead ?? "").localeCompare(a.dateRead ?? "");
+    if (byFinished !== 0) return byFinished;
+  }
+  return (b.addedAt ?? "").localeCompare(a.addedAt ?? "");
 }
 
 export default function Home() {
   const [books, setBooks] = useState<Book[] | null>(null);
   const [view, setView] = useState<ViewMode>("covers");
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("read");
+  // "All" by default, so a newly added book always shows up straight away.
+  const [status, setStatus] = useState<StatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [notedFileIds, setNotedFileIds] = useState<string[]>([]);
