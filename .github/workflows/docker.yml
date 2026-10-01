@@ -45,6 +45,14 @@ jobs:
         ports:
           - 1025:1025
           - 8025:8025
+      # S3-compatible storage: the storage tests, and the API tests on S3.
+      rustfs:
+        image: rustfs/rustfs:latest
+        env:
+          RUSTFS_ACCESS_KEY: bookplate
+          RUSTFS_SECRET_KEY: bookplate-secret
+        ports:
+          - 9000:9000
     env:
       TEST_DATABASE_ADMIN_URL: postgres://bookplate:bookplate@localhost:5432/bookplate
       NEXT_TELEMETRY_DISABLED: 1
@@ -63,8 +71,10 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
-      - name: API tests
+      - name: API tests (images on disk)
         run: npm run test:api
+      - name: API tests (images in S3)
+        run: npm run test:api:s3
 
   image:
     needs: test

@@ -49,3 +49,21 @@ describe("profile photo", () => {
     expect((await r.fetch(second.image)).status).toBe(404);
   });
 });
+
+// Only with TEST_STORAGE=s3: prove images really go to the bucket.
+describe.runIf(process.env.TEST_STORAGE === "s3")("S3 storage", () => {
+  it("puts images in the bucket and removes them with their book", async () => {
+    const { inject } = await import("vitest");
+    const { objectKeys } = await import("./s3");
+    const { book } = await import("./client");
+    const bucket = inject("s3Bucket");
+    const r = await reader();
+    await r.json("/api/books/s3book", "PUT", book("s3book", { coverImage: "/api/covers/s3book.jpg" }));
+    await r.upload("/api/covers", { file: jpeg(), id: "s3book" });
+    const stored = (await objectKeys(bucket)).filter((k) => k.endsWith("/covers/s3book.jpg"));
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatch(/^plain\/[^/]+\/covers\/s3book\.jpg$/); // inside the server's S3_PREFIX
+    await r.json("/api/books/s3book", "DELETE");
+    expect((await objectKeys(bucket)).filter((k) => k.endsWith("/covers/s3book.jpg"))).toHaveLength(0);
+  });
+});

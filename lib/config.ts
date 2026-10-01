@@ -14,8 +14,35 @@ export const config = {
   get databaseUrl() {
     return required("DATABASE_URL");
   },
-  // Covers and pasted note images. The Docker image points this at /data/uploads.
+  // Where covers, pasted note images and profile photos live: files on disk
+  // (the default) or an S3-compatible bucket (STORAGE=s3).
+  get storage() {
+    const driver = process.env.STORAGE || "local";
+    if (driver !== "local" && driver !== "s3") throw new Error(`STORAGE must be "local" or "s3", not "${driver}".`);
+    return driver as "local" | "s3";
+  },
+  // With STORAGE=local. The Docker image points this at /data/uploads.
   uploadsDir: path.resolve(/* turbopackIgnore: true */ process.env.UPLOADS_DIR ?? "uploads"),
+  // With STORAGE=s3: any S3-compatible provider (Scaleway, Cloudflare R2,
+  // Backblaze B2, AWS, or a NAS running Garage/RustFS…).
+  s3: {
+    endpoint: process.env.S3_ENDPOINT || undefined, // e.g. https://s3.fr-par.scw.cloud; unset = AWS
+    region: process.env.S3_REGION || "us-east-1",
+    get bucket() {
+      return required("S3_BUCKET");
+    },
+    get accessKeyId() {
+      return required("S3_ACCESS_KEY_ID");
+    },
+    get secretAccessKey() {
+      return required("S3_SECRET_ACCESS_KEY");
+    },
+    // Bucket in the path (https://host/bucket/key) rather than the hostname —
+    // what self-hosted servers usually need.
+    forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+    // Optional folder inside the bucket, to share one bucket with other apps.
+    prefix: (process.env.S3_PREFIX ?? "").replace(/^\/+|\/+$/g, "").replace(/(.+)/, "$1/"),
+  },
   // "closed": only the first account (the owner) can be created.
   // "open": anyone who can reach the server can sign up.
   registration: process.env.REGISTRATION === "open" ? ("open" as const) : ("closed" as const),

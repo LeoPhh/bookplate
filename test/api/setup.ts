@@ -6,6 +6,7 @@ import path from "path";
 import type { TestProject } from "vitest/node";
 import { createDatabase, dropDatabase } from "./db";
 import { MAILPIT_URL, SMTP_PORT } from "./mailpit";
+import { createBucket, removeBucket, S3_TEST } from "./s3";
 
 // Starts the real production build (.next/standalone/server.js) for the API
 // tests — twice, each with its own fresh database — and removes it all after:
@@ -14,14 +15,18 @@ import { MAILPIT_URL, SMTP_PORT } from "./mailpit";
 //   emailBaseUrl  email via Mailpit, open registration, so new accounts must
 //                 confirm their address: the password-reset and verification tests
 //
-// Needs `npm run build` and `npm run db:up` (Postgres and Mailpit), or
-// TEST_DATABASE_ADMIN_URL / MAILPIT_URL pointing elsewhere.
+// Needs `npm run build` and `npm run db:up` (Postgres, Mailpit, RustFS), or
+// TEST_DATABASE_ADMIN_URL / MAILPIT_URL / TEST_S3_* pointing elsewhere.
+//
+// Images go to disk by default; TEST_STORAGE=s3 runs the whole suite with
+// both servers storing them in a throwaway S3 bucket instead.
 
 declare module "vitest" {
   export interface ProvidedContext {
     baseUrl: string;
     dbUrl: string;
     emailBaseUrl: string;
+    s3Bucket: string; // "" unless TEST_STORAGE=s3
   }
 }
 
@@ -56,7 +61,9 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
   // Run the server exactly as in production: drop the test runner's own
   // variables (TEST, VITEST…), which libraries use to switch off safeguards.
   const env = Object.fromEntries(
-    Object.entries(process.env).filter(([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*)$/.test(k))
+    Object.entries(process.env).filter(
+      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*)$/.test(k)
+    )
   );
   const child: ChildProcess = spawn(process.execPath, [SERVER], {
     env: {
@@ -108,21 +115,46 @@ export default async function setup(project: TestProject) {
   try {
     await fetch(`${MAILPIT_URL}/api/v1/messages`);
   } catch {
-    throw new Error(`Mailpit isn't reachable at ${MAILPIT_URL} — run \`npm run db:up\` (it starts Postgres and Mailpit).`);
+    throw new Error(`Mailpit isn't reachable at ${MAILPIT_URL} — run \`npm run db:up\` (it starts Postgres, Mailpit and RustFS).`);
   }
   // The server applies migrations from ./drizzle next to server.js on start.
   cpSync(path.join(ROOT, "drizzle"), path.join(ROOT, ".next/standalone/drizzle"), { recursive: true });
 
+  // With TEST_STORAGE=s3, both servers share one throwaway bucket, each in
+  // its own folder (which also exercises S3_PREFIX).
+  const bucket = process.env.TEST_STORAGE === "s3" ? `bookplate-test-${process.pid}` : null;
+  if (bucket) await createBucket(bucket);
+  const storage = (folder: string): Record<string, string> =>
+    bucket
+      ? {
+          STORAGE: "s3",
+          S3_ENDPOINT: S3_TEST.endpoint,
+          S3_REGION: S3_TEST.region,
+          S3_BUCKET: bucket,
+          S3_ACCESS_KEY_ID: S3_TEST.accessKeyId,
+          S3_SECRET_ACCESS_KEY: S3_TEST.secretAccessKey,
+          S3_FORCE_PATH_STYLE: "true",
+          S3_PREFIX: folder,
+        }
+      : {};
+
   const [plain, email] = await Promise.all([
-    startServer("plain", {}),
-    startServer("email", { SMTP_HOST: new URL(MAILPIT_URL).hostname, SMTP_PORT: String(SMTP_PORT), SMTP_FROM: "Bookplate <bookplate@test.local>" }),
+    startServer("plain", storage("plain")),
+    startServer("email", {
+      ...storage("email"),
+      SMTP_HOST: new URL(MAILPIT_URL).hostname,
+      SMTP_PORT: String(SMTP_PORT),
+      SMTP_FROM: "Bookplate <bookplate@test.local>",
+    }),
   ]);
 
   project.provide("baseUrl", plain.url);
   project.provide("dbUrl", plain.dbUrl);
   project.provide("emailBaseUrl", email.url);
+  project.provide("s3Bucket", bucket ?? "");
 
   return async () => {
     await Promise.all([plain.stop(), email.stop()]);
+    if (bucket) await removeBucket(bucket);
   };
 }

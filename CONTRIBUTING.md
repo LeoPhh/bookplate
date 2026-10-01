@@ -9,6 +9,7 @@ Thanks for helping! Bug reports, ideas and pull requests are all welcome.
   npm test                          # unit tests, no setup needed
   npm run db:up && npm run build    # once, for the API tests
   npm run test:api                  # the API, against a real server and Postgres
+  npm run test:api:s3               # the same, with images in S3 (touched storage? run it)
   ```
 
   New behaviour comes with a test: logic in `test/unit/`, anything reachable

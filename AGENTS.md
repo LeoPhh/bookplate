@@ -7,7 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Data and auth
 
 - Data lives in Postgres (Drizzle, `lib/db/schema.ts`); images go through
-  `lib/storage/`. Every row and every storage key belongs to a user.
+  `lib/storage/` — files on disk or an S3 bucket (`STORAGE`), never touched
+  directly. Every row and every storage key belongs to a user.
 - Route handlers start with `requireUser()` from `lib/auth.ts` and only call
   the user-scoped helpers in `lib/library.ts`. `proxy.ts` is only an
   optimistic redirect, never the real check.
@@ -17,8 +18,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
   check `config.email.enabled`. Emails that reveal whether an account exists
   (reset, verification) never report send errors to the visitor.
 - Tests: `npm test` (unit, `test/unit/`) and `npm run test:api` (HTTP tests
-  against `npm run build` + the dev Postgres and Mailpit, `test/api/`; the
-  setup starts a server without email and one with it). Add a test with
+  against `npm run build` + the dev Postgres, Mailpit and RustFS,
+  `test/api/`; the setup starts a server without email and one with it;
+  `npm run test:api:s3` runs it all with images in S3). Add a test with
   every behaviour change; CI blocks image builds on failures.
 
 # Styling

@@ -11,9 +11,11 @@
     "test": "vitest run --project unit",
     "test:api": "vitest run --project api",
     "test:all": "vitest run",
-    "reset-password": "node --env-file-if-exists=.env.local scripts/reset-password.mjs"
+    "reset-password": "node --env-file-if-exists=.env.local scripts/reset-password.mjs",
+    "test:api:s3": "TEST_STORAGE=s3 vitest run --project api"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1144.0",
     "@tiptap/extension-image": "^3.28.0",
     "@tiptap/extension-list": "^3.28.0",
     "@tiptap/extensions": "^3.28.0",

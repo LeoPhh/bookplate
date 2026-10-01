@@ -186,12 +186,32 @@ and vocabulary all come across.
 | `AUTH_SECRET` | — | signs session cookies; required |
 | `PUBLIC_URL` | `http://localhost:3000` | the address Bookplate is reached at |
 | `REGISTRATION` | `closed` | `open` lets anyone who can reach the server create their own separate library |
-| `UPLOADS_DIR` | `/data/uploads` in Docker | where covers and pasted images are stored |
+| `STORAGE` | `local` | `s3` keeps images in an S3-compatible bucket instead of on disk (see below) |
+| `UPLOADS_DIR` | `/data/uploads` in Docker | where images are stored with `STORAGE=local` |
+| `S3_ENDPOINT` | — (AWS) | your provider's S3 address, e.g. `https://s3.fr-par.scw.cloud` |
+| `S3_REGION` | `us-east-1` | the bucket's region, e.g. `fr-par` |
+| `S3_BUCKET` | — | the bucket's name (create it first) |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | — | an access key allowed to read and write the bucket |
+| `S3_FORCE_PATH_STYLE` | `false` | `true` for most self-hosted S3 servers (Garage, RustFS, SeaweedFS) |
+| `S3_PREFIX` | — | a folder inside the bucket, to share it with other apps |
 | `SMTP_HOST` | — | your mail server; setting it switches on email (password reset by email, and confirming new accounts' addresses when registration is open) |
 | `SMTP_PORT` | `587` | `465` for a direct encrypted connection |
 | `SMTP_SECURE` | follows the port | `true` / `false` to override |
 | `SMTP_USER`, `SMTP_PASSWORD` | — | the mail server's login, if it needs one |
 | `SMTP_FROM` | `Bookplate <bookplate@localhost>` | who emails come from, e.g. `Bookplate <books@example.com>` |
+
+### Image storage
+
+Covers, pasted note images and profile photos live on disk, in the `uploads`
+volume, unless you set `STORAGE=s3`. Then they go to an S3-compatible bucket:
+Scaleway Object Storage, Cloudflare R2, Backblaze B2, AWS S3, or a NAS running
+Garage or RustFS. The bucket stays private — Bookplate fetches images itself
+and only shows them to their owner. With wrong `S3_*` settings, Bookplate
+won't start, and `docker compose logs bookplate` says what's wrong.
+
+Pick your storage before adding images. To switch later: **Settings → Export
+library**, change the setting and restart, then **Settings → Import** the same
+zip (each account does this for its own library; profile photos need re-adding).
 
 ### Forgotten passwords
 
@@ -213,7 +233,7 @@ and only when you use those features.
 
 ```bash
 npm install
-npm run db:up        # Postgres (port 5433) and Mailpit, a fake mail server (docker-compose.dev.yml)
+npm run db:up        # Postgres (5433), Mailpit — a fake mail server — and RustFS, for S3 storage
 cp .env.example .env.local
 # set DATABASE_URL=postgres://bookplate:bookplate@localhost:5433/bookplate
 # plus AUTH_SECRET and PUBLIC_URL=http://localhost:3000
@@ -234,6 +254,7 @@ migration into `drizzle/`, and commit it.
 npm test            # unit tests (no database needed)
 npm run build       # the API tests run against the production build…
 npm run test:api    # …and throwaway databases on the dev Postgres, plus Mailpit
+npm run test:api:s3 # the same, with images in a throwaway RustFS bucket
 ```
 
 The API tests start the real server on a free port with a fresh database,

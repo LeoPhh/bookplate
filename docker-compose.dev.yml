@@ -1,6 +1,7 @@
-# Postgres and a fake mail server for local development: `npm run db:up`,
-# then `npm run dev`. Every email Bookplate sends shows up in Mailpit's
-# inbox at http://localhost:8025 instead of being delivered.
+# Postgres, a fake mail server and an S3-compatible storage server for local
+# development: `npm run db:up`, then `npm run dev`.
+#   Mailpit  http://localhost:8025 — every email Bookplate sends lands here
+#   RustFS   http://localhost:9001 — S3 storage (login bookplate / bookplate-secret)
 #
 # Its own project name keeps it apart from a real Bookplate server on the
 # same machine: the production compose file is also named "bookplate", and
@@ -25,5 +26,18 @@ services:
       - "1025:1025" # SMTP: SMTP_HOST=localhost SMTP_PORT=1025
       - "8025:8025" # web inbox
 
+  # S3-compatible storage, for STORAGE=s3 (see README) and the storage tests.
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: bookplate
+      RUSTFS_SECRET_KEY: bookplate-secret
+    ports:
+      - "9000:9000" # S3 API: S3_ENDPOINT=http://localhost:9000
+      - "9001:9001" # web console
+    volumes:
+      - s3data-dev:/data
+
 volumes:
   pgdata-dev:
+  s3data-dev:
