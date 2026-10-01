@@ -74,6 +74,7 @@ export const book = pgTable(
     id: text("id").notNull(),
     title: text("title").notNull(),
     author: text("author").notNull(),
+    isbn: text("isbn"), // ISBN-13 or ISBN-10, digits only (plus a trailing X)
     genre: text("genre"),
     pages: integer("pages"),
     format: text("format"),

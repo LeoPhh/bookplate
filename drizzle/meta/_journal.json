@@ -8,6 +8,13 @@
       "when": 1790719986156,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790821490530,
+      "tag": "0001_book_isbn",
+      "breakpoints": true
     }
   ]
 }

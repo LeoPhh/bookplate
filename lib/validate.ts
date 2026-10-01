@@ -19,6 +19,7 @@ export function isValidBook(b: unknown): b is Book {
     optional(o, "colorIndex", "number") &&
     optional(o, "pages", "number") &&
     optional(o, "genre", "string") &&
+    optional(o, "isbn", "string") &&
     optional(o, "format", "string") &&
     optional(o, "copy", "boolean") &&
     optional(o, "dateRead", "string") &&

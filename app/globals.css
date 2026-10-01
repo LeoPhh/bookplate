@@ -2791,6 +2791,47 @@ select,
   overflow-wrap: anywhere;
 }
 
+.csv-import {
+  margin-top: 32px;
+  padding-top: 22px;
+  border-top: 2px solid var(--hair);
+}
+
+.settings-subheading {
+  font-weight: 800;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.csv-preview {
+  margin-top: 18px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: var(--hard);
+}
+
+.csv-preview-title {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.csv-preview ul {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.csv-preview .settings-note {
+  margin: 0 0 14px;
+}
+
+.csv-preview .settings-lede {
+  margin-bottom: 14px;
+}
+
 .settings-version {
   margin-top: 48px;
   color: var(--ink-soft);

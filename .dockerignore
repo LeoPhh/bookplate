@@ -13,3 +13,4 @@ Dockerfile
 .dockerignore
 .DS_Store
 .playwright-mcp
+test

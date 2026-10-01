@@ -6,6 +6,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
+  isbn?: string; // digits only; set by Goodreads/StoryGraph imports
   genre?: string;
   pages?: number;
   format?: BookFormat;

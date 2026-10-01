@@ -281,6 +281,223 @@ function DeleteAccount() {
   );
 }
 
+interface CsvSummary {
+  source: "goodreads" | "storygraph";
+  total: number;
+  added: number;
+  updated: number;
+  read: number;
+  reading: number;
+  toRead: number;
+  dnf: number;
+  withIsbn: number;
+  notes: number;
+  skipped: number;
+}
+
+const SOURCE_NAMES = { goodreads: "Goodreads", storygraph: "StoryGraph" } as const;
+
+// Open Library allows ~100 ISBN cover lookups per 5 minutes from one address.
+const COVER_PACE_MS = 3000;
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+
+// Goodreads / StoryGraph CSV import: preview, import, then optionally find
+// covers for the imported books one at a time.
+function CsvImport() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const stopRef = useRef(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<CsvSummary | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imported, setImported] = useState<{ summary: CsvSummary; coverIds: string[] } | null>(null);
+  const [covers, setCovers] = useState<{ done: number; found: number; total: number; running: boolean } | null>(null);
+
+  const send = async (f: File, mode: "preview" | "apply") => {
+    const fd = new FormData();
+    fd.append("file", f);
+    fd.append("mode", mode);
+    const res = await fetch("/api/import/csv", { method: "POST", body: fd });
+    const data: { summary?: CsvSummary; coverIds?: string[]; error?: string } = await res.json().catch(() => ({}));
+    if (!res.ok || !data.summary) throw new Error(data.error ?? "The import failed.");
+    return data as { summary: CsvSummary; coverIds?: string[] };
+  };
+
+  const reset = () => {
+    setFile(null);
+    setPreview(null);
+    setError(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const choose = async (f: File) => {
+    reset();
+    setImported(null);
+    setCovers(null);
+    setBusy(true);
+    try {
+      const { summary } = await send(f, "preview");
+      setFile(f);
+      setPreview(summary);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The file could not be read.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const apply = async () => {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { summary, coverIds } = await send(file, "apply");
+      setImported({ summary, coverIds: coverIds ?? [] });
+      reset();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The import failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const findCovers = async () => {
+    if (!imported) return;
+    const ids = imported.coverIds;
+    stopRef.current = false;
+    let found = 0;
+    let done = 0;
+    setCovers({ done: 0, found: 0, total: ids.length, running: true });
+    for (let i = 0; i < ids.length && !stopRef.current; i++) {
+      try {
+        const res = await fetch("/api/covers/lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookId: ids[i] }),
+        });
+        const data: { found?: boolean } = await res.json().catch(() => ({}));
+        if (data.found) found++;
+      } catch {
+        // skip this one
+      }
+      done = i + 1;
+      setCovers({ done, found, total: ids.length, running: true });
+      if (i < ids.length - 1) await new Promise((r) => setTimeout(r, COVER_PACE_MS));
+    }
+    // After a Stop, the rest can be looked up later with the same button.
+    setImported((prev) => (prev ? { ...prev, coverIds: ids.slice(done) } : prev));
+    setCovers((c) => (c ? { ...c, running: false } : c));
+  };
+
+  const s = preview;
+  const minutes = imported ? Math.max(1, Math.round((imported.coverIds.length * COVER_PACE_MS) / 60000)) : 0;
+
+  return (
+    <div className="csv-import">
+      <h3 className="settings-subheading">From Goodreads or StoryGraph</h3>
+      <p className="settings-lede">
+        In Goodreads, use <strong>My Books → Import and export → Export Library</strong>; in StoryGraph,{" "}
+        <strong>Manage Account → Export StoryGraph Library</strong>. Then choose the CSV file here — you&rsquo;ll see what
+        will be imported before anything is saved. Importing again later updates the same books instead of duplicating
+        them.
+      </p>
+      <div className="settings-row">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void choose(f);
+          }}
+        />
+        <button type="button" className="btn" disabled={busy || covers?.running} onClick={() => fileRef.current?.click()}>
+          {busy && !preview ? "Reading…" : "Choose a CSV…"}
+        </button>
+      </div>
+
+      {s && (
+        <div className="csv-preview" role="status">
+          <p className="csv-preview-title">
+            {SOURCE_NAMES[s.source]} export · {plural(s.total, "book")}
+          </p>
+          <ul>
+            <li>
+              {s.read.toLocaleString()} read · {s.reading.toLocaleString()} reading · {s.toRead.toLocaleString()} to read
+            </li>
+            <li>
+              {plural(s.added, "new book")}
+              {s.updated ? `, and ${plural(s.updated, "book")} already in your library will be updated` : ""}
+            </li>
+            {s.notes > 0 && <li>{plural(s.notes, "review")} will become notes pages</li>}
+            {s.dnf > 0 && <li>{plural(s.dnf, "did-not-finish book")} will be imported as TBR</li>}
+            {s.skipped > 0 && <li>{plural(s.skipped, "row")} without a title or author will be skipped</li>}
+          </ul>
+          <div className="settings-row">
+            <button type="button" className="btn btn--primary" disabled={busy || s.total === 0} onClick={apply}>
+              {busy ? "Importing…" : `Import ${plural(s.total, "book")}`}
+            </button>
+            <button type="button" className="btn" disabled={busy} onClick={reset}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {imported && (
+        <div className="csv-preview" role="status">
+          <p className="csv-preview-title">
+            Imported {plural(imported.summary.total, "book")} from {SOURCE_NAMES[imported.summary.source]}
+          </p>
+          <p className="settings-note">
+            {plural(imported.summary.added, "new book")}, {imported.summary.updated.toLocaleString()} updated.
+          </p>
+          {covers && (
+            <p className="settings-note">
+              {covers.running
+                ? `Finding covers… ${covers.done} of ${covers.total} (${covers.found} found)`
+                : `Found ${plural(covers.found, "cover")} for ${plural(covers.done, "book")}.`}
+            </p>
+          )}
+          {covers?.running ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                stopRef.current = true;
+              }}
+            >
+              Stop
+            </button>
+          ) : (
+            imported.coverIds.length > 0 && (
+              <>
+                <p className="settings-lede">
+                  Exports don&rsquo;t include covers. Bookplate can look them up on Open Library — one book every few
+                  seconds to stay within its limits, so about {plural(minutes, "minute")} for{" "}
+                  {plural(imported.coverIds.length, "book")}. Keep this page open; books without a cover found keep their
+                  cloth one.
+                </p>
+                <button type="button" className="btn btn--primary" onClick={findCovers}>
+                  Find covers for {plural(imported.coverIds.length, "book")}
+                </button>
+              </>
+            )
+          )}
+        </div>
+      )}
+
+      {error && (
+        <p className="settings-note settings-note--error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsPanel({ user }: { user: ProfileUser }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -358,6 +575,7 @@ export default function SettingsPanel({ user }: { user: ProfileUser }) {
             {result.text}
           </p>
         )}
+        <CsvImport />
       </section>
 
       <section className="settings-section">
