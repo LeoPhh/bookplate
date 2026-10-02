@@ -1,4 +1,5 @@
 import { CONTACT_EMAIL } from "./config";
+import { log } from "./log";
 
 // Paces requests to outside services that limit how often one address may
 // call them. Every reader on this server shares its address, so the pace is
@@ -30,7 +31,28 @@ export class BusyError extends Error {
 export async function pace(lane: Lane, maxWaitMs: number): Promise<void> {
   const now = Date.now();
   const slot = Math.max(now, nextFree[lane]);
-  if (slot - now > maxWaitMs) throw new BusyError(slot - now);
+  if (slot - now > maxWaitMs) {
+    void log.info("outbound.busy", { lane, waitMs: slot - now });
+    throw new BusyError(slot - now);
+  }
   nextFree[lane] = slot + GAP_MS[lane];
   if (slot > now) await new Promise((r) => setTimeout(r, slot - now));
+}
+
+// fetch() for outside services, logged: failures, refusals and timeouts as
+// warnings with the service, status and time taken; successes at debug
+// level. Never the URL itself, which holds search terms and ISBNs.
+export async function outboundFetch(service: string, url: string, init: RequestInit = {}): Promise<Response> {
+  const started = Date.now();
+  try {
+    const res = await fetch(url, init);
+    const ms = Date.now() - started;
+    // 404 is an ordinary answer here ("no cover", "no such word").
+    if (res.ok || res.status === 404) void log.debug("outbound.ok", { service, status: res.status, ms });
+    else void log.warn("outbound.failed", { service, status: res.status, ms });
+    return res;
+  } catch (e) {
+    void log.warn("outbound.failed", { service, ms: Date.now() - started, error: e });
+    throw e;
+  }
 }

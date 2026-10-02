@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { USER_AGENT } from "@/lib/config";
-import { pace } from "@/lib/outbound";
+import { outboundFetch, pace } from "@/lib/outbound";
 
 const UA = { "User-Agent": USER_AGENT };
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   if (id) {
     try {
-      const res = await fetch(`https://covers.openlibrary.org/b/id/${id}-${size}.jpg`, {
+      const res = await outboundFetch("openlibrary-covers", `https://covers.openlibrary.org/b/id/${id}-${size}.jpg`, {
         headers: UA,
         signal: AbortSignal.timeout(8_000),
       });
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     try {
       await pace("itunes", 5_000);
       const term = encodeURIComponent(`${title} ${author}`.trim());
-      const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=ebook&limit=1`, {
+      const res = await outboundFetch("itunes", `https://itunes.apple.com/search?term=${term}&media=ebook&limit=1`, {
         headers: UA,
         signal: AbortSignal.timeout(8_000),
       });
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         const art = data.results?.[0]?.artworkUrl100;
         if (art) {
           const big = art.replace(/100x100bb\.jpg$/, "900x0w.jpg");
-          const img = await fetch(big, { headers: UA, signal: AbortSignal.timeout(10_000) });
+          const img = await outboundFetch("itunes-artwork", big, { headers: UA, signal: AbortSignal.timeout(10_000) });
           if (img.ok) return imageResponse(await img.arrayBuffer(), img.headers.get("content-type"));
         }
       }

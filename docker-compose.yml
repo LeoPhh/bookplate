@@ -6,10 +6,19 @@
 
 name: bookplate
 
+# Docker keeps each container's output; rotate it so it can't fill the disk
+# (`docker compose logs` reads it).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   bookplate:
     image: ${BOOKPLATE_IMAGE:-leophh/bookplate}:${BOOKPLATE_VERSION:-latest}
     restart: unless-stopped
+    logging: *logging
     ports:
       - "${BOOKPLATE_PORT:-3000}:3000"
     environment:
@@ -39,6 +48,7 @@ services:
       LIMIT_UPLOAD_MB: ${LIMIT_UPLOAD_MB:-}
       LIMIT_IMPORT_MB: ${LIMIT_IMPORT_MB:-}
       CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-}
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -48,6 +58,7 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: bookplate
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}

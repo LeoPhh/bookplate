@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Archivo_Black } from "next/font/google";
+import ErrorReporter from "@/components/ErrorReporter";
 import "./globals.css";
 
 // Archivo Black carries the display type, Archivo everything else; globals.css
@@ -40,7 +41,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${archivoBlack.variable} ${archivo.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ErrorReporter />
+      </body>
     </html>
   );
 }

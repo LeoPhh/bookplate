@@ -5,6 +5,7 @@ import { getAuth, requireUser } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { getStorage, keys } from "@/lib/storage";
 import { clearThrottle, recordFailure, throttleWait } from "@/lib/authThrottle";
+import { log } from "@/lib/log";
 
 // DELETE permanently removes the signed-in account and everything in it.
 // The password is always required, even for a fresh session, so a stolen
@@ -32,6 +33,7 @@ export async function DELETE(request: Request) {
   } catch (e) {
     if (isAPIError(e)) {
       await recordFailure(throttleKey);
+      void log.info("account.delete_refused", { user: auth.userId, reason: "wrong password" });
       return Response.json({ error: "That password isn't right." }, { status: 403 });
     }
     throw e;
@@ -42,5 +44,6 @@ export async function DELETE(request: Request) {
   // (foreign keys cascade); the files are removed after it.
   await getDb().delete(schema.user).where(eq(schema.user.id, auth.userId));
   await getStorage().deletePrefix(keys.userDir(auth.userId));
+  void log.info("account.deleted", { user: auth.userId });
   return Response.json({ ok: true });
 }

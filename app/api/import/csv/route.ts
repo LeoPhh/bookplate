@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { applyCsvImport, CsvImportError, previewCsvImport } from "@/lib/csvImport";
 import { checkNewBooks, overLimit, tooLarge } from "@/lib/limits";
+import { log } from "@/lib/log";
 
 // A CSV of tens of thousands of books is a few MB; this is plenty.
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -25,9 +26,20 @@ export async function POST(request: Request) {
     const over = await checkNewBooks(auth.userId, summary.added);
     if (over) return overLimit(over);
     if (mode === "preview") return Response.json({ summary });
-    return Response.json(await applyCsvImport(auth.userId, text));
+    const result = await applyCsvImport(auth.userId, text);
+    void log.info("import.csv", {
+      user: auth.userId,
+      source: summary.source,
+      added: summary.added,
+      updated: summary.updated,
+      skipped: summary.skipped,
+    });
+    return Response.json(result);
   } catch (e) {
-    if (e instanceof CsvImportError) return Response.json({ error: e.message }, { status: 400 });
+    if (e instanceof CsvImportError) {
+      void log.info("import.csv_refused", { user: auth.userId, reason: e.message });
+      return Response.json({ error: e.message }, { status: 400 });
+    }
     throw e;
   }
 }

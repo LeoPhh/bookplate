@@ -205,6 +205,7 @@ and vocabulary all come across.
 | `LIMIT_STORAGE_MB` | no limit | the most image space one account may use (covers, pasted images, profile photo) |
 | `LIMIT_UPLOAD_MB` | `8` | the largest single image |
 | `LIMIT_IMPORT_MB` | `1024` | the largest export zip or CSV that can be imported |
+| `LOG_LEVEL` | `info` | `debug` for more detail while chasing a problem; `warn` or `error` for less |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
 
 ### Open registration
@@ -237,6 +238,25 @@ won't start, and `docker compose logs bookplate` says what's wrong.
 Pick your storage before adding images. To switch later: **Settings → Export
 library**, change the setting and restart, then **Settings → Import** the same
 zip (each account does this for its own library; profile photos need re-adding).
+
+### Logs
+
+```bash
+docker compose logs bookplate --since 1h
+```
+
+Bookplate writes one JSON line per event: errors with their stack traces,
+failed calls to Open Library and other services, imports, sign-ins and
+sign-ups, limits reached, and errors from people's browsers. Every request
+gets an ID (sent back as `X-Request-Id`, or kept from a reverse proxy that
+sets one), and the lines a request causes carry it as `req`, so one failure
+can be followed end to end. When a save fails, the app shows the first part
+of that ID as a reference.
+
+Logs never contain passwords, cookies, tokens, email links, email addresses
+(accounts appear as user IDs or a short hash), book or note contents, or
+search terms. Docker keeps the last 50 MB per container. Any log shipper that
+reads Docker logs (Grafana Alloy, Vector, Promtail…) can forward them.
 
 ### Forgotten passwords
 

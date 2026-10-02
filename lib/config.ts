@@ -102,7 +102,17 @@ export const config = {
     return this.registration === "open" && this.email.enabled;
   },
   version: pkg.version,
+  // How much the server logs: debug, info (default), warn or error.
+  logLevel: logLevel(),
 };
+
+function logLevel(): "debug" | "info" | "warn" | "error" {
+  const v = process.env.LOG_LEVEL || "info";
+  if (v !== "debug" && v !== "info" && v !== "warn" && v !== "error") {
+    throw new Error(`LOG_LEVEL must be debug, info, warn or error, not "${v}".`);
+  }
+  return v;
+}
 
 // Who runs this server, for outside services that ask API clients for a
 // contact (Open Library allows three times as many requests with one).

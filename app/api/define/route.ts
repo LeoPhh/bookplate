@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createCache } from "@/lib/cache";
 import { USER_AGENT } from "@/lib/config";
+import { outboundFetch } from "@/lib/outbound";
 
 interface WiktDefinition {
   definition?: string;
@@ -48,7 +49,7 @@ async function fetchUsages(title: string): Promise<WiktUsage[] | null> {
   const cached = cache.get(title);
   if (cached !== undefined) return cached;
   const url = "https://en.wiktionary.org/api/rest_v1/page/definition/" + encodeURIComponent(title);
-  const res = await fetch(url, {
+  const res = await outboundFetch("wiktionary", url, {
     headers: { "User-Agent": USER_AGENT },
     signal: AbortSignal.timeout(10_000),
   });

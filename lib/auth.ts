@@ -10,9 +10,12 @@ import { clearThrottle, recordFailure, throttleWait } from "./authThrottle";
 import { CHALLENGE_HEADER, checkChallenge } from "./botCheck";
 import { CLIENT_IP_HEADER, clientIp } from "./clientIp";
 import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
+import { account, log } from "./log";
 
-const signInKey = (body: unknown) =>
-  `sign-in:${String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase()}`;
+const emailOf = (body: unknown) => String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase();
+const signInKey = (body: unknown) => `sign-in:${emailOf(body)}`;
+// The account a sign-in or sign-up result belongs to, if it succeeded.
+const userIdOf = (result: unknown) => (result as { user?: { id?: string } } | null)?.user?.id;
 
 // At most 3 emails of each kind per address per 15 minutes, so nobody can
 // flood someone's inbox. Over the limit, nothing is sent and nothing is said:
@@ -28,15 +31,19 @@ const signUpKey = (headers: Headers | undefined) => `sign-up:${clientIp(headers)
 
 async function sendLimited(kind: string, email: Email): Promise<void> {
   const key = `${kind}:${email.to.toLowerCase()}`;
-  if ((await throttleWait(key, SENDS_PER_WINDOW)) > 0) return;
+  if ((await throttleWait(key, SENDS_PER_WINDOW)) > 0) {
+    void log.info("email.rate_limited", { kind, account: account(email.to) });
+    return;
+  }
   await recordFailure(key);
   try {
     await sendEmail(email);
+    void log.info("email.sent", { kind, account: account(email.to) });
   } catch (e) {
     // Logged for the server's owner, not shown: an error here would only
     // happen for real accounts, revealing which addresses exist. Settings →
     // "Send test email" is where mail problems show up.
-    console.error(`[email] could not send the ${kind} email:`, e instanceof Error ? e.message : e);
+    void log.error("email.send_failed", { kind, account: account(email.to), error: e });
   }
 }
 
@@ -73,6 +80,7 @@ function createAuth() {
       resetPasswordTokenExpiresIn: 60 * 60, // one hour; each link works once
       revokeSessionsOnPasswordReset: true, // sign every device out
       onPasswordReset: async ({ user }) => {
+        void log.info("auth.password_reset", { user: user.id });
         // A fresh password lifts any wrong-password block on the account.
         await clearThrottle(`sign-in:${user.email.toLowerCase()}`);
       },
@@ -88,6 +96,15 @@ function createAuth() {
         }
       : undefined,
     telemetry: { enabled: false },
+    // Better Auth's own warnings and errors, as JSON lines like ours. Only
+    // messages and errors: its extra arguments can hold user records.
+    logger: {
+      level: "warn",
+      log: (level, message, ...args) => {
+        const error = args.find((a) => a instanceof Error);
+        void log[level]("auth.library", { message, error });
+      },
+    },
     // Better Auth quietly skips its cross-site (origin/CSRF) checks when it
     // thinks it's under test — e.g. a stray TEST=true in the environment.
     // Pin them on so no environment variable can switch them off.
@@ -104,11 +121,14 @@ function createAuth() {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path === "/sign-up/email") {
           if ((await throttleWait(signUpKey(ctx.headers), SIGNUPS_PER_IP, SIGNUP_WINDOW_MS)) > 0) {
+            void log.warn("auth.sign_up_limited", { ip: clientIp(ctx.headers) });
             throw new APIError("TOO_MANY_REQUESTS", {
               message: "Too many new accounts from your network — try again in an hour.",
             });
           }
-          if (config.signupBotCheck && (await checkChallenge(ctx.headers?.get(CHALLENGE_HEADER)))) {
+          const failed = config.signupBotCheck ? await checkChallenge(ctx.headers?.get(CHALLENGE_HEADER)) : null;
+          if (failed) {
+            void log.warn("auth.bot_check_failed", { reason: failed, ip: clientIp(ctx.headers) });
             throw new APIError("FORBIDDEN", {
               message: "The sign-up check didn’t go through — reload the page and try again.",
             });
@@ -118,6 +138,7 @@ function createAuth() {
         if (ctx.path !== "/sign-in/email") return;
         const wait = await throttleWait(signInKey(ctx.body));
         if (wait > 0) {
+          void log.warn("auth.sign_in_blocked", { account: account(emailOf(ctx.body)), ip: clientIp(ctx.headers) });
           throw new APIError("TOO_MANY_REQUESTS", {
             message: `Too many wrong passwords — try again in ${wait} minute${wait === 1 ? "" : "s"}.`,
           });
@@ -126,14 +147,21 @@ function createAuth() {
       after: createAuthMiddleware(async (ctx) => {
         const result = ctx.context.returned;
         if (ctx.path === "/sign-up/email") {
-          if (!isAPIError(result)) await recordFailure(signUpKey(ctx.headers), SIGNUP_WINDOW_MS);
+          if (!isAPIError(result)) {
+            await recordFailure(signUpKey(ctx.headers), SIGNUP_WINDOW_MS);
+            void log.info("auth.sign_up", { user: userIdOf(result), ip: clientIp(ctx.headers) });
+          }
           return;
         }
         if (ctx.path !== "/sign-in/email") return;
         if (isAPIError(result)) {
-          if (result.statusCode === 401) await recordFailure(signInKey(ctx.body));
+          if (result.statusCode === 401) {
+            await recordFailure(signInKey(ctx.body));
+            void log.info("auth.sign_in_failed", { account: account(emailOf(ctx.body)), ip: clientIp(ctx.headers) });
+          }
         } else {
           await clearThrottle(signInKey(ctx.body));
+          void log.info("auth.sign_in", { user: userIdOf(result) });
         }
       }),
     },

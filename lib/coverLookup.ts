@@ -1,5 +1,5 @@
 import { USER_AGENT } from "./config";
-import { pace } from "./outbound";
+import { outboundFetch, pace } from "./outbound";
 import { detectImageType } from "./storage";
 
 const UA = { "User-Agent": USER_AGENT };
@@ -39,7 +39,7 @@ export async function findCover(isbn: string | undefined, title: string, author:
     await pace("coversByIsbn", 10_000);
     try {
       // default=false makes a missing cover a 404 instead of a blank image.
-      const res = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`, {
+      const res = await outboundFetch("openlibrary-covers", `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`, {
         headers: UA,
         signal: AbortSignal.timeout(10_000),
       });
@@ -55,7 +55,7 @@ export async function findCover(isbn: string | undefined, title: string, author:
   await pace("itunes", 10_000);
   try {
     const term = encodeURIComponent(`${title} ${author}`.trim());
-    const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=ebook&limit=5`, {
+    const res = await outboundFetch("itunes", `https://itunes.apple.com/search?term=${term}&media=ebook&limit=5`, {
       headers: UA,
       signal: AbortSignal.timeout(10_000),
     });
@@ -64,7 +64,7 @@ export async function findCover(isbn: string | undefined, title: string, author:
     // iTunes always returns *something*; only take a result that is this book.
     const art = json.results?.find((r) => sameBook(r, title, author))?.artworkUrl100;
     if (!art) return null;
-    const img = await fetch(art.replace(/100x100bb\.jpg$/, "600x0w.jpg"), { headers: UA, signal: AbortSignal.timeout(10_000) });
+    const img = await outboundFetch("itunes-artwork", art.replace(/100x100bb\.jpg$/, "600x0w.jpg"), { headers: UA, signal: AbortSignal.timeout(10_000) });
     if (!img.ok) return null;
     const data = new Uint8Array(await img.arrayBuffer());
     return detectImageType(data) === "image/jpeg" ? data : null;

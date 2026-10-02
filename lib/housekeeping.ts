@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { pruneThrottle } from "./authThrottle";
 import { config } from "./config";
 import { getDb } from "./db";
+import { log } from "./log";
 
 // Tidying that runs at startup and then every few hours. Safe to run on
 // several app copies at once: each step is a single idempotent delete.
@@ -35,10 +36,10 @@ export async function removeUnverifiedAccounts(): Promise<number> {
 export async function runHousekeeping(): Promise<void> {
   try {
     const removed = await removeUnverifiedAccounts();
-    if (removed) console.log(`[housekeeping] removed ${removed} account(s) never confirmed after ${UNVERIFIED_DAYS} days`);
+    if (removed) void log.info("housekeeping.unverified_removed", { accounts: removed, afterDays: UNVERIFIED_DAYS });
     await pruneThrottle(DAY_MS); // the longest limit window is an hour
   } catch (e) {
-    console.error("[housekeeping] failed:", e instanceof Error ? e.message : e);
+    void log.error("housekeeping.failed", { error: e });
   }
 }
 

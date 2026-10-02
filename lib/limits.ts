@@ -1,6 +1,7 @@
 import { and, count, eq, inArray } from "drizzle-orm";
 import { config } from "./config";
 import { getDb, schema } from "./db";
+import { log } from "./log";
 import { getStorage, keys } from "./storage";
 
 // Per-account limits (LIMIT_* settings). Each check returns a message for the
@@ -16,6 +17,7 @@ export function overLimit(message: string): Response {
 // One uploaded image or file larger than the server allows.
 export function tooLarge(bytes: number, max: number, what = "That image"): Response | null {
   if (bytes <= max) return null;
+  void log.info("limit.too_large", { bytes, max });
   return Response.json({ error: `${what} is larger than this server’s ${mb(max)} MB limit.` }, { status: 413 });
 }
 
@@ -25,6 +27,7 @@ export async function checkStorage(userId: string, bytes: number): Promise<strin
   if (!max || bytes === 0) return null;
   const used = await getStorage().usage(keys.userDir(userId));
   if (used + bytes <= max) return null;
+  void log.info("limit.reached", { user: userId, limit: "storage", used, adding: bytes, max });
   return `Your library is using its ${mb(max)} MB of image space. Delete some covers or pasted images to make room.`;
 }
 
@@ -47,7 +50,9 @@ async function checkCount(
       .where(and(eq(table.userId, userId), inArray(table.id, ids.slice(i, i + 1000))));
     existing += n;
   }
-  return countMessage(total, new Set(ids).size - existing, max, what);
+  const message = countMessage(total, new Set(ids).size - existing, max, what);
+  if (message) void log.info("limit.reached", { user: userId, limit: what, total, max });
+  return message;
 }
 
 function countMessage(total: number, added: number, max: number, what: string): string | null {
@@ -61,7 +66,9 @@ export async function checkNewBooks(userId: string, added: number): Promise<stri
   const max = config.limits.books;
   if (!max || added <= 0) return null;
   const [{ n }] = await getDb().select({ n: count() }).from(schema.book).where(eq(schema.book.userId, userId));
-  return countMessage(n, added, max, "books");
+  const message = countMessage(n, added, max, "books");
+  if (message) void log.info("limit.reached", { user: userId, limit: "books", total: n, adding: added, max });
+  return message;
 }
 
 // Saving these books (new or existing ids) would go over LIMIT_BOOKS.

@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { createCache } from "@/lib/cache";
 import { USER_AGENT } from "@/lib/config";
 import { OpenLibraryDoc, SEARCH_FIELDS, SearchResult, toSearchResults } from "@/lib/openLibrary";
-import { pace } from "@/lib/outbound";
+import { outboundFetch, pace } from "@/lib/outbound";
 
 const cache = createCache<SearchResult[]>(24 * 60 * 60 * 1000);
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     `https://openlibrary.org/search.json?limit=8&fields=${SEARCH_FIELDS}&q=` + encodeURIComponent(q);
   try {
     await pace("openlibrary", 5_000);
-    const res = await fetch(url, {
+    const res = await outboundFetch("openlibrary-search", url, {
       headers: { "User-Agent": USER_AGENT },
       signal: AbortSignal.timeout(10_000),
     });

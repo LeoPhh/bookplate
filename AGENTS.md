@@ -17,6 +17,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Anything that adds books, words or images checks the per-account limits
   first (`lib/limits.ts`). Requests to Open Library or iTunes wait their
   turn with `pace()` (`lib/outbound.ts`): one server shares one address.
+- Log with `log` from `lib/log.ts` (one JSON line per event, request ID
+  attached), not `console`. Name events `area.what_happened`; identify
+  accounts by user ID or `account(email)`. Never log passwords, cookies,
+  tokens, email links or addresses, book or note contents, or search terms —
+  `test/api/logs.test.ts` checks. Swallowing an error? Log it first.
 - A visitor's address comes from `clientIp()` (`lib/clientIp.ts`), never
   straight from `X-Forwarded-For`, whose leftmost entries anyone can fake.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:

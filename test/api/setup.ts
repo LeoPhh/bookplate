@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "child_process";
-import { cpSync, existsSync, mkdtempSync, rmSync } from "fs";
+import { cpSync, createWriteStream, existsSync, mkdtempSync, rmSync } from "fs";
 import { createServer } from "net";
 import { tmpdir } from "os";
 import path from "path";
@@ -29,6 +29,8 @@ declare module "vitest" {
     dbUrl: string;
     emailBaseUrl: string;
     limitedBaseUrl: string;
+    plainLog: string; // files holding each server's output, for the logging tests
+    emailLog: string;
     s3Bucket: string; // "" unless TEST_STORAGE=s3
   }
 }
@@ -50,6 +52,7 @@ function freePort(): Promise<number> {
 interface Server {
   url: string;
   dbUrl: string;
+  logFile: string;
   stop: () => Promise<void>;
 }
 
@@ -84,8 +87,10 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-  child.stdout?.on("data", (d) => (log += d));
-  child.stderr?.on("data", (d) => (log += d));
+  const logFile = path.join(tmpdir(), `bookplate-test-${name}-${process.pid}.log`);
+  const out = createWriteStream(logFile);
+  child.stdout?.on("data", (d) => ((log += d), out.write(d)));
+  child.stderr?.on("data", (d) => ((log += d), out.write(d)));
 
   const deadline = Date.now() + 60_000;
   for (;;) {
@@ -102,10 +107,13 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
   return {
     url,
     dbUrl,
+    logFile,
     stop: async () => {
       child.kill("SIGTERM");
       await new Promise((r) => child.once("exit", r));
+      out.end();
       rmSync(uploads, { recursive: true, force: true });
+      rmSync(logFile, { force: true });
       await dropDatabase(dbName);
     },
   };
@@ -163,6 +171,8 @@ export default async function setup(project: TestProject) {
   project.provide("dbUrl", plain.dbUrl);
   project.provide("emailBaseUrl", email.url);
   project.provide("limitedBaseUrl", limited.url);
+  project.provide("plainLog", plain.logFile);
+  project.provide("emailLog", email.logFile);
   project.provide("s3Bucket", bucket ?? "");
 
   return async () => {

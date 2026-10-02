@@ -123,7 +123,9 @@ export default function Home() {
           onRefused?.();
           return setSaveError(data.error);
         }
-        throw new Error();
+        // The server's log has the details under this request's ID.
+        const ref = res.headers.get("x-request-id")?.slice(0, 8);
+        setSaveError(`The last change could not be saved${ref ? ` (reference ${ref})` : ""}.`);
       })
       .catch(() => setSaveError("The last change could not be saved — is the server still running?"));
   };
