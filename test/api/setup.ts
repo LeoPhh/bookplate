@@ -36,6 +36,9 @@ declare module "vitest" {
 }
 
 const ROOT = path.resolve(__dirname, "../..");
+
+// The plain server serves /api/metrics with this token.
+export const METRICS_TOKEN = "test-metrics-token-0123456789abcdef";
 const SERVER = path.join(ROOT, ".next/standalone/server.js");
 
 function freePort(): Promise<number> {
@@ -68,7 +71,7 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
   // variables (TEST, VITEST…), which libraries use to switch off safeguards.
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*)$/.test(k)
+      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL)$/.test(k)
     )
   );
   const child: ChildProcess = spawn(process.execPath, [SERVER], {
@@ -150,7 +153,7 @@ export default async function setup(project: TestProject) {
       : {};
 
   const [plain, email, limited] = await Promise.all([
-    startServer("plain", storage("plain")),
+    startServer("plain", { ...storage("plain"), METRICS_TOKEN }),
     startServer("email", {
       ...storage("email"),
       SMTP_HOST: new URL(MAILPIT_URL).hostname,

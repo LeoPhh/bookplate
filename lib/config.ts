@@ -102,9 +102,18 @@ export const config = {
     return this.registration === "open" && this.email.enabled;
   },
   version: pkg.version,
+  // Switches on /api/metrics (lib/metrics.ts): totals for a dashboard, read
+  // with this token. Unset = off.
+  metricsToken: metricsToken(),
   // How much the server logs: debug, info (default), warn or error.
   logLevel: logLevel(),
 };
+
+function metricsToken(): string {
+  const token = process.env.METRICS_TOKEN ?? "";
+  if (token && token.length < 24) throw new Error("METRICS_TOKEN must be at least 24 characters (try `openssl rand -hex 32`).");
+  return token;
+}
 
 function logLevel(): "debug" | "info" | "warn" | "error" {
   const v = process.env.LOG_LEVEL || "info";

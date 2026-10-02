@@ -21,6 +21,7 @@ export async function start() {
       trustedProxies: config.trustedProxies,
       limits: config.limits,
       logLevel: config.logLevel,
+      metrics: Boolean(config.metricsToken),
     });
   } catch (e) {
     // Next.js would log this and keep running without serving anything;
@@ -36,4 +37,6 @@ export async function start() {
   }
   const { startHousekeeping } = await import("./housekeeping");
   startHousekeeping();
+  const { startMetrics } = await import("./metrics");
+  startMetrics();
 }

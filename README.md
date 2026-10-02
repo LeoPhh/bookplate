@@ -206,6 +206,7 @@ and vocabulary all come across.
 | `LIMIT_UPLOAD_MB` | `8` | the largest single image |
 | `LIMIT_IMPORT_MB` | `1024` | the largest export zip or CSV that can be imported |
 | `LOG_LEVEL` | `info` | `debug` for more detail while chasing a problem; `warn` or `error` for less |
+| `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
 
 ### Open registration
@@ -257,6 +258,17 @@ Logs never contain passwords, cookies, tokens, email links, email addresses
 (accounts appear as user IDs or a short hash), book or note contents, or
 search terms. Docker keeps the last 50 MB per container. Any log shipper that
 reads Docker logs (Grafana Alloy, Vector, Promtail…) can forward them.
+
+### Metrics
+
+With `METRICS_TOKEN` set, `/api/metrics` serves totals in Prometheus's text
+format — accounts (confirmed or not, new, active in the last day/week/month),
+books by status, books per account, notes, words, progress updates — plus the
+server's memory use and version. Point Grafana Alloy or Prometheus at it with
+`Authorization: Bearer <METRICS_TOKEN>`. Only totals: nothing about any one
+person. The database is counted every 8 hours (and at startup), so reading the
+endpoint often costs nothing. Behind a reverse proxy, keep `/api/metrics` off
+the internet and let the collector reach it directly.
 
 ### Forgotten passwords
 

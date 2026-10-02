@@ -16,6 +16,7 @@ const PUBLIC = [
   "/api/health",
   "/api/signup-challenge",
   "/api/client-errors",
+  "/api/metrics", // checks its own token
 ];
 
 // A reverse proxy's request ID (Caddy sets one) is kept, so its access log

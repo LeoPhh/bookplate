@@ -49,6 +49,7 @@ services:
       LIMIT_IMPORT_MB: ${LIMIT_IMPORT_MB:-}
       CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
     volumes:
       - uploads:/data/uploads
     depends_on:
