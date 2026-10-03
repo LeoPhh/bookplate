@@ -78,6 +78,9 @@ export const config = {
     user: process.env.SMTP_USER ?? "",
     password: process.env.SMTP_PASSWORD ?? "",
     from: process.env.SMTP_FROM ?? "Bookplate <bookplate@localhost>",
+    // Where replies to Bookplate's emails go, e.g. a support inbox, when
+    // SMTP_FROM is an address nobody reads. Unset = replies go to SMTP_FROM.
+    replyTo: replyTo(),
     // At most this many emails a day (UTC) from the whole server, as a safety
     // net against abuse running up a bill or a sender reputation. 0 = no cap.
     dailyLimit: limit("EMAIL_LIMIT_PER_DAY", 0),
@@ -113,6 +116,14 @@ export const config = {
   // How much the server logs: debug, info (default), warn or error.
   logLevel: logLevel(),
 };
+
+function replyTo(): string {
+  const v = process.env.SMTP_REPLY_TO?.trim() ?? "";
+  if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.replace(/^.*<(.+)>$/, "$1"))) {
+    throw new Error(`SMTP_REPLY_TO must be an email address, not "${v}".`);
+  }
+  return v;
+}
 
 function metricsToken(): string {
   const token = process.env.METRICS_TOKEN ?? "";

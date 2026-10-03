@@ -36,6 +36,9 @@ describe("confirming a new account's email", () => {
     // Styled HTML with the logo carried inside the email, not linked.
     expect(mail.html).toContain('src="cid:logo@bookplate"');
     expect(mail.inline).toContainEqual({ contentId: "logo@bookplate", contentType: "image/png" });
+    // Replies go to the support inbox (SMTP_REPLY_TO), and the email says so.
+    expect(mail.replyTo).toEqual(["support@test.local"]);
+    expect(mail.text).toContain("Questions? Just reply to this email.");
     const res = await r.fetch(linkIn(mail, `${emailBaseUrl()}/api/auth/verify-email`));
     expect([302, 307]).toContain(res.status);
     expect((await r.fetch("/api/books")).status).toBe(200);

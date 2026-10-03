@@ -199,6 +199,7 @@ and vocabulary all come across.
 | `SMTP_SECURE` | follows the port | `true` / `false` to override |
 | `SMTP_USER`, `SMTP_PASSWORD` | — | the mail server's login, if it needs one |
 | `SMTP_FROM` | `Bookplate <bookplate@localhost>` | who emails come from, e.g. `Bookplate <books@example.com>` |
+| `SMTP_REPLY_TO` | — | where replies to Bookplate's emails go, e.g. a support inbox when `SMTP_FROM` is a no-reply address |
 | `EMAIL_LIMIT_PER_DAY` | no cap | the most emails the server sends in a day (UTC), all kinds together; beyond it, sending pauses until midnight and each refused email is logged as an error |
 | `SIGNUP_BOT_CHECK` | `true` | with open registration, sign-ups solve an invisible puzzle first (see below); `false` turns it off |
 | `TRUSTED_PROXIES` | `1` | how many reverse proxies stand in front of Bookplate; `2` for e.g. Cloudflare in front of Caddy |

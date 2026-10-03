@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LOGO_CID, resetPasswordEmail, testEmail, verifyEmail } from "@/lib/email";
 
 const url = 'https://books.example.com/api/auth/reset-password/abc?callbackURL=/reset-password&x="<b>"';
@@ -35,5 +35,32 @@ describe("emails", () => {
     for (const m of [resetPasswordEmail("r@example.com", plain), verifyEmail("r@example.com", plain), testEmail("r@example.com")]) {
       expect(m.text).not.toMatch(/<[a-z]/i);
     }
+  });
+});
+
+describe("SMTP_REPLY_TO", () => {
+  const load = async (value?: string) => {
+    vi.resetModules();
+    if (value === undefined) delete process.env.SMTP_REPLY_TO;
+    else process.env.SMTP_REPLY_TO = value;
+    return (await import("@/lib/config")).config.email.replyTo;
+  };
+  afterEach(() => delete process.env.SMTP_REPLY_TO);
+
+  it("accepts an address, with or without a name", async () => {
+    expect(await load("support@example.com")).toBe("support@example.com");
+    expect(await load("Bookplate Support <support@example.com>")).toBe("Bookplate Support <support@example.com>");
+    expect(await load()).toBe("");
+  });
+
+  it("refuses something that isn't an address", async () => {
+    await expect(load("support")).rejects.toThrow(/must be an email address/);
+  });
+
+  it("only invites replies when there's somewhere for them to go", async () => {
+    await load();
+    expect((await import("@/lib/email")).testEmail("r@example.com").text).not.toContain("Just reply");
+    await load("support@example.com");
+    expect((await import("@/lib/email")).testEmail("r@example.com").text).toContain("Just reply");
   });
 });

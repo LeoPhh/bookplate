@@ -77,6 +77,7 @@ export async function sendEmail(email: Email): Promise<void> {
   const image = email.html.includes(`cid:${LOGO_CID}`) ? logoImage() : null;
   await getTransport().sendMail({
     from: config.email.from,
+    ...(config.email.replyTo && { replyTo: config.email.replyTo }),
     ...email,
     attachments: image ? [{ filename: "bookplate.png", content: image, cid: LOGO_CID, contentType: "image/png" }] : [],
   });
@@ -142,7 +143,7 @@ function html(m: Message): string {
 ${m.paragraphs.map(p).join("")}${button}${note}
 </td></tr></table></td></tr>
 <tr><td style="padding:22px 0 0;font-family:${BODY};font-size:12px;line-height:1.6;color:${C.soft}">
-${escape(m.why)}<br><a href="${escape(site.origin)}" style="color:${C.soft}">${escape(site.host)}</a>
+${config.email.replyTo ? `Questions? Just reply to this email.<br>` : ""}${escape(m.why)}<br><a href="${escape(site.origin)}" style="color:${C.soft}">${escape(site.host)}</a>
 </td></tr>
 </table></td></tr></table>
 </body></html>`;
@@ -155,6 +156,7 @@ function text(m: Message): string {
     ...m.paragraphs.flatMap((p) => [p, ""]),
     ...(m.action ? [`${m.action.label}: ${m.action.url}`, ""] : []),
     ...(m.note ? [m.note, ""] : []),
+    ...(config.email.replyTo ? ["Questions? Just reply to this email.", ""] : []),
     "— Bookplate",
     m.why,
     "",

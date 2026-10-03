@@ -9,6 +9,7 @@ export interface Mail {
   text: string;
   html: string;
   inline: { contentId: string; contentType: string }[]; // images inside the email
+  replyTo: string[];
 }
 
 interface Summary {
@@ -39,12 +40,14 @@ export async function waitForMail(to: string, subject: string, { after = 0, time
         Text: string;
         HTML: string;
         Inline?: { ContentID: string; ContentType: string }[];
+        ReplyTo?: { Address: string }[];
       };
       return {
         subject: m.Subject,
         text: m.Text,
         html: m.HTML,
         inline: (m.Inline ?? []).map((i) => ({ contentId: i.ContentID, contentType: i.ContentType })),
+        replyTo: (m.ReplyTo ?? []).map((r) => r.Address),
       };
     }
     if (Date.now() > deadline) throw new Error(`No "${subject}" email arrived for ${to}`);

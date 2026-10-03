@@ -159,6 +159,7 @@ export default async function setup(project: TestProject) {
       SMTP_HOST: new URL(MAILPIT_URL).hostname,
       SMTP_PORT: String(SMTP_PORT),
       SMTP_FROM: "Bookplate <bookplate@test.local>",
+      SMTP_REPLY_TO: "Bookplate Support <support@test.local>",
     }),
     startServer("limited", {
       ...storage("limited"),
