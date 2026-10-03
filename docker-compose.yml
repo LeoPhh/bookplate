@@ -50,6 +50,7 @@ services:
       CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
+      METRICS_REFRESH_MINUTES: ${METRICS_REFRESH_MINUTES:-}
     volumes:
       - uploads:/data/uploads
     depends_on:

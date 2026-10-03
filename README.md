@@ -207,6 +207,7 @@ and vocabulary all come across.
 | `LIMIT_IMPORT_MB` | `1024` | the largest export zip or CSV that can be imported |
 | `LOG_LEVEL` | `info` | `debug` for more detail while chasing a problem; `warn` or `error` for less |
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
+| `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
 
 ### Open registration
@@ -266,8 +267,9 @@ format — accounts (confirmed or not, new, active in the last day/week/month),
 books by status, books per account, notes, words, progress updates — plus the
 server's memory use and version. Point Grafana Alloy or Prometheus at it with
 `Authorization: Bearer <METRICS_TOKEN>`. Only totals: nothing about any one
-person. The database is counted every 8 hours (and at startup), so reading the
-endpoint often costs nothing. Behind a reverse proxy, keep `/api/metrics` off
+person. The database is counted at startup and then every
+`METRICS_REFRESH_MINUTES` (8 hours by default), so reading the endpoint often
+costs nothing. Behind a reverse proxy, keep `/api/metrics` off
 the internet and let the collector reach it directly.
 
 ### Forgotten passwords

@@ -7,11 +7,10 @@ import { log } from "./log";
 // for a collector (Grafana Alloy) to read and forward to Cockpit. Only
 // totals: nothing about any one account.
 //
-// The database is asked every 8 hours (and at startup), and the answers kept
-// in memory, so however often the collector reads, the database isn't
-// bothered. Off unless METRICS_TOKEN is set.
-
-const EVERY_MS = 8 * 60 * 60 * 1000;
+// The database is asked every METRICS_REFRESH_MINUTES (8 hours by default)
+// and at startup, and the answers kept in memory, so however often the
+// collector reads, the database isn't bothered. Off unless METRICS_TOKEN is
+// set.
 
 export interface Totals {
   accounts: { confirmed: number; unconfirmed: number };
@@ -88,7 +87,7 @@ async function refresh(): Promise<void> {
 export function startMetrics(): void {
   if (!config.metricsToken) return;
   void refresh();
-  setInterval(refresh, EVERY_MS).unref();
+  setInterval(refresh, config.metricsRefreshMinutes * 60 * 1000).unref();
 }
 
 // ── Prometheus text format ──────────────────────────────────────────────

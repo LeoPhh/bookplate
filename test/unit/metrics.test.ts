@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderMetrics, type Totals } from "@/lib/metrics";
 
 const totals: Totals = {
@@ -34,5 +34,28 @@ describe("metrics output", () => {
     const text = renderMetrics(null);
     expect(text).toContain("bookplate_process_resident_memory_bytes");
     expect(text).not.toContain("bookplate_accounts");
+  });
+});
+
+describe("METRICS_REFRESH_MINUTES", () => {
+  const load = async (value?: string) => {
+    vi.resetModules();
+    if (value === undefined) delete process.env.METRICS_REFRESH_MINUTES;
+    else process.env.METRICS_REFRESH_MINUTES = value;
+    return (await import("@/lib/config")).config.metricsRefreshMinutes;
+  };
+  afterEach(() => delete process.env.METRICS_REFRESH_MINUTES);
+
+  it("defaults to 8 hours", async () => {
+    expect(await load()).toBe(480);
+  });
+
+  it("takes a whole number of minutes", async () => {
+    expect(await load("5")).toBe(5);
+  });
+
+  it("refuses zero or anything else at startup", async () => {
+    await expect(load("0")).rejects.toThrow(/at least 1/);
+    await expect(load("5m")).rejects.toThrow(/whole number/);
   });
 });

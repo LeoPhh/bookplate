@@ -105,6 +105,8 @@ export const config = {
   // Switches on /api/metrics (lib/metrics.ts): totals for a dashboard, read
   // with this token. Unset = off.
   metricsToken: metricsToken(),
+  // How often those totals are recounted from the database, in minutes.
+  metricsRefreshMinutes: metricsRefreshMinutes(),
   // How much the server logs: debug, info (default), warn or error.
   logLevel: logLevel(),
 };
@@ -113,6 +115,12 @@ function metricsToken(): string {
   const token = process.env.METRICS_TOKEN ?? "";
   if (token && token.length < 24) throw new Error("METRICS_TOKEN must be at least 24 characters (try `openssl rand -hex 32`).");
   return token;
+}
+
+function metricsRefreshMinutes(): number {
+  const minutes = limit("METRICS_REFRESH_MINUTES", 480); // 8 hours
+  if (minutes < 1) throw new Error("METRICS_REFRESH_MINUTES must be at least 1.");
+  return minutes;
 }
 
 function logLevel(): "debug" | "info" | "warn" | "error" {
