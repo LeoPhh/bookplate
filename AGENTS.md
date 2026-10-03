@@ -52,6 +52,11 @@ vermilion accent, hard offset shadows with no blur), and all of it lives in
   editorial labels (eyebrows, table heads, badges, field labels) are uppercase
   micro-type; interface text (buttons, chips, nav, links) is bold sentence
   case. Titles are never uppercased. Put any new label in the right list.
+- Emails (`lib/email.ts`) share the look in email-safe form: tables and
+  inline styles, the same colour values, no web fonts. The logo travels inside
+  each email as an inline attachment (`cid:`) — never link remote images or
+  CSS (tracking, blocked clients, self-hosted servers nobody can reach). Every
+  email has a plain-text version and says why the reader got it.
 - Switching branches can break the Turbopack Google-font cache
   (`Can't resolve '@vercel/turbopack-next/internal/font/google/font'`).
   `rm -rf .next/cache` and restart the dev server.

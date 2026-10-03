@@ -33,6 +33,9 @@ describe("confirming a new account's email", () => {
 
     const mail = await waitForMail(r.email, "Confirm your email");
     expect(mail.text).toContain("expires in an hour");
+    // Styled HTML with the logo carried inside the email, not linked.
+    expect(mail.html).toContain('src="cid:logo@bookplate"');
+    expect(mail.inline).toContainEqual({ contentId: "logo@bookplate", contentType: "image/png" });
     const res = await r.fetch(linkIn(mail, `${emailBaseUrl()}/api/auth/verify-email`));
     expect([302, 307]).toContain(res.status);
     expect((await r.fetch("/api/books")).status).toBe(200);

@@ -8,6 +8,7 @@ export interface Mail {
   subject: string;
   text: string;
   html: string;
+  inline: { contentId: string; contentType: string }[]; // images inside the email
 }
 
 interface Summary {
@@ -33,8 +34,18 @@ export async function waitForMail(to: string, subject: string, { after = 0, time
     const matches = (await search(to)).filter((m) => m.Subject.includes(subject));
     if (matches.length > after) {
       const res = await fetch(`${MAILPIT_URL}/api/v1/message/${matches[0].ID}`); // newest first
-      const m = (await res.json()) as { Subject: string; Text: string; HTML: string };
-      return { subject: m.Subject, text: m.Text, html: m.HTML };
+      const m = (await res.json()) as {
+        Subject: string;
+        Text: string;
+        HTML: string;
+        Inline?: { ContentID: string; ContentType: string }[];
+      };
+      return {
+        subject: m.Subject,
+        text: m.Text,
+        html: m.HTML,
+        inline: (m.Inline ?? []).map((i) => ({ contentId: i.ContentID, contentType: i.ContentType })),
+      };
     }
     if (Date.now() > deadline) throw new Error(`No "${subject}" email arrived for ${to}`);
     await new Promise((r) => setTimeout(r, 150));
