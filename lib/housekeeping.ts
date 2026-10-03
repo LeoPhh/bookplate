@@ -37,7 +37,7 @@ export async function runHousekeeping(): Promise<void> {
   try {
     const removed = await removeUnverifiedAccounts();
     if (removed) void log.info("housekeeping.unverified_removed", { accounts: removed, afterDays: UNVERIFIED_DAYS });
-    await pruneThrottle(DAY_MS); // the longest limit window is an hour
+    await pruneThrottle(2 * DAY_MS); // the longest window: the daily email count
   } catch (e) {
     void log.error("housekeeping.failed", { error: e });
   }

@@ -16,7 +16,7 @@ export async function start() {
     void log.info("startup", {
       registration: config.registration,
       storage: config.storage,
-      email: config.email.enabled,
+      email: config.email.enabled ? { limitPerDay: config.email.dailyLimit || null } : false,
       botCheck: config.signupBotCheck,
       trustedProxies: config.trustedProxies,
       limits: config.limits,

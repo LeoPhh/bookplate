@@ -37,9 +37,16 @@ export async function throttleWait(key: string, max = MAX_FAILURES, windowMs = W
 
 // Counts a failure; a failure after the window has passed starts a new one.
 export async function recordFailure(key: string, windowMs = WINDOW_MS): Promise<void> {
+  await countUp(key, windowMs);
+}
+
+// Adds one to `key`'s count and returns the new count, in one atomic step —
+// concurrent callers each get their own number. A count older than the window
+// starts again at 1.
+export async function countUp(key: string, windowMs = WINDOW_MS): Promise<number> {
   const WINDOW = interval(windowMs);
   const expired = sql`${authThrottle.windowStart} < localtimestamp - ${WINDOW}`;
-  await getDb()
+  const [row] = await getDb()
     .insert(authThrottle)
     .values({ key, failures: 1, windowStart: sql`localtimestamp` })
     .onConflictDoUpdate({
@@ -48,7 +55,9 @@ export async function recordFailure(key: string, windowMs = WINDOW_MS): Promise<
         failures: sql`CASE WHEN ${expired} THEN 1 ELSE ${authThrottle.failures} + 1 END`,
         windowStart: sql`CASE WHEN ${expired} THEN localtimestamp ELSE ${authThrottle.windowStart} END`,
       },
-    });
+    })
+    .returning({ count: authThrottle.failures });
+  return row.count;
 }
 
 export async function clearThrottle(key: string): Promise<void> {

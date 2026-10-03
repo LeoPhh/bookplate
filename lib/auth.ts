@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { count } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { config } from "./config";
 import { getDb, schema } from "./db";
@@ -83,6 +83,15 @@ function createAuth() {
         void log.info("auth.password_reset", { user: user.id });
         // A fresh password lifts any wrong-password block on the account.
         await clearThrottle(`sign-in:${user.email.toLowerCase()}`);
+        // The reset link only reached someone with access to this inbox, so
+        // the address is confirmed — otherwise an account made before email
+        // confirmation was switched on (e.g. the owner's, at /setup) is locked
+        // out right after resetting. (The reset-password command on the
+        // server proves nothing about the inbox and doesn't do this.)
+        await getDb()
+          .update(schema.user)
+          .set({ emailVerified: true, updatedAt: new Date() })
+          .where(and(eq(schema.user.id, user.id), eq(schema.user.emailVerified, false)));
       },
     },
     emailVerification: config.email.enabled
@@ -155,6 +164,9 @@ function createAuth() {
         }
         if (ctx.path !== "/sign-in/email") return;
         if (isAPIError(result)) {
+          if (result.statusCode === 403 && result.body?.code === "EMAIL_NOT_VERIFIED") {
+            void log.info("auth.sign_in_unconfirmed", { account: account(emailOf(ctx.body)) });
+          }
           if (result.statusCode === 401) {
             await recordFailure(signInKey(ctx.body));
             void log.info("auth.sign_in_failed", { account: account(emailOf(ctx.body)), ip: clientIp(ctx.headers) });

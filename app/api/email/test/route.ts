@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { recordFailure, throttleWait } from "@/lib/authThrottle";
 import { config } from "@/lib/config";
-import { sendEmail, testEmail } from "@/lib/email";
+import { DailyLimitError, sendEmail, testEmail } from "@/lib/email";
 
 // POST sends a test email to the signed-in reader, and — unlike the other
 // emails — reports exactly what went wrong, so the server's owner can fix
@@ -21,6 +21,7 @@ export async function POST() {
     await sendEmail(testEmail(session.user.email));
     return Response.json({ ok: true, to: session.user.email });
   } catch (e) {
+    if (e instanceof DailyLimitError) return Response.json({ error: e.message }, { status: 429 });
     return Response.json({ error: `The mail server refused: ${e instanceof Error ? e.message : String(e)}` }, { status: 502 });
   }
 }

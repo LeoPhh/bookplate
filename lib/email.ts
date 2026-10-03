@@ -1,7 +1,9 @@
 import { readFileSync } from "fs";
 import path from "path";
 import nodemailer, { type Transporter } from "nodemailer";
+import { countUp } from "./authThrottle";
 import { config } from "./config";
+import { log } from "./log";
 
 // Sending email over SMTP — only when SMTP_HOST is set (see lib/config.ts).
 // Works with any provider: Gmail, Fastmail, a NAS mail server, Resend,
@@ -44,8 +46,34 @@ function logoImage(): Buffer | null {
   return logo;
 }
 
+export class DailyLimitError extends Error {
+  constructor(limit: number) {
+    super(`This server has sent its ${limit.toLocaleString("en")} emails for today (EMAIL_LIMIT_PER_DAY); sending resumes at midnight UTC.`);
+  }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Counts this email against today's cap (EMAIL_LIMIT_PER_DAY, all emails from
+// the server together, kept in the database so it holds across restarts and
+// app copies). Throws once the cap is reached — logged as an error, so the
+// alerts notice.
+async function countAgainstDailyLimit(): Promise<void> {
+  const limit = config.email.dailyLimit;
+  if (!limit) return;
+  const today = new Date().toISOString().slice(0, 10); // UTC date
+  // The count lives under today's date; the 2-day window only keeps it from
+  // resetting before the date changes. Housekeeping clears old days.
+  const sent = await countUp(`email-day:${today}`, 2 * DAY_MS);
+  if (sent > limit) {
+    void log.error("email.daily_limit_reached", { limit, attempt: sent });
+    throw new DailyLimitError(limit);
+  }
+}
+
 export async function sendEmail(email: Email): Promise<void> {
   if (!config.email.enabled) throw new Error("Email isn't set up on this server (SMTP_HOST is empty).");
+  await countAgainstDailyLimit();
   const image = email.html.includes(`cid:${LOGO_CID}`) ? logoImage() : null;
   await getTransport().sendMail({
     from: config.email.from,

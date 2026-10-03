@@ -113,3 +113,22 @@ describe("the Settings test email", () => {
     expect((await new Visitor(undefined, emailBaseUrl()).fetch("/api/email/test", { method: "POST" })).status).toBe(401);
   });
 });
+
+describe("an account that never confirmed its email", () => {
+  // e.g. the owner's, made at /setup before email or open registration
+  // existed: once confirmation is required, it can't sign in…
+  it("is confirmed by resetting its password by email, and can sign in after", async () => {
+    const r = await reader("Old", emailBaseUrl()); // signed up, never confirmed
+    expect(((await (await signIn(r.email, r.password)).json()) as { code: string }).code).toBe("EMAIL_NOT_VERIFIED");
+
+    await requestReset(r.email);
+    const token = await tokenFrom(await resetLink(r.email));
+    const newPassword = "fresh-password-2";
+    const reset = await new Visitor(undefined, emailBaseUrl()).json("/api/auth/reset-password", "POST", { newPassword, token });
+    expect(reset.status).toBe(200);
+
+    // …but the reset link reached its inbox, which proves the address.
+    expect((await signIn(r.email, newPassword)).status).toBe(200);
+  });
+});
+

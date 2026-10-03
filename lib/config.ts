@@ -78,6 +78,9 @@ export const config = {
     user: process.env.SMTP_USER ?? "",
     password: process.env.SMTP_PASSWORD ?? "",
     from: process.env.SMTP_FROM ?? "Bookplate <bookplate@localhost>",
+    // At most this many emails a day (UTC) from the whole server, as a safety
+    // net against abuse running up a bill or a sender reputation. 0 = no cap.
+    dailyLimit: limit("EMAIL_LIMIT_PER_DAY", 0),
   },
   // Limits for each account, mostly for servers where strangers can sign up.
   // Unset (or 0) means no limit, except where a default is given.

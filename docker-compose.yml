@@ -32,6 +32,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      EMAIL_LIMIT_PER_DAY: ${EMAIL_LIMIT_PER_DAY:-}
       STORAGE: ${STORAGE:-local}
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_REGION: ${S3_REGION:-}
