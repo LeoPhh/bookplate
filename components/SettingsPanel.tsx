@@ -522,7 +522,7 @@ function EmailStatus({ email, to }: { email: { from: string } | null; to: string
         Email isn’t set up, so forgotten passwords are reset by whoever runs the server, with{" "}
         <code>reset-password</code>. Add <code>SMTP_HOST</code> and the other email settings to let people reset their
         own — see{" "}
-        <a href="https://bookplate.dev/docs#configuration" target="_blank" rel="noopener noreferrer">
+        <a href="https://bookplate.eu/docs#configuration" target="_blank" rel="noopener noreferrer">
           the documentation
         </a>
         .
