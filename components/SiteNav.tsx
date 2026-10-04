@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useSiteBar } from "./SiteBarContext";
 import UserMenu from "./UserMenu";
 
 // Section switcher shown in the masthead of every page, plus the account
-// menu in the masthead's top-right corner.
+// menu in the masthead's top-right corner — unless the site bar is showing,
+// which holds the account menu instead.
 export default function SiteNav({ active }: { active?: "library" | "vocabulary" | "statistics" }) {
+  const siteBar = useSiteBar();
   return (
     <>
       <nav className="site-nav" aria-label="Sections">
@@ -29,7 +34,7 @@ export default function SiteNav({ active }: { active?: "library" | "vocabulary" 
           Statistics
         </Link>
       </nav>
-      <UserMenu />
+      {!siteBar && <UserMenu />}
     </>
   );
 }

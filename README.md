@@ -210,6 +210,8 @@ and vocabulary all come across.
 | `LOG_LEVEL` | `info` | `debug` for more detail while chasing a problem; `warn` or `error` for less |
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
+| `SITE_URL` | — | a website this server belongs to, e.g. your landing page: a bar across the top of every page links back to it (logo → `SITE_URL`) and holds the account menu |
+| `SITE_LINKS` | — | the bar's links, `Label=/path` separated by commas, paths on `SITE_URL` or full addresses, e.g. `Home=/, About=/about, Contact=/contact` |
 | `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |

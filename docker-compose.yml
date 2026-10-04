@@ -55,6 +55,8 @@ services:
       METRICS_REFRESH_MINUTES: ${METRICS_REFRESH_MINUTES:-}
       LEGAL_DIR: ${LEGAL_DIR:-}
       CONTACT_FORM_TO: ${CONTACT_FORM_TO:-}
+      SITE_URL: ${SITE_URL:-}
+      SITE_LINKS: ${SITE_LINKS:-}
     volumes:
       - uploads:/data/uploads
       # Your privacy.md / terms.md, with LEGAL_DIR=/legal in .env:

@@ -243,7 +243,7 @@ export default function Home() {
     <main className="page">
       <header className="masthead">
         <p className="masthead-eyebrow">Your Own Personal, Digital Library</p>
-        <h1 className="masthead-title">Bookplate</h1>
+        <h1 className="masthead-title">Library</h1>
         {/* Always rendered, blank until the library loads: dropping the line
             collapsed the masthead for a frame and jolted the whole page. */}
         <p className="masthead-stats">

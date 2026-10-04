@@ -62,6 +62,170 @@ button {
   padding: 40px 28px 96px;
 }
 
+/* ---------- Site bar ----------
+   Links back to the website this server belongs to (SITE_URL; see
+   components/SiteBar.tsx), styled like that site's own top bar. Not sticky:
+   the notes page's formatting bar sticks to the top of the window. */
+
+.sitebar {
+  background: var(--paper);
+  border-bottom: 3px solid var(--ink);
+}
+
+.sitebar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 10px 28px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-height: 62px;
+}
+
+.sitebar-logo {
+  display: inline-flex;
+}
+
+.sitebar-mark {
+  display: block;
+  width: auto;
+  height: 31px;
+  transition: transform 0.2s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.sitebar-logo:hover .sitebar-mark,
+.sitebar-logo:focus-visible .sitebar-mark {
+  transform: scale(1.12);
+}
+
+.sitebar-ink {
+  fill: var(--ink);
+}
+
+.sitebar-title {
+  fill: #fff;
+}
+
+.sitebar-outline {
+  stroke: var(--ink);
+}
+
+.sitebar-links {
+  display: flex;
+  gap: 22px;
+  margin-left: auto;
+  font-size: 14px;
+}
+
+.sitebar-links a,
+.sitebar-menu-links a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.sitebar-links a:hover,
+.sitebar-menu-links a:hover {
+  color: var(--accent);
+}
+
+.sitebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.sitebar-links + .sitebar-menu + .sitebar-actions {
+  margin-left: 0;
+}
+
+.sitebar-actions .btn {
+  font-size: 11px;
+  padding: 7px 12px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.sitebar-actions .btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* In the bar the account menu sits in line, not pinned to the masthead. */
+.sitebar .user-menu {
+  position: relative;
+  top: auto;
+  right: auto;
+}
+
+/* Phones and narrow windows: the links fold into this menu. */
+.sitebar-menu {
+  display: none;
+  position: relative;
+  margin-left: auto;
+}
+
+.sitebar-menu summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  background: #fff;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.sitebar-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.sitebar-menu[open] summary {
+  background: var(--ink);
+  color: #fff;
+}
+
+.sitebar-menu-links {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: var(--hard);
+}
+
+.sitebar-menu-links a {
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--hair);
+}
+
+.sitebar-menu-links a:last-child {
+  border-bottom: 0;
+}
+
+@media (max-width: 960px) {
+  .sitebar-links {
+    display: none;
+  }
+
+  .sitebar-menu {
+    display: block;
+  }
+
+  .sitebar-links + .sitebar-menu + .sitebar-actions {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .sitebar-inner {
+    gap: 14px;
+    padding: 10px max(18px, env(safe-area-inset-right)) 10px max(18px, env(safe-area-inset-left));
+  }
+}
+
 /* ---------- Masthead ---------- */
 
 /* ---------- Masthead: a broadsheet nameplate ---------- */
@@ -154,7 +318,10 @@ button {
 .user-menu-item,
 .colophon,
 .auth-legal,
-.legal-back {
+.legal-back,
+.sitebar-links,
+.sitebar-menu summary,
+.sitebar-menu-links {
   font-weight: 700;
   letter-spacing: 0.01em;
 }
