@@ -122,47 +122,7 @@ export const config = {
   // website served from the same domain (see README). Needs email set up.
   // Unset = no contact form.
   contactTo: address("CONTACT_FORM_TO"),
-  // The website this server belongs to, e.g. its landing page. With SITE_URL
-  // set, a bar across the top of every page links back to it: the logo goes
-  // to SITE_URL, and SITE_LINKS ("Label=/path, …", paths on SITE_URL or full
-  // addresses) lists the rest. Unset = no bar.
-  site: site(),
 };
-
-export interface SiteLink {
-  label: string;
-  href: string;
-}
-
-function site(): { url: string; links: SiteLink[] } | null {
-  const raw = process.env.SITE_URL?.trim();
-  if (!raw) return null;
-  let base: URL;
-  try {
-    base = new URL(raw);
-  } catch {
-    throw new Error(`SITE_URL must be a full address like https://example.com, not "${raw}".`);
-  }
-  if (base.protocol !== "https:" && base.protocol !== "http:") {
-    throw new Error(`SITE_URL must start with https:// or http://, not "${raw}".`);
-  }
-  const links = (process.env.SITE_LINKS ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => {
-      const eq = item.indexOf("=");
-      const label = item.slice(0, eq).trim();
-      const target = item.slice(eq + 1).trim();
-      if (eq < 1 || !label || !target) throw new Error(`SITE_LINKS entries look like "About=/about", not "${item}".`);
-      const href = new URL(target, base);
-      if (href.protocol !== "https:" && href.protocol !== "http:") {
-        throw new Error(`SITE_LINKS addresses must be web pages, not "${target}".`);
-      }
-      return { label, href: href.toString() };
-    });
-  return { url: base.toString(), links };
-}
 
 // An email address setting ("a@b.c" or "Name <a@b.c>"); "" when unset.
 function address(name: string): string {

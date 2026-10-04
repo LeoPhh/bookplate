@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Book, VocabEntry } from "@/lib/types";
-import SiteNav from "@/components/SiteNav";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
@@ -224,7 +223,6 @@ export default function VocabularyPage() {
             "\u00A0"
           )}
         </p>
-        <SiteNav active="vocabulary" />
       </header>
 
       <section className="lookup-panel">

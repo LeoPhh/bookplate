@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Book, ProgressEntry } from "@/lib/types";
 import { apiFetch } from "@/lib/api";
 import StatsView from "@/components/StatsView";
-import SiteNav from "@/components/SiteNav";
 
 export default function StatisticsPage() {
   const router = useRouter();
@@ -44,7 +43,6 @@ export default function StatisticsPage() {
         <p className="masthead-eyebrow">Your Own Personal, Digital Library</p>
         <h1 className="masthead-title">Statistics</h1>
         <p className="masthead-stats">The shelf, counted and charted.</p>
-        <SiteNav active="statistics" />
       </header>
 
       {books === null ? (

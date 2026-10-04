@@ -13,7 +13,6 @@ import BookDetail from "@/components/BookDetail";
 import BookForm, { CoverAction } from "@/components/BookForm";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import FinishDialog from "@/components/FinishDialog";
-import SiteNav from "@/components/SiteNav";
 
 // Fire-and-forget removal of a stored cover file.
 function deleteCoverFile(coverImage: string) {
@@ -256,7 +255,6 @@ export default function Home() {
             "\u00A0"
           )}
         </p>
-        <SiteNav active="library" />
       </header>
 
       <Toolbar

@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Archivo, Archivo_Black } from "next/font/google";
 import { connection } from "next/server";
 import ErrorReporter from "@/components/ErrorReporter";
-import SiteBar from "@/components/SiteBar";
-import { SiteBarProvider } from "@/components/SiteBarContext";
-import { config } from "@/lib/config";
+import AppBar from "@/components/AppBar";
+import { getSession } from "@/lib/auth";
 import "./globals.css";
 
 // Archivo Black carries the display type, Archivo everything else; globals.css
@@ -43,14 +42,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // The site bar comes from settings read when the server runs, not when the
-  // image was built, so no page may be frozen at build time.
+  // The bar shows the sections only to someone signed in, so every page is
+  // rendered per request, never frozen at build time.
   await connection();
+  const session = await getSession().catch(() => null);
   return (
     <html lang="en" className={`${archivoBlack.variable} ${archivo.variable}`}>
       <body>
-        <SiteBar />
-        <SiteBarProvider on={Boolean(config.site)}>{children}</SiteBarProvider>
+        <AppBar signedIn={Boolean(session)} />
+        {children}
         <ErrorReporter />
       </body>
     </html>

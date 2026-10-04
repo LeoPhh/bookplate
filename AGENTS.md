@@ -27,10 +27,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - The privacy policy and terms are the operator's Markdown files
   (`LEGAL_DIR`, `lib/legal.ts`), never text in this repository; render them
   with raw HTML off.
-- The site bar (`components/SiteBar.tsx`) is optional and generic: it shows
-  only with `SITE_URL`, and its links come from `SITE_LINKS`. Never hard-code
-  a hosted site's pages (bookplate.eu…) into the app. With the bar on, the
-  account menu lives in it (`useSiteBar()`), not in the page masthead.
+- Every page has the app bar (`components/AppBar.tsx`, from `app/layout.tsx`):
+  the mark (deliberately not a link), and when signed in the sections
+  (Library, Vocabulary, Statistics) and the account menu. On phones the
+  sections become the bottom tab bar. It never links out of the app.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
   check `config.email.enabled`. Emails that reveal whether an account exists
   (reset, verification) never report send errors to the visitor.
