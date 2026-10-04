@@ -1,4 +1,4 @@
-import Link from "next/link";
+import BackLink from "./BackLink";
 import { notFound } from "next/navigation";
 import { legalDoc, type LegalDoc } from "@/lib/legal";
 
@@ -16,7 +16,7 @@ export default function LegalPage({ name }: { name: LegalDoc }) {
       {/* Rendered from the operator's Markdown with raw HTML disabled. */}
       <article className="legal-body" dangerouslySetInnerHTML={{ __html: doc.html }} />
       <p className="legal-back">
-        <Link href="/">Back to Bookplate</Link>
+        <BackLink href="/">Back</BackLink>
       </p>
     </main>
   );
