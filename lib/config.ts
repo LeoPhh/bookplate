@@ -32,6 +32,9 @@ export const config = {
     if (driver !== "local" && driver !== "s3") throw new Error(`STORAGE must be "local" or "s3", not "${driver}".`);
     return driver as "local" | "s3";
   },
+  // A folder with privacy.md and/or terms.md, shown at /privacy and /terms
+  // and linked from the sign-in and sign-up pages. Unset = no such pages.
+  legalDir: process.env.LEGAL_DIR ? path.resolve(/* turbopackIgnore: true */ process.env.LEGAL_DIR) : "",
   // With STORAGE=local. The Docker image points this at /data/uploads.
   uploadsDir: path.resolve(/* turbopackIgnore: true */ process.env.UPLOADS_DIR ?? "uploads"),
   // With STORAGE=s3: any S3-compatible provider (Scaleway, Cloudflare R2,

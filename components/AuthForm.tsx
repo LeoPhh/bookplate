@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import AuthShell from "./AuthShell";
+import AuthShell, { type LegalLinks } from "./AuthShell";
 
 type Mode = "setup" | "login" | "signup";
 
@@ -23,6 +23,8 @@ interface Props {
   notice?: string;
   // Sign-ups carry a solved proof-of-work puzzle (lib/botCheck.ts).
   botCheck?: boolean;
+  // The server's privacy policy and terms, if it has them (LEGAL_DIR).
+  legal?: LegalLinks;
 }
 
 // Fetches a sign-up puzzle and solves it in the background; resolves to the
@@ -46,7 +48,14 @@ async function solvePuzzle(): Promise<string | null> {
 
 // First-run setup (the owner account), sign-up on open servers, and sign-in
 // share one card.
-export default function AuthForm({ mode, requireVerification = false, signupOpen = false, notice, botCheck = false }: Props) {
+export default function AuthForm({
+  mode,
+  requireVerification = false,
+  signupOpen = false,
+  notice,
+  botCheck = false,
+  legal,
+}: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -108,7 +117,7 @@ export default function AuthForm({ mode, requireVerification = false, signupOpen
   }
 
   return (
-    <AuthShell title={TITLES[mode]}>
+    <AuthShell title={TITLES[mode]} legal={legal}>
       {mode === "setup" && (
         <p className="auth-lede">
           Create the account that owns this Bookplate. It’s the only one — nobody else can sign up afterwards.
@@ -151,6 +160,14 @@ export default function AuthForm({ mode, requireVerification = false, signupOpen
         {error && (
           <p className="field--wide search-note search-note--error" role="alert">
             {error}
+          </p>
+        )}
+        {creating && legal && (legal.privacy || legal.terms) && (
+          <p className="field--wide auth-consent">
+            By creating an account you agree to the{" "}
+            {legal.terms && <Link href="/terms">Terms of use</Link>}
+            {legal.terms && legal.privacy && " and "}
+            {legal.privacy && <Link href="/privacy">Privacy policy</Link>}.
           </p>
         )}
         <div className="dialog-actions field--wide">

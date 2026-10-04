@@ -3,10 +3,11 @@ import { connection } from "next/server";
 import { countUsers } from "@/lib/auth";
 import { config } from "@/lib/config";
 import AuthForm from "@/components/AuthForm";
+import { legalLinks } from "@/lib/legal";
 
 // First run only: once the owner account exists, this page is gone.
 export default async function SetupPage() {
   await connection();
   if ((await countUsers()) > 0) redirect("/login");
-  return <AuthForm mode="setup" botCheck={config.signupBotCheck} />;
+  return <AuthForm mode="setup" botCheck={config.signupBotCheck} legal={legalLinks()} />;
 }

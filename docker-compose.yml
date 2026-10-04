@@ -53,8 +53,11 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       METRICS_REFRESH_MINUTES: ${METRICS_REFRESH_MINUTES:-}
+      LEGAL_DIR: ${LEGAL_DIR:-}
     volumes:
       - uploads:/data/uploads
+      # Your privacy.md / terms.md, with LEGAL_DIR=/legal in .env:
+      # - ./legal:/legal:ro
     depends_on:
       postgres:
         condition: service_healthy

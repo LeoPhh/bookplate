@@ -24,6 +24,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
   `test/api/logs.test.ts` checks. Swallowing an error? Log it first.
 - A visitor's address comes from `clientIp()` (`lib/clientIp.ts`), never
   straight from `X-Forwarded-For`, whose leftmost entries anyone can fake.
+- The privacy policy and terms are the operator's Markdown files
+  (`LEGAL_DIR`, `lib/legal.ts`), never text in this repository; render them
+  with raw HTML off.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
   check `config.email.enabled`. Emails that reveal whether an account exists
   (reset, verification) never report send errors to the visitor.

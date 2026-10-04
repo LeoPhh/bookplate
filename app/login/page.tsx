@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { countUsers, getSession } from "@/lib/auth";
 import { config } from "@/lib/config";
 import AuthForm from "@/components/AuthForm";
+import { legalLinks } from "@/lib/legal";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await connection();
@@ -15,6 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <AuthForm
       mode="login"
       signupOpen={config.registration === "open"}
+      legal={legalLinks()}
       notice={error ? "That confirmation link has expired or was already used. Sign in to get a new one." : undefined}
     />
   );
