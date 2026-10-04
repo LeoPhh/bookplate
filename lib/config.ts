@@ -83,7 +83,7 @@ export const config = {
     from: process.env.SMTP_FROM ?? "Bookplate <bookplate@localhost>",
     // Where replies to Bookplate's emails go, e.g. a support inbox, when
     // SMTP_FROM is an address nobody reads. Unset = replies go to SMTP_FROM.
-    replyTo: replyTo(),
+    replyTo: address("SMTP_REPLY_TO"),
     // At most this many emails a day (UTC) from the whole server, as a safety
     // net against abuse running up a bill or a sender reputation. 0 = no cap.
     dailyLimit: limit("EMAIL_LIMIT_PER_DAY", 0),
@@ -118,12 +118,17 @@ export const config = {
   metricsRefreshMinutes: metricsRefreshMinutes(),
   // How much the server logs: debug, info (default), warn or error.
   logLevel: logLevel(),
+  // Where messages sent through POST /api/contact go — a contact form on a
+  // website served from the same domain (see README). Needs email set up.
+  // Unset = no contact form.
+  contactTo: address("CONTACT_FORM_TO"),
 };
 
-function replyTo(): string {
-  const v = process.env.SMTP_REPLY_TO?.trim() ?? "";
+// An email address setting ("a@b.c" or "Name <a@b.c>"); "" when unset.
+function address(name: string): string {
+  const v = process.env[name]?.trim() ?? "";
   if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.replace(/^.*<(.+)>$/, "$1"))) {
-    throw new Error(`SMTP_REPLY_TO must be an email address, not "${v}".`);
+    throw new Error(`${name} must be an email address, not "${v}".`);
   }
   return v;
 }

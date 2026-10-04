@@ -23,6 +23,7 @@ function getTransport(): Transporter {
 
 export interface Email {
   to: string;
+  replyTo?: string; // instead of SMTP_REPLY_TO
   subject: string;
   text: string;
   html: string;
@@ -107,7 +108,11 @@ interface Message {
   action?: { label: string; url: string };
   note?: string; // the small print under the button
   why: string; // footer: why this address got the email
+  replyTo?: string; // where a reply goes, instead of SMTP_REPLY_TO
 }
+
+// "Questions? Just reply" only when a reply reaches the server's own inbox.
+const replyInvite = (m: Message) => Boolean(config.email.replyTo) && !m.replyTo;
 
 function html(m: Message): string {
   const site = new URL(config.publicUrl);
@@ -143,7 +148,7 @@ function html(m: Message): string {
 ${m.paragraphs.map(p).join("")}${button}${note}
 </td></tr></table></td></tr>
 <tr><td style="padding:22px 0 0;font-family:${BODY};font-size:12px;line-height:1.6;color:${C.soft}">
-${config.email.replyTo ? `Questions? Just reply to this email.<br>` : ""}${escape(m.why)}<br><a href="${escape(site.origin)}" style="color:${C.soft}">${escape(site.host)}</a>
+${replyInvite(m) ? `Questions? Just reply to this email.<br>` : ""}${escape(m.why)}<br><a href="${escape(site.origin)}" style="color:${C.soft}">${escape(site.host)}</a>
 </td></tr>
 </table></td></tr></table>
 </body></html>`;
@@ -156,7 +161,7 @@ function text(m: Message): string {
     ...m.paragraphs.flatMap((p) => [p, ""]),
     ...(m.action ? [`${m.action.label}: ${m.action.url}`, ""] : []),
     ...(m.note ? [m.note, ""] : []),
-    ...(config.email.replyTo ? ["Questions? Just reply to this email.", ""] : []),
+    ...(replyInvite(m) ? ["Questions? Just reply to this email.", ""] : []),
     "— Bookplate",
     m.why,
     "",
@@ -164,7 +169,7 @@ function text(m: Message): string {
 }
 
 function build(to: string, m: Message): Email {
-  return { to, subject: m.subject, text: text(m), html: html(m) };
+  return { to, subject: m.subject, text: text(m), html: html(m), ...(m.replyTo && { replyTo: m.replyTo }) };
 }
 
 // ── The emails ───────────────────────────────────────────────────────────
@@ -209,5 +214,20 @@ export function testEmail(to: string): Email {
       "This is a test email from your Bookplate server. If you’re reading it, email is set up correctly: password resets and sign-up confirmations will reach people too.",
     ],
     why: "You’re receiving this because you sent a test email from Settings → Email.",
+  });
+}
+
+// A message from the contact form (app/api/contact), to the server's own
+// inbox (CONTACT_FORM_TO). Replying answers the person who wrote it.
+export function contactEmail(to: string, from: { name: string; email: string }, message: string): Email {
+  const who = from.name || from.email;
+  return build(to, {
+    subject: `Contact form: ${who}`,
+    preview: message.slice(0, 120),
+    eyebrow: "Contact form",
+    title: `Message from ${who}`,
+    paragraphs: [...message.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean), `— ${from.name ? `${from.name}, ` : ""}${from.email}`],
+    why: "Sent through the contact form. Reply to this email to answer them.",
+    replyTo: from.name ? `"${from.name.replace(/["\\]/g, "")}" <${from.email}>` : from.email,
   });
 }

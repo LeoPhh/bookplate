@@ -24,6 +24,7 @@ export async function start() {
       limits: config.limits,
       logLevel: config.logLevel,
       metrics: config.metricsToken ? { refreshMinutes: config.metricsRefreshMinutes } : false,
+      contactForm: Boolean(config.contactTo && config.email.enabled),
     });
   } catch (e) {
     // Next.js would log this and keep running without serving anything;

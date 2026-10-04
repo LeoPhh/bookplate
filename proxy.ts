@@ -16,6 +16,7 @@ const PUBLIC = [
   "/api/health",
   "/api/signup-challenge",
   "/api/client-errors",
+  "/api/contact",
   "/api/metrics", // checks its own token
   "/privacy",
   "/terms",

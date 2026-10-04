@@ -210,6 +210,7 @@ and vocabulary all come across.
 | `LOG_LEVEL` | `info` | `debug` for more detail while chasing a problem; `warn` or `error` for less |
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
+| `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
 
@@ -274,6 +275,25 @@ person. The database is counted at startup and then every
 `METRICS_REFRESH_MINUTES` (8 hours by default), so reading the endpoint often
 costs nothing. Behind a reverse proxy, keep `/api/metrics` off
 the internet and let the collector reach it directly.
+
+### Contact form
+
+A website of your own, such as a landing page, can have a contact form
+without a server of its own. With `CONTACT_FORM_TO` set (and email working),
+Bookplate takes the messages at `/api/contact` and emails them there, with the
+sender as Reply-To. Serve the website on the same domain and send
+`/api/contact` to Bookplate from your reverse proxy, so the form posts to its
+own site. The form:
+
+1. `GET /api/contact` for a puzzle, and solve it in the browser with
+   [altcha-lib](https://github.com/altcha-org/altcha-lib) (`solveChallenge`,
+   PBKDF2), as Bookplate's sign-up page does;
+2. `POST /api/contact` with JSON `{ name, email, message, check }`, where
+   `check` is base64 of `JSON.stringify({ challenge, solution })`.
+
+It answers `200 { ok: true }`, or an error status with `{ error }` to show.
+Each address can send 5 messages an hour, and they count towards
+`EMAIL_LIMIT_PER_DAY`. Nothing of a message is logged.
 
 ### Forgotten passwords
 
