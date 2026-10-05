@@ -17,10 +17,10 @@ describe("the app bar", () => {
     expect(out).not.toContain('aria-label="Account menu"');
   });
 
-  it("has a mark that isn't a link, so nothing leaves the app", async () => {
+  it("has a mark that links to the Library, so nothing leaves the app", async () => {
     const html = await (await new Visitor().fetch("/login")).text();
-    const logo = html.slice(html.indexOf('class="appbar-logo"') - 200, html.indexOf('class="appbar-logo"'));
-    expect(logo).not.toMatch(/<a\b[^>]*$/);
+    const logo = html.match(/<a\b[^>]*class="appbar-logo"[^>]*>/)?.[0] ?? "";
+    expect(logo).toMatch(/href="\/"/);
     expect(html).not.toContain("bookplate.eu");
   });
 });
