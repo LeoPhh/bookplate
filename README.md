@@ -15,8 +15,8 @@ time as a zip of plain JSON, markdown and image files.
 
 ### The look
 
-Newsprint white, heavy black rules, one hot vermilion accent, Archivo Black
-set in sentence case, and hard offset shadows with no blur. Books without a
+Newsprint white, heavy black rules, one hot vermilion accent, Fraunces and
+Inter set in sentence case, and hard offset shadows with no blur. Books without a
 cover photo get a generated cloth cover in one of twelve binding colours.
 
 ### Three views of the library
@@ -212,6 +212,7 @@ and vocabulary all come across.
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
 | `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
+| `PRIVACY_URL`, `TERMS_URL` | — | where your privacy policy / terms are published, if on another site instead of `LEGAL_DIR`: sign-in and sign-up link there, and `/privacy` and `/terms` send visitors there |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
 
 ### Open registration

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Book, ProgressEntry } from "@/lib/types";
+import { Book, isCustomSource, ProgressEntry } from "@/lib/types";
 import { summarize } from "@/lib/progress";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
@@ -189,6 +189,15 @@ export default function Home() {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [books]);
 
+  // The sources readers added themselves, for the form's dropdown.
+  const sources = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of books ?? []) {
+      if (isCustomSource(b.format)) set.add(b.format);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [books]);
+
   const stats = useMemo(() => {
     if (!books || books.length === 0) return null;
     const read = books.filter((b) => b.status === "read");
@@ -315,6 +324,7 @@ export default function Home() {
         <BookForm
           book={editing}
           genres={genres}
+          sources={sources}
           onSave={handleSave}
           onClose={() => {
             setFormOpen(false);

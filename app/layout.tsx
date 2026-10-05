@@ -1,21 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Black } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import { connection } from "next/server";
 import ErrorReporter from "@/components/ErrorReporter";
 import AppBar from "@/components/AppBar";
 import { getSession } from "@/lib/auth";
 import "./globals.css";
 
-// Archivo Black carries the display type, Archivo everything else; globals.css
+// Fraunces carries the display type, Inter everything else; globals.css
 // points --font-display / --font-body at them.
-const archivoBlack = Archivo_Black({
-  variable: "--font-archivo-black",
-  weight: "400",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
 });
 
-const archivo = Archivo({
-  variable: "--font-archivo",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -47,7 +46,7 @@ export default async function RootLayout({
   await connection();
   const session = await getSession().catch(() => null);
   return (
-    <html lang="en" className={`${archivoBlack.variable} ${archivo.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
         <AppBar signedIn={Boolean(session)} />
         {children}

@@ -26,9 +26,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
   straight from `X-Forwarded-For`, whose leftmost entries anyone can fake.
 - The privacy policy and terms are the operator's Markdown files
   (`LEGAL_DIR`, `lib/legal.ts`), never text in this repository; render them
-  with raw HTML off.
+  with raw HTML off. An operator can instead publish them on another site
+  (`PRIVACY_URL`, `TERMS_URL`): links and `/privacy`, `/terms` then lead there.
 - Every page has the app bar (`components/AppBar.tsx`, from `app/layout.tsx`):
-  the mark (deliberately not a link), and when signed in the sections
+  the mark (a link to the Library), and when signed in the sections
   (Library, Vocabulary, Statistics) and the account menu. On phones the
   sections become the bottom tab bar. It never links out of the app.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
@@ -53,7 +54,7 @@ vermilion accent, hard offset shadows with no blur), and all of it lives in
 - `lib/palette.ts` holds the twelve binding colours for generated covers. A
   book stores an index into it, so only ever append — reordering recolours
   existing books.
-- Fonts load in `app/layout.tsx` (`--font-archivo-black`, `--font-archivo`);
+- Fonts load in `app/layout.tsx` (`--font-fraunces`, `--font-inter`);
   `globals.css` points `--font-display` / `--font-body` at them.
 - Two selector lists near the top of `globals.css` set label type: tiny
   editorial labels (eyebrows, table heads, badges, field labels) are uppercase

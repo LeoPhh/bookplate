@@ -90,10 +90,10 @@ export async function sendEmail(email: Email): Promise<void> {
 // inline styles. Paper background, the masthead over a heavy black rule, a
 // white card with a hard offset shadow, a vermilion eyebrow, a black button.
 // No web fonts (they'd load from a third party whenever an email is opened):
-// the heavy type falls back to Arial Black / Impact.
+// the headings use Fraunces where installed and fall back to Georgia.
 
 const C = { paper: "#f4f2ec", ink: "#111111", soft: "#6b6862", hair: "#d6d2c8", accent: "#ff3b1f", white: "#ffffff" };
-const DISPLAY = "'Archivo Black','Arial Black',Impact,'Helvetica Neue',Arial,sans-serif";
+const DISPLAY = "Fraunces,Georgia,'Times New Roman',serif";
 const BODY = "-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
 
 const escape = (s: string) =>

@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Book, BookFormat, FORMAT_LABELS, ProgressEntry } from "@/lib/types";
+import { Book, BookFormat, FORMAT_LABELS, isCustomSource, ProgressEntry, sourceLabel } from "@/lib/types";
 import { fmtShortDate, plural, summarize } from "@/lib/progress";
 import ProgressBar from "./ProgressBar";
 import { paletteFor } from "@/lib/palette";
@@ -30,7 +30,7 @@ type Drill =
   | { kind: "year"; year: number }
   | { kind: "genres" }
   | { kind: "genre"; genre: string }
-  | { kind: "source"; source: BookFormat | "none" }
+  | { kind: "source"; source: string | null } // null = no source set
   | { kind: "rating"; rating: number };
 
 function yearCounts(books: Book[]): YearCount[] {
@@ -355,11 +355,20 @@ export default function StatsView({ books, progress, onSelect }: Props) {
     const rest = allGenres.slice(6).reduce((s, g) => s + g.count, 0);
     if (rest > 0) genres.push({ label: "Other", count: rest });
 
-    const sources = (Object.keys(FORMAT_LABELS) as BookFormat[])
-      .map((f) => ({ source: f as BookFormat | "none", label: FORMAT_LABELS[f], count: books.filter((b) => b.format === f).length }))
-      .sort((a, b) => b.count - a.count);
-    const unsourced = books.filter((b) => !b.format || !(b.format in FORMAT_LABELS)).length;
-    if (unsourced > 0) sources.push({ source: "none", label: "Unspecified", count: unsourced });
+    const custom = new Map<string, number>();
+    for (const b of books) {
+      if (isCustomSource(b.format)) custom.set(b.format, (custom.get(b.format) ?? 0) + 1);
+    }
+    const sources: { source: string | null; label: string; count: number }[] = [
+      ...(Object.keys(FORMAT_LABELS) as BookFormat[]).map((f) => ({
+        source: f as string | null,
+        label: FORMAT_LABELS[f],
+        count: books.filter((b) => b.format === f).length,
+      })),
+      ...[...custom.entries()].map(([source, count]) => ({ source: source as string | null, label: source, count })),
+    ].sort((a, b) => b.count - a.count);
+    const unsourced = books.filter((b) => !b.format).length;
+    if (unsourced > 0) sources.push({ source: null, label: "Unspecified", count: unsourced });
 
     return { read, readThisYear, pages, avg, ratings, genres, allGenres, sources, years: yearCounts(books) };
   }, [books]);
@@ -456,9 +465,9 @@ export default function StatsView({ books, progress, onSelect }: Props) {
 
     if (drill.kind === "source") {
       const list = books
-        .filter((b) => (drill.source === "none" ? !b.format || !(b.format in FORMAT_LABELS) : b.format === drill.source))
+        .filter((b) => (drill.source === null ? !b.format : b.format === drill.source))
         .sort(byRatingThenTitle);
-      const label = drill.source === "none" ? "Unspecified source" : FORMAT_LABELS[drill.source];
+      const label = drill.source === null ? "Unspecified source" : sourceLabel(drill.source)!;
       return (
         <DrillDialog
           title={label}

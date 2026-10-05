@@ -54,6 +54,8 @@ services:
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       METRICS_REFRESH_MINUTES: ${METRICS_REFRESH_MINUTES:-}
       LEGAL_DIR: ${LEGAL_DIR:-}
+      PRIVACY_URL: ${PRIVACY_URL:-}
+      TERMS_URL: ${TERMS_URL:-}
       CONTACT_FORM_TO: ${CONTACT_FORM_TO:-}
     volumes:
       - uploads:/data/uploads

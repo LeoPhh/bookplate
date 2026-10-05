@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import type { LegalLinks } from "@/lib/legal";
 
-// Which of the server's legal documents exist (LEGAL_DIR), for the links.
-export interface LegalLinks {
-  privacy: boolean;
-  terms: boolean;
+// A link to a legal document: inside the app, or the address it's published at.
+export function LegalLink({ href, children }: { href: string; children: ReactNode }) {
+  return href.startsWith("/") ? <Link href={href}>{children}</Link> : <a href={href}>{children}</a>;
 }
 
 // The frame for every signed-out screen: sign in, setup, sign up, and the
@@ -22,8 +22,8 @@ export default function AuthShell({ title, children, legal }: { title: string; c
       </div>
       {legal && (legal.privacy || legal.terms) && (
         <p className="auth-legal">
-          {legal.privacy && <Link href="/privacy">Privacy policy</Link>}
-          {legal.terms && <Link href="/terms">Terms of use</Link>}
+          {legal.privacy && <LegalLink href={legal.privacy}>Privacy policy</LegalLink>}
+          {legal.terms && <LegalLink href={legal.terms}>Terms of use</LegalLink>}
         </p>
       )}
     </main>

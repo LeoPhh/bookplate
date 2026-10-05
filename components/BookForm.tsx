@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import type { SearchResult } from "@/lib/openLibrary";
-import { Book, BookFormat, BookStatus, FORMAT_LABELS, STATUS_LABELS } from "@/lib/types";
+import { Book, BookFormat, BookStatus, FORMAT_LABELS, isCustomSource, normaliseSource, STATUS_LABELS } from "@/lib/types";
 import { PALETTE } from "@/lib/palette";
 import { fileToDataUrl } from "@/lib/image";
 import StarRating from "./StarRating";
@@ -16,19 +16,22 @@ export type CoverAction = { type: "keep" } | { type: "remove" } | { type: "uploa
 interface Props {
   book: Book | null; // null = adding a new book
   genres: string[]; // existing genres across the library, for the dropdown
+  sources: string[]; // sources readers added themselves, for the dropdown
   onSave: (draft: Omit<Book, "id" | "addedAt" | "coverImage">, cover: CoverAction) => void;
   onClose: () => void;
 }
 
 // Sentinel option value that switches the genre dropdown into free-text mode.
 const NEW_GENRE = "__new__";
+// Same for the source dropdown.
+const NEW_SOURCE = "__new_source__";
 
 interface Draft {
   title: string;
   author: string;
   genre: string;
   pages: string;
-  format: BookFormat | "";
+  format: string; // a built-in source's key, or the reader's own text
   status: BookStatus;
   copy: boolean;
   rating: number;
@@ -68,9 +71,10 @@ function draftFrom(book: Book | null): Draft {
   };
 }
 
-export default function BookForm({ book, genres, onSave, onClose }: Props) {
+export default function BookForm({ book, genres, sources, onSave, onClose }: Props) {
   const [d, setD] = useState<Draft>(() => draftFrom(book));
   const [addingGenre, setAddingGenre] = useState(false);
+  const [addingSource, setAddingSource] = useState(false);
   const [coverAction, setCoverAction] = useState<CoverAction>({ type: "keep" });
   const [coverPreview, setCoverPreview] = useState<string | null>(book?.coverImage ?? null);
   const [rawImage, setRawImage] = useState<string | null>(null); // selected file awaiting crop
@@ -99,6 +103,13 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
     d.genre && !addingGenre && !genres.includes(d.genre)
       ? [...genres, d.genre].sort((a, b) => a.localeCompare(b))
       : genres;
+
+  // The reader's own sources, plus the draft's own so an edited book's
+  // source is always selectable.
+  const sourceOptions =
+    isCustomSource(d.format) && !addingSource && !sources.includes(d.format)
+      ? [...sources, d.format].sort((a, b) => a.localeCompare(b))
+      : sources;
 
   const runSearch = async () => {
     const q = searchQ.trim();
@@ -202,7 +213,7 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
         author: d.author.trim(),
         genre: d.genre.trim() || undefined,
         pages: d.pages ? Number(d.pages) : undefined,
-        format: d.format || undefined,
+        format: normaliseSource(d.format) || undefined,
         status: d.status,
         copy: d.copy || undefined,
         rating: d.rating,
@@ -306,17 +317,56 @@ export default function BookForm({ book, genres, onSave, onClose }: Props) {
               ))}
             </select>
           </label>
-          <label className="field">
+          <div className="field">
             <span>Source</span>
-            <select value={d.format} onChange={(e) => set("format", e.target.value as BookFormat | "")}>
-              <option value="">—</option>
-              {(Object.keys(FORMAT_LABELS) as BookFormat[]).map((f) => (
-                <option key={f} value={f}>
-                  {FORMAT_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </label>
+            {addingSource ? (
+              <div className="genre-new">
+                <input
+                  value={d.format}
+                  onChange={(e) => set("format", e.target.value)}
+                  placeholder="New source"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setAddingSource(false);
+                    set("format", "");
+                  }}
+                  aria-label="Back to the source list"
+                  title="Back to the source list"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <select
+                value={d.format}
+                onChange={(e) => {
+                  if (e.target.value === NEW_SOURCE) {
+                    setAddingSource(true);
+                    set("format", "");
+                  } else {
+                    set("format", e.target.value);
+                  }
+                }}
+              >
+                <option value="">—</option>
+                {(Object.keys(FORMAT_LABELS) as BookFormat[]).map((f) => (
+                  <option key={f} value={f}>
+                    {FORMAT_LABELS[f]}
+                  </option>
+                ))}
+                {sourceOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+                <option value={NEW_SOURCE}>＋ Add a source…</option>
+              </select>
+            )}
+          </div>
           <label className="field">
             <span>Pages</span>
             <input type="number" min="1" value={d.pages} onChange={(e) => set("pages", e.target.value)} />

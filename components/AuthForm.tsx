@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import AuthShell, { type LegalLinks } from "./AuthShell";
+import AuthShell, { LegalLink } from "./AuthShell";
+import type { LegalLinks } from "@/lib/legal";
 
 type Mode = "setup" | "login" | "signup";
 
@@ -165,9 +166,9 @@ export default function AuthForm({
         {creating && legal && (legal.privacy || legal.terms) && (
           <p className="field--wide auth-consent">
             By creating an account you agree to the{" "}
-            {legal.terms && <Link href="/terms">Terms of use</Link>}
+            {legal.terms && <LegalLink href={legal.terms}>Terms of use</LegalLink>}
             {legal.terms && legal.privacy && " and "}
-            {legal.privacy && <Link href="/privacy">Privacy policy</Link>}.
+            {legal.privacy && <LegalLink href={legal.privacy}>Privacy policy</LegalLink>}.
           </p>
         )}
         <div className="dialog-actions field--wide">

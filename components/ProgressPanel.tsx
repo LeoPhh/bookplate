@@ -58,12 +58,14 @@ export default function ProgressPanel({ book, progress, onLog, onRemove, onFinis
           />
           <span>{unit === "page" ? `of ${max}` : "%"}</span>
         </label>
-        <span className="progress-percent">{percent}%</span>
         <button type="submit" className="btn btn--primary">
           Update
         </button>
       </form>
-      <ProgressBar percent={percent} />
+      <div className="progress-track">
+        <ProgressBar percent={percent} />
+        <span className="progress-percent">{percent}%</span>
+      </div>
       {error && <p className="progress-error">{error}</p>}
 
       {s ? (

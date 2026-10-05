@@ -1,10 +1,12 @@
 import BackLink from "./BackLink";
-import { notFound } from "next/navigation";
-import { legalDoc, type LegalDoc } from "@/lib/legal";
+import { notFound, redirect } from "next/navigation";
+import { legalDoc, legalElsewhere, type LegalDoc } from "@/lib/legal";
 
 // /privacy and /terms: the server's own documents (see lib/legal.ts), open to
-// everyone, signed in or not.
+// everyone, signed in or not. A document published elsewhere is sent there.
 export default function LegalPage({ name }: { name: LegalDoc }) {
+  const elsewhere = legalElsewhere(name);
+  if (elsewhere) redirect(elsewhere);
   const doc = legalDoc(name);
   if (!doc) notFound();
   return (

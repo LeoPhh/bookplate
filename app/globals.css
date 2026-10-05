@@ -4,8 +4,8 @@
    shadow is a hard offset with no blur radius. */
 
 :root {
-  --font-display: var(--font-archivo-black);
-  --font-body: var(--font-archivo);
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-inter);
   --paper: #f4f2ec;
   --paper-deep: #e6e2d8;
   --ink: #111111;
@@ -85,6 +85,13 @@ button {
 
 .appbar-logo {
   display: inline-flex;
+  cursor: pointer;
+  transform-origin: left center;
+  transition: transform 0.15s ease;
+}
+
+.appbar-logo:hover {
+  transform: scale(1.06);
 }
 
 .appbar-mark {
@@ -172,8 +179,8 @@ button {
 }
 
 .masthead-title {
-  font-family: var(--font-display), Impact, sans-serif;
-  font-weight: 900;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
   font-size: clamp(46px, 9vw, 96px);
   letter-spacing: -0.045em;
   line-height: 0.88;
@@ -551,8 +558,8 @@ a.btn {
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-family: var(--font-display), Impact, sans-serif;
-  font-weight: 900;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.05;
 }
@@ -641,19 +648,45 @@ a.btn {
   font-size: 15px;
 }
 
+/* Same square field as the rest of the app's forms, without the spinner. */
 .progress-input input {
   width: 84px;
-  padding: 6px 9px;
+  padding: 8px 11px;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
   font: inherit;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.progress-input input::-webkit-inner-spin-button,
+.progress-input input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.progress-input input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The result of the update, beside the bar. */
+.progress-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .progress-percent {
-  font-family: var(--font-display), Impact, sans-serif;
-  font-size: 22px;
-  letter-spacing: -0.03em;
-  margin-right: auto;
+  flex: none;
+  min-width: 3.2ch;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -811,7 +844,7 @@ a.btn {
 }
 
 .ledger-title {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.02em;
 }
@@ -903,7 +936,7 @@ a.btn {
 }
 
 .stat-tile-value {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   font-size: 44px;
   line-height: 1;
@@ -923,7 +956,7 @@ a.btn {
 }
 
 .chart-title {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   font-size: 19px;
   letter-spacing: -0.02em;
@@ -1068,7 +1101,7 @@ a.btn {
 .drill-title {
   font-size: 25px;
   line-height: 1.15;
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.03em;
 }
@@ -1116,7 +1149,7 @@ a.btn {
   display: block;
   font-size: 21px;
   color: var(--ink);
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
 }
 
@@ -1182,11 +1215,11 @@ a.btn {
 }
 
 .drill-book-title {
-  font-weight: 600;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 14px;
   letter-spacing: -0.02em;
 }
@@ -1444,8 +1477,8 @@ a.btn {
 }
 
 .detail-title {
-  font-family: var(--font-display), Impact, sans-serif;
-  font-weight: 900;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
   font-size: 42px;
   line-height: 0.92;
   letter-spacing: -0.035em;
@@ -1512,7 +1545,7 @@ a.btn {
 
 .form-heading,
 .confirm-title {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.03em;
 }
@@ -1701,7 +1734,7 @@ a.btn {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   letter-spacing: -0.02em;
   font-size: 14px;
 }
@@ -1870,7 +1903,7 @@ a.btn {
   flex: 1;
   text-align: center;
   font-size: 15px;
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.02em;
 }
@@ -2048,7 +2081,7 @@ a.btn {
 
 .lookup-word,
 .vocab-word {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.03em;
 }
@@ -2279,7 +2312,7 @@ a.btn {
 
 .notes-title,
 .notes-section-title {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 0.95;
@@ -2354,7 +2387,7 @@ a.btn {
 .notes-prose h4 {
   line-height: 1.25;
   margin: 22px 0 8px;
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 900;
   letter-spacing: -0.03em;
 }
@@ -3053,7 +3086,7 @@ select,
 }
 
 .profile-name {
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 26px;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -3406,7 +3439,7 @@ select,
   margin: 44px 0 12px;
   padding-top: 14px;
   border-top: 3px solid var(--ink);
-  font-family: var(--font-display), Impact, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 24px;
   letter-spacing: -0.02em;
   line-height: 1.15;

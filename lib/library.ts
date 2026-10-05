@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { getStorage, keys } from "./storage";
-import { Book, BookFormat, BookStatus, ProgressEntry, VocabEntry } from "./types";
+import { Book, BookStatus, ProgressEntry, VocabEntry } from "./types";
 
 // Every function takes the signed-in user's id and only ever touches that
 // user's rows and files.
@@ -21,7 +21,7 @@ function toBook(r: BookRow): Book {
     olWorkId: r.olWorkId ?? undefined,
     genre: r.genre ?? undefined,
     pages: r.pages ?? undefined,
-    format: (r.format as BookFormat | null) ?? undefined,
+    format: r.format ?? undefined,
     status: r.status as BookStatus,
     copy: r.copy ?? undefined,
     rating: r.rating,

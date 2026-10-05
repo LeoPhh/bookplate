@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Book, FORMAT_LABELS, ProgressEntry, STATUS_LABELS } from "@/lib/types";
+import { Book, ProgressEntry, sourceLabel, STATUS_LABELS } from "@/lib/types";
 import { plural, summarize } from "@/lib/progress";
 import BookCover from "./BookCover";
 import ProgressPanel from "./ProgressPanel";
@@ -110,8 +110,7 @@ export default function BookDetail({
               </div>
               <div>
                 <dt>Source</dt>
-                {/* older records may hold retired format values — show a dash */}
-                <dd>{(book.format && FORMAT_LABELS[book.format]) || "—"}</dd>
+                <dd>{sourceLabel(book.format) ?? "—"}</dd>
               </div>
               <div>
                 <dt>Copy</dt>

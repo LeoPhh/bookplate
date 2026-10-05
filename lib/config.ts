@@ -15,6 +15,17 @@ function limit(name: string, fallback: number): number {
   return n;
 }
 
+// An optional web address; anything that isn't one is a startup error.
+function webAddress(name: string): string {
+  const raw = process.env[name];
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "https:" || url.protocol === "http:") return raw;
+  } catch {}
+  throw new Error(`${name} must be a web address starting with https://, not "${raw}".`);
+}
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable ${name} — see .env.example`);
@@ -35,6 +46,16 @@ export const config = {
   // A folder with privacy.md and/or terms.md, shown at /privacy and /terms
   // and linked from the sign-in and sign-up pages. Unset = no such pages.
   legalDir: process.env.LEGAL_DIR ? path.resolve(/* turbopackIgnore: true */ process.env.LEGAL_DIR) : "",
+  // Where the privacy policy and terms are published, if not in this app (the
+  // hosted service keeps them on its website). Set, the sign-in and sign-up
+  // links go there, /privacy and /terms send visitors there, and LEGAL_DIR is
+  // ignored for that document.
+  get privacyUrl() {
+    return webAddress("PRIVACY_URL");
+  },
+  get termsUrl() {
+    return webAddress("TERMS_URL");
+  },
   // With STORAGE=local. The Docker image points this at /data/uploads.
   uploadsDir: path.resolve(/* turbopackIgnore: true */ process.env.UPLOADS_DIR ?? "uploads"),
   // With STORAGE=s3: any S3-compatible provider (Scaleway, Cloudflare R2,
