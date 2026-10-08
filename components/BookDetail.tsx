@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Book, ProgressEntry, sourceLabel, STATUS_LABELS } from "@/lib/types";
+import { Book, dateLabel, ProgressEntry, sourceLabel, STATUS_LABELS } from "@/lib/types";
 import { plural, summarize } from "@/lib/progress";
 import BookCover from "./BookCover";
 import ProgressPanel from "./ProgressPanel";
@@ -119,7 +119,7 @@ export default function BookDetail({
                 </dd>
               </div>
               <div>
-                <dt>Finished</dt>
+                <dt>{dateLabel(book.status)}</dt>
                 <dd>{fmtDate(book.dateRead)}</dd>
               </div>
               <div>

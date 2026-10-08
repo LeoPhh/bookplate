@@ -25,6 +25,7 @@ export default function ListView({ books, onSelect, marked }: Props) {
     read: books.filter((b) => b.status === "read").length,
     reading: books.filter((b) => b.status === "reading").length,
     toRead: books.filter((b) => b.status === "to-read").length,
+    dnf: books.filter((b) => b.status === "dnf").length,
   };
 
   return (
@@ -61,6 +62,7 @@ export default function ListView({ books, onSelect, marked }: Props) {
             <td colSpan={6}>
               Count: {books.length} {books.length === 1 ? "volume" : "volumes"} · {counts.read} read ·{" "}
               {counts.reading} reading · {counts.toRead} TBR
+              {counts.dnf > 0 && ` · ${counts.dnf} didn’t finish`}
             </td>
           </tr>
         </tfoot>

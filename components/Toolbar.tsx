@@ -33,7 +33,7 @@ export default function Toolbar({
   onShowNotes,
   onAdd,
 }: Props) {
-  const statuses: StatusFilter[] = ["all", "read", "reading", "to-read"];
+  const statuses: StatusFilter[] = ["all", "read", "reading", "to-read", "dnf"];
 
   return (
     <div className="toolbar">

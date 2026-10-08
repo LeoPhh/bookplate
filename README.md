@@ -78,9 +78,9 @@ opens it in the crop dialog. Everything can also be entered fully by hand.
 
 Each book carries: title, author, genre, page count, source (book store /
 Kindle / audiobook / borrowed / second hand / gifted / library), status
-(read / reading / to read), whether a physical copy lives at home, a 1–5
-star rating, the date finished (picked with a calendar), and its
-notes page.
+(read / reading / to read / didn't finish), whether a physical copy lives at
+home, a 1–5 star rating, the date finished — or stopped, for a book you
+didn't finish — (picked with a calendar), and its notes page.
 
 ![The book detail dialog](docs/detail.png)
 

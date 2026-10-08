@@ -22,13 +22,14 @@ function deleteCoverFile(coverImage: string) {
 
 // Books on the go come first, so a book you've just added is easy to find:
 // Reading, then TBR (newest added first), then Read — most recently finished
-// first, with read books missing a finish date (common in imports) at the end.
-const STATUS_ORDER: Record<Book["status"], number> = { reading: 0, "to-read": 1, read: 2 };
+// first, with read books missing a finish date (common in imports) at the end
+// — then the books you didn't finish, most recently stopped first.
+const STATUS_ORDER: Record<Book["status"], number> = { reading: 0, "to-read": 1, read: 2, dnf: 3 };
 
 function compare(a: Book, b: Book): number {
   const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
   if (byStatus !== 0) return byStatus;
-  if (a.status === "read") {
+  if (a.status === "read" || a.status === "dnf") {
     const byFinished = (b.dateRead ?? "").localeCompare(a.dateRead ?? "");
     if (byFinished !== 0) return byFinished;
   }

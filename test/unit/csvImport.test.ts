@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { describe, expect, it } from "vitest";
 import { csvRecords } from "@/lib/csv";
-import { cleanDate, cleanIsbn, cleanRating, cleanTitle, detectSource } from "@/lib/csvImport";
+import { cleanDate, cleanIsbn, cleanRating, cleanTitle, detectSource, statusFrom } from "@/lib/csvImport";
 
 const fixture = (name: string) => readFileSync(path.join(__dirname, "../fixtures", name), "utf8");
 
@@ -14,6 +14,25 @@ describe("detectSource", () => {
 
   it("rejects anything else", () => {
     expect(detectSource(["Name", "Email"])).toBeNull();
+  });
+});
+
+describe("statusFrom", () => {
+  it("reads both services' shelves", () => {
+    expect(statusFrom("read")).toBe("read");
+    expect(statusFrom("currently-reading")).toBe("reading");
+    expect(statusFrom("to-read")).toBe("to-read");
+    expect(statusFrom("did-not-finish")).toBe("dnf");
+  });
+
+  it("recognises the shelves Goodreads readers make for books they didn't finish", () => {
+    for (const shelf of ["dnf", "DNF", "dnf-2024", "didnt-finish", "did-not-finish", "abandoned", "gave-up", "unfinished", "not-finished", "stopped-reading"]) {
+      expect(statusFrom(shelf), shelf).toBe("dnf");
+    }
+  });
+
+  it("puts any other custom shelf in TBR", () => {
+    for (const shelf of ["favourites", "owned", "sci-fi", ""]) expect(statusFrom(shelf), shelf).toBe("to-read");
   });
 });
 

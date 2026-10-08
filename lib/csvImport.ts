@@ -23,7 +23,6 @@ interface Row {
   isbn?: string;
   pages?: number;
   status: BookStatus;
-  dnf: boolean;
   rating: number;
   dateRead?: string;
   addedAt?: string;
@@ -40,7 +39,7 @@ export interface CsvImportSummary {
   read: number;
   reading: number;
   toRead: number;
-  dnf: number; // did-not-finish (StoryGraph), imported as TBR
+  dnf: number; // didn't finish
   withIsbn: number; // books a cover can be looked up for
   notes: number; // reviews that become notes pages
   skipped: number; // rows without a title or author
@@ -101,17 +100,16 @@ function reviewToMarkdown(value: string): string {
     .trim();
 }
 
-function statusFrom(value: string): { status: BookStatus; dnf: boolean } {
-  switch (value.trim().toLowerCase()) {
-    case "read":
-      return { status: "read", dnf: false };
-    case "currently-reading":
-      return { status: "reading", dnf: false };
-    case "did-not-finish":
-      return { status: "to-read", dnf: true };
-    default:
-      return { status: "to-read", dnf: false }; // to-read, or a custom shelf
-  }
+// Goodreads has no did-not-finish shelf, so readers make their own exclusive
+// shelf for it, under names like these. (StoryGraph's is "did-not-finish".)
+const DNF_SHELF = /^(dnf|did-?n[o']?-?t-?finish|abandon|gave-?up|unfinished|not-?finished|stopped-?reading)/;
+
+export function statusFrom(value: string): BookStatus {
+  const v = value.trim().toLowerCase();
+  if (v === "read") return "read";
+  if (v === "currently-reading") return "reading";
+  if (DNF_SHELF.test(v)) return "dnf";
+  return "to-read"; // to-read, or another custom shelf
 }
 
 function formatFrom(value: string): BookFormat | undefined {
@@ -148,7 +146,7 @@ function goodreadsRow(r: Record<string, string>): Row | null {
     author,
     isbn,
     pages: Number.isFinite(pages) && pages > 0 ? pages : undefined,
-    ...statusFrom(col(r, "Exclusive Shelf")),
+    status: statusFrom(col(r, "Exclusive Shelf")),
     rating: cleanRating(col(r, "My Rating")),
     dateRead: cleanDate(col(r, "Date Read")),
     addedAt: cleanDate(col(r, "Date Added")),
@@ -169,7 +167,7 @@ function storygraphRow(r: Record<string, string>): Row | null {
     title,
     author,
     isbn,
-    ...statusFrom(col(r, "Read Status")),
+    status: statusFrom(col(r, "Read Status")),
     rating: cleanRating(col(r, "Star Rating")),
     dateRead: cleanDate(col(r, "Last Date Read")) ?? lastDate(col(r, "Dates Read")),
     addedAt: cleanDate(col(r, "Date Added")),
@@ -264,8 +262,8 @@ async function plan(userId: string, text: string): Promise<Plan> {
     else summary.added++;
     if (book.status === "read") summary.read++;
     else if (book.status === "reading") summary.reading++;
+    else if (book.status === "dnf") summary.dnf++;
     else summary.toRead++;
-    if (row.dnf) summary.dnf++;
     if (book.isbn && !book.coverImage) summary.withIsbn++;
     if (row.review && !noted.has(id)) {
       notes[id] = row.review;

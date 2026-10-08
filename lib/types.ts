@@ -1,4 +1,4 @@
-export type BookStatus = "read" | "reading" | "to-read";
+export type BookStatus = "read" | "reading" | "to-read" | "dnf";
 // The built-in places a book can come from. Kept under the `format` key for
 // data compatibility; a book may also hold a source the reader typed in.
 export type BookFormat = "bookstore" | "kindle" | "audiobook" | "borrowed" | "secondhand" | "gifted" | "library";
@@ -15,7 +15,7 @@ export interface Book {
   status: BookStatus;
   copy?: boolean; // physical copy owned at home
   rating: number; // 0–5, 0 = unrated
-  dateRead?: string; // ISO yyyy-mm-dd
+  dateRead?: string; // ISO yyyy-mm-dd: finished, or for "dnf" when you stopped
   notes?: string;
   coverImage?: string; // /api/covers/<id>.jpg?v=…; absent = generated cover
   colorIndex: number; // index into PALETTE
@@ -26,7 +26,11 @@ export const STATUS_LABELS: Record<BookStatus, string> = {
   read: "Read",
   reading: "Reading",
   "to-read": "TBR",
+  dnf: "Didn’t finish",
 };
+
+// The date field's name for a book with this status.
+export const dateLabel = (status: BookStatus) => (status === "dnf" ? "Stopped" : "Finished");
 
 // One day's reading-progress update for a book.
 export interface ProgressEntry {

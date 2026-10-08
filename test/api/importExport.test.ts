@@ -46,7 +46,7 @@ describe("Goodreads and StoryGraph import", () => {
     const send = (name: string, mode: string) => r.upload("/api/import/csv", { file: fixture(name), mode });
 
     const preview = (await (await send("goodreads_library_export.csv", "preview")).json()) as { summary: Record<string, unknown> };
-    expect(preview.summary).toMatchObject({ source: "goodreads", total: 6, added: 6, read: 3, reading: 1, toRead: 2, dnf: 1, notes: 2, skipped: 1 });
+    expect(preview.summary).toMatchObject({ source: "goodreads", total: 6, added: 6, read: 3, reading: 1, toRead: 1, dnf: 1, notes: 2, skipped: 1 });
     expect((await r.get<{ books: Book[] }>("/api/books")).books).toHaveLength(0);
 
     await send("goodreads_library_export.csv", "apply");
@@ -57,11 +57,14 @@ describe("Goodreads and StoryGraph import", () => {
     expect(books).toHaveLength(6);
     expect(books.find((b) => b.id === "gr-234225")).toMatchObject({ title: "Dune", isbn: "9780441013593", rating: 5, dateRead: "2024-03-14" });
     expect((await r.get<{ notes: string }>("/api/notes/gr-234225")).notes).toContain('The "spice must flow"');
+    expect(books.find((b) => b.id === "gr-424242")?.status).toBe("dnf");
 
     // StoryGraph's Dune matches Goodreads' Dune by ISBN.
     const sg = (await (await send("storygraph_export.csv", "apply")).json()) as { summary: Record<string, unknown> };
     expect(sg.summary).toMatchObject({ source: "storygraph", total: 4, added: 3, updated: 1, dnf: 1 });
-    expect((await r.get<{ books: Book[] }>("/api/books")).books).toHaveLength(9);
+    const all = (await r.get<{ books: Book[] }>("/api/books")).books;
+    expect(all).toHaveLength(9);
+    expect(all.find((b) => b.title === "Infinite Jest")?.status).toBe("dnf");
   });
 
   it("matches a book added by hand on title and author, keeping its colour and genre", async () => {

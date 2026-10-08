@@ -2,7 +2,16 @@
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import type { SearchResult } from "@/lib/openLibrary";
-import { Book, BookFormat, BookStatus, FORMAT_LABELS, isCustomSource, normaliseSource, STATUS_LABELS } from "@/lib/types";
+import {
+  Book,
+  BookFormat,
+  BookStatus,
+  dateLabel,
+  FORMAT_LABELS,
+  isCustomSource,
+  normaliseSource,
+  STATUS_LABELS,
+} from "@/lib/types";
 import { PALETTE } from "@/lib/palette";
 import { fileToDataUrl } from "@/lib/image";
 import StarRating from "./StarRating";
@@ -417,7 +426,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
             )}
           </div>
           <div className="field">
-            <span>Date finished</span>
+            <span>Date {dateLabel(d.status).toLowerCase()}</span>
             <DatePicker value={d.dateRead} onChange={(v) => set("dateRead", v)} />
           </div>
           <div className="field">

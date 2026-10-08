@@ -439,13 +439,13 @@ function CsvImport() {
           <ul>
             <li>
               {s.read.toLocaleString()} read · {s.reading.toLocaleString()} reading · {s.toRead.toLocaleString()} to read
+              {s.dnf > 0 && ` · ${s.dnf.toLocaleString()} didn’t finish`}
             </li>
             <li>
               {plural(s.added, "new book")}
               {s.updated ? `, and ${plural(s.updated, "book")} already in your library will be updated` : ""}
             </li>
             {s.notes > 0 && <li>{plural(s.notes, "review")} will become notes pages</li>}
-            {s.dnf > 0 && <li>{plural(s.dnf, "did-not-finish book")} will be imported as TBR</li>}
             {s.skipped > 0 && <li>{plural(s.skipped, "row")} without a title or author will be skipped</li>}
           </ul>
           <div className="settings-row">
