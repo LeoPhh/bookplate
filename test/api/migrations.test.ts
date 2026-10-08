@@ -48,3 +48,35 @@ describe("migrations", () => {
     await expect(runMigrations()).resolves.toBeUndefined();
   });
 });
+
+// Upgrading a database that already has accounts.
+describe("last_seen_at (0006)", () => {
+  const UP = `bookplate_lastseen_${process.pid}`;
+  afterAll(() => dropDatabase(UP));
+
+  it("starts from each account's latest session, or else its sign-up", async () => {
+    const { Client } = await import("pg");
+    const c = new Client({ connectionString: await createDatabase(UP) });
+    await c.connect();
+    const run = async (file: string) => {
+      const text = readFileSync(path.join(__dirname, "../../drizzle", `${file}.sql`), "utf8");
+      for (const statement of text.split("--> statement-breakpoint")) await c.query(statement);
+    };
+    try {
+      const tags = (journal.entries as { tag: string }[]).map((e) => e.tag);
+      for (const tag of tags.slice(0, tags.indexOf("0006_last_seen"))) await run(tag);
+      await c.query(`INSERT INTO "user" (id, name, email, created_at) VALUES
+        ('used', 'U', 'used@example.com', '2026-01-01'), ('unused', 'N', 'unused@example.com', '2026-02-01')`);
+      await c.query(`INSERT INTO session (id, user_id, token, expires_at, updated_at) VALUES
+        ('a', 'used', 'ta', '2026-12-01', '2026-03-01'), ('b', 'used', 'tb', '2026-12-01', '2026-05-01')`);
+      await run("0006_last_seen");
+      const { rows } = await c.query(`SELECT id, to_char(last_seen_at, 'YYYY-MM-DD') AS seen FROM "user" ORDER BY id`);
+      expect(rows).toEqual([
+        { id: "unused", seen: "2026-02-01" },
+        { id: "used", seen: "2026-05-01" },
+      ]);
+    } finally {
+      await c.end();
+    }
+  });
+});

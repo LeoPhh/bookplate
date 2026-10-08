@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { Client } from "pg";
+import { describe, expect, inject, it } from "vitest";
 import { baseUrl, reader, Visitor } from "./client";
 
 describe("health and headers", () => {
@@ -76,5 +77,58 @@ describe("signing in", () => {
     expect((await attempt(r.password)).status).toBe(200);
     for (let i = 0; i < 4; i++) expect((await attempt("wrong-guess")).status).toBe(401);
     expect((await attempt(r.password)).status).toBe(200);
+  });
+});
+
+async function query(text: string, params: unknown[]) {
+  const db = new Client({ connectionString: inject("dbUrl") });
+  await db.connect();
+  try {
+    return (await db.query(text, params)).rows;
+  } finally {
+    await db.end();
+  }
+}
+
+describe("sessions", () => {
+  it("last 30 days and keep no IP address or browser details", async () => {
+    const r = await reader();
+    const rows = await query(
+      `SELECT s.ip_address, s.user_agent, s.expires_at > now() + interval '29 days' AS month
+       FROM session s JOIN "user" u ON u.id = s.user_id WHERE u.email = $1`,
+      [r.email]
+    );
+    expect(rows).toEqual([{ ip_address: null, user_agent: null, month: true }]);
+  });
+});
+
+describe("when an account was last seen", () => {
+  const lastSeen = async (email: string) =>
+    (await query(`SELECT now() - last_seen_at < interval '1 minute' AS recent FROM "user" WHERE email = $1`, [email]))[0].recent;
+  const forget = (email: string) =>
+    query(`UPDATE "user" SET last_seen_at = now() - interval '1 year' WHERE email = $1`, [email]);
+
+  it("is updated by signing in", async () => {
+    const r = await reader();
+    expect(await lastSeen(r.email)).toBe(true);
+    await forget(r.email);
+    await new Visitor().json("/api/auth/sign-in/email", "POST", { email: r.email, password: r.password });
+    expect(await lastSeen(r.email)).toBe(true);
+  });
+
+  it("is updated by using Bookplate, at most once a day", async () => {
+    const r = await reader();
+    await forget(r.email);
+    // A session less than a day old isn't extended, so nothing is written.
+    await r.get("/api/books");
+    expect(await lastSeen(r.email)).toBe(false);
+    // Two days old: the next request extends it, and the account is seen.
+    await query(
+      `UPDATE session SET expires_at = expires_at - interval '2 days'
+       WHERE user_id = (SELECT id FROM "user" WHERE email = $1)`,
+      [r.email]
+    );
+    await r.get("/api/books");
+    expect(await lastSeen(r.email)).toBe(true);
   });
 });

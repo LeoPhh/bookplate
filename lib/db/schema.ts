@@ -13,6 +13,9 @@ export const user = pgTable("user", {
   // When the reader asked for the newsletter (NEWSLETTER=true servers); null =
   // not subscribed. Kept as a time, so the operator can show when they agreed.
   newsletterConsentAt: timestamp("newsletter_consent_at"),
+  // When the account last signed in or used Bookplate, to the day (see
+  // markSeen in lib/auth.ts) — for finding long-unused accounts.
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
 });
 
 export const session = pgTable(

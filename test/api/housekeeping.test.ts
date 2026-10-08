@@ -49,6 +49,26 @@ describe("removing accounts that were never confirmed", () => {
     expect(left).toEqual(["confirmed", "has-book", "has-photo", "has-session", "recent"]);
   });
 
+  it("removes run-out sessions and links, and strips addresses from old sessions", async () => {
+    await addUser("signed-in", true, 60);
+    await sql(
+      `INSERT INTO session (id, user_id, token, expires_at, ip_address, user_agent) VALUES
+       ('old', 'signed-in', 'tok-old', now() - interval '3 days', NULL, NULL),
+       ('live', 'signed-in', 'tok-live', now() + interval '20 days', '203.0.113.9',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.6; rv:131.0) Gecko/20100101 Firefox/131.0')`
+    );
+    await sql(
+      `INSERT INTO verification (id, identifier, value, expires_at) VALUES
+       ('v-old', 'x', 'y', now() - interval '3 days'), ('v-live', 'x', 'y', now() + interval '1 hour')`
+    );
+    const { tidySessions } = await import("@/lib/housekeeping");
+    expect(await tidySessions()).toEqual({ expired: 1, stripped: 1 });
+    expect((await sql(`SELECT id, ip_address, user_agent FROM session WHERE user_id = 'signed-in'`)).rows).toEqual([
+      { id: "live", ip_address: null, user_agent: null },
+    ]);
+    expect((await sql(`SELECT id FROM verification`)).rows.map((r) => r.id)).toEqual(["v-live"]);
+  });
+
   it("clears out old rate-limit entries", async () => {
     await sql(`INSERT INTO auth_throttle (key, failures, window_start) VALUES ('old', 1, localtimestamp - interval '2 days'), ('new', 1, localtimestamp)`);
     const { pruneThrottle } = await import("@/lib/authThrottle");

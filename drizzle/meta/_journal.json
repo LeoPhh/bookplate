@@ -43,6 +43,13 @@
       "when": 1791462939965,
       "tag": "0005_newsletter_consent",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791474461995,
+      "tag": "0006_last_seen",
+      "breakpoints": true
     }
   ]
 }

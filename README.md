@@ -353,7 +353,9 @@ pull request, and only builds the Docker image when they pass.
   the Docker image.
 - **Postgres** through **Drizzle ORM**. Every record belongs to a user, and
   every query is scoped to the signed-in user.
-- **Better Auth** for accounts and sessions, stored in the same database.
+- **Better Auth** for accounts and sessions, stored in the same database. A
+  sign-in lasts 30 days from the last visit; sessions keep no IP address or
+  browser details.
 - Images live behind a small storage interface (`lib/storage/`); the local
   disk driver writes to `UPLOADS_DIR`.
 - **No UI framework**: hand-written CSS, all in `app/globals.css`. Covers,

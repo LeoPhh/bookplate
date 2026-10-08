@@ -27,6 +27,11 @@ const SENDS_PER_WINDOW = 3;
 // how far that address can be trusted).
 const SIGNUPS_PER_IP = 5;
 const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
+
+// A sign-in lasts 30 days from the last visit: using Bookplate extends it
+// (at most once a day), so only a device left unused for a month signs out.
+export const SESSION_DAYS = 30;
+const DAY_S = 24 * 60 * 60;
 const signUpKey = (headers: Headers | undefined) => `sign-up:${clientIp(headers)}`;
 
 async function sendLimited(kind: string, email: Email): Promise<void> {
@@ -104,6 +109,7 @@ function createAuth() {
           expiresIn: 60 * 60,
         }
       : undefined,
+    session: { expiresIn: SESSION_DAYS * DAY_S, updateAge: DAY_S },
     telemetry: { enabled: false },
     // Better Auth's own warnings and errors, as JSON lines like ours. Only
     // messages and errors: its extra arguments can hold user records.
@@ -184,6 +190,22 @@ function createAuth() {
       }),
     },
     databaseHooks: {
+      // Sessions keep no IP address or browser string: nothing reads them,
+      // and the privacy policy keeps those for 30 days, while a session can
+      // last far longer.
+      // Signing in, and a session being extended (at most daily, on use),
+      // count as the account being seen.
+      session: {
+        create: {
+          before: async (session) => ({ data: { ...session, ipAddress: null, userAgent: null } }),
+          after: async (session) => markSeen(session.userId),
+        },
+        update: {
+          after: async (session) => {
+            if (session?.userId) await markSeen(session.userId);
+          },
+        },
+      },
       user: {
         create: {
           // With registration closed, only the very first account (the
@@ -218,6 +240,10 @@ export async function setNewsletter(userId: string, on: boolean): Promise<void> 
     .update(schema.user)
     .set({ newsletterConsentAt: on ? sql`coalesce(${schema.user.newsletterConsentAt}, now())` : null })
     .where(eq(schema.user.id, userId));
+}
+
+async function markSeen(userId: string): Promise<void> {
+  await getDb().update(schema.user).set({ lastSeenAt: sql`now()` }).where(eq(schema.user.id, userId));
 }
 
 export async function countUsers(): Promise<number> {

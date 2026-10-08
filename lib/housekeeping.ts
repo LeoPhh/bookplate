@@ -33,11 +33,27 @@ export async function removeUnverifiedAccounts(): Promise<number> {
   return rows.rows.length;
 }
 
+// Removes sessions and email-link tokens that ran out over a day ago (the
+// margin covers clock and time-zone differences), and strips the IP address
+// and browser string from sessions stored before sessions stopped keeping them.
+export async function tidySessions(): Promise<{ expired: number; stripped: number }> {
+  const db = getDb();
+  const expired = await db.execute(sql`DELETE FROM session WHERE expires_at < now() - interval '1 day' RETURNING id`);
+  await db.execute(sql`DELETE FROM verification WHERE expires_at < now() - interval '1 day'`);
+  const stripped = await db.execute(sql`
+    UPDATE session SET ip_address = NULL, user_agent = NULL
+    WHERE ip_address IS NOT NULL OR user_agent IS NOT NULL
+    RETURNING id`);
+  return { expired: expired.rows.length, stripped: stripped.rows.length };
+}
+
 export async function runHousekeeping(): Promise<void> {
   try {
     const removed = await removeUnverifiedAccounts();
     if (removed) void log.info("housekeeping.unverified_removed", { accounts: removed, afterDays: UNVERIFIED_DAYS });
     await pruneThrottle(2 * DAY_MS); // the longest window: the daily email count
+    const sessions = await tidySessions();
+    if (sessions.expired || sessions.stripped) void log.info("housekeeping.sessions_tidied", sessions);
   } catch (e) {
     void log.error("housekeeping.failed", { error: e });
   }
