@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LOGO_CID, resetPasswordEmail, testEmail, verifyEmail } from "@/lib/email";
 
@@ -12,6 +13,14 @@ describe("emails", () => {
       expect(m.html).not.toMatch(/<img[^>]+src="https?:/); // no remote images (tracking, blocked clients)
       expect(m.html).not.toMatch(/<link|@import|url\(/); // no web fonts or remote CSS
     }
+  });
+
+  it("show the logo file at half its size, so it's sharp on high-resolution screens", () => {
+    // A missing file would send every email without a logo, silently.
+    const png = readFileSync("public/email/bookplate-lockup.png");
+    const [width, height] = [png.readUInt32BE(16), png.readUInt32BE(20)];
+    const shown = all[0].html.match(/<img src="cid:[^"]+" width="(\d+)" height="(\d+)"/);
+    expect([Number(shown?.[1]) * 2, Number(shown?.[2]) * 2]).toEqual([width, height]);
   });
 
   it("escape the link, and show it as a button and as text", () => {

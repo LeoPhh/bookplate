@@ -32,14 +32,20 @@ export interface Email {
 // The logo travels inside each email (an inline attachment the HTML points
 // at with cid:), not as a link: it shows for self-hosted servers nobody can
 // reach from outside, in clients that block remote images, and opening an
-// email tells no server anything.
+// email tells no server anything. It's the lockup (the mark and the name),
+// drawn on the paper colour at twice the size it shows: the name is Fraunces,
+// which few readers have installed, so as text it would turn into Georgia.
+// Made from the brand's bookplate-lockup.svg with
+//   rsvg-convert -w 360 -b "#f4f2ec" bookplate-lockup.svg -o bookplate-lockup.png
 export const LOGO_CID = "logo@bookplate";
+const LOGO_FILE = "public/email/bookplate-lockup.png";
+const LOGO_SIZE = { width: 180, height: 39 }; // as shown; the file is 360×78
 let logo: Buffer | null | undefined;
 
 function logoImage(): Buffer | null {
   if (logo === undefined) {
     try {
-      logo = readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), "public/icons/icon-192.png"));
+      logo = readFileSync(path.join(/* turbopackIgnore: true */ process.cwd(), LOGO_FILE));
     } catch {
       logo = null; // sent without it
     }
@@ -90,11 +96,12 @@ export async function sendEmail(email: Email): Promise<void> {
 // inline styles. Paper background, the masthead over a heavy black rule, a
 // white card with a hard offset shadow, a vermilion eyebrow, a black button.
 // No web fonts (they'd load from a third party whenever an email is opened):
-// the headings use Fraunces where installed and fall back to Georgia.
+// text uses the app's Fraunces and Inter where installed, else Georgia and
+// the system font.
 
 const C = { paper: "#f4f2ec", ink: "#111111", soft: "#6b6862", hair: "#d6d2c8", accent: "#ff3b1f", white: "#ffffff" };
 const DISPLAY = "Fraunces,Georgia,'Times New Roman',serif";
-const BODY = "-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
+const BODY = "Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
 
 const escape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -137,13 +144,11 @@ function html(m: Message): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.paper}"><tr><td align="center" style="padding:32px 16px 40px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
 <tr><td style="padding:0 0 14px;border-bottom:3px solid ${C.ink}">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="vertical-align:middle;padding-right:10px"><img src="cid:${LOGO_CID}" width="52" height="52" alt="" style="display:block;border:0;border-radius:12px"></td>
-<td style="vertical-align:middle;font-family:${DISPLAY};font-size:28px;font-weight:900;letter-spacing:-0.03em;color:${C.ink}">Bookplate</td>
-</tr></table></td></tr>
+<img src="cid:${LOGO_CID}" width="${LOGO_SIZE.width}" height="${LOGO_SIZE.height}" alt="Bookplate" style="display:block;border:0;font-family:${DISPLAY};font-size:28px;font-weight:700;letter-spacing:-0.04em;color:${C.ink}">
+</td></tr>
 <tr><td style="padding:28px 6px 6px 0">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.white};border:2px solid ${C.ink};box-shadow:6px 6px 0 ${C.ink}"><tr><td style="padding:30px 30px 26px">
-<p style="margin:0 0 10px;font-family:${BODY};font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:${C.accent}">${escape(m.eyebrow)}</p>
+<p style="margin:0 0 10px;font-family:${BODY};font-size:10.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:${C.accent}">${escape(m.eyebrow)}</p>
 <h1 style="margin:0 0 20px;font-family:${DISPLAY};font-size:30px;line-height:1.1;font-weight:900;letter-spacing:-0.03em;color:${C.ink}">${escape(m.title)}</h1>
 ${m.paragraphs.map(p).join("")}${button}${note}
 </td></tr></table></td></tr>
