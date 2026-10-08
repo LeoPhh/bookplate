@@ -561,7 +561,56 @@ function EmailStatus({ email, to }: { email: { from: string } | null; to: string
   );
 }
 
-export default function SettingsPanel({ user, email }: { user: ProfileUser; email: { from: string } | null }) {
+// The newsletter tick box; saved as soon as it changes.
+function Newsletter({ subscribed }: { subscribed: boolean }) {
+  const [on, setOn] = useState(subscribed);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const change = async (next: boolean) => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsletter: next }),
+      });
+      if (!res.ok) throw new Error();
+      setOn(next);
+      setResult({ ok: true, text: next ? "You’re subscribed." : "You’re unsubscribed." });
+    } catch {
+      setResult({ ok: false, text: "That didn’t save — try again." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <label className="checkline checkline--wrap">
+        <input type="checkbox" checked={on} disabled={busy} onChange={(e) => void change(e.target.checked)} />
+        <span>Email me the occasional Bookplate newsletter</span>
+      </label>
+      {result && (
+        <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
+          {result.text}
+        </p>
+      )}
+    </>
+  );
+}
+
+export default function SettingsPanel({
+  user,
+  email,
+  newsletter,
+}: {
+  user: ProfileUser;
+  email: { from: string } | null;
+  // Whether the account gets the newsletter; null when the server has none.
+  newsletter: boolean | null;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -640,6 +689,13 @@ export default function SettingsPanel({ user, email }: { user: ProfileUser; emai
         )}
         <CsvImport />
       </section>
+
+      {newsletter !== null && (
+        <section className="settings-section">
+          <h2 className="form-heading">Newsletter</h2>
+          <Newsletter subscribed={newsletter} />
+        </section>
+      )}
 
       <section className="settings-section">
         <h2 className="form-heading">Password</h2>

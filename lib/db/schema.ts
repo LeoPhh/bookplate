@@ -10,6 +10,9 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // When the reader asked for the newsletter (NEWSLETTER=true servers); null =
+  // not subscribed. Kept as a time, so the operator can show when they agreed.
+  newsletterConsentAt: timestamp("newsletter_consent_at"),
 });
 
 export const session = pgTable(

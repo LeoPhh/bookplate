@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "newsletter_consent_at" timestamp;

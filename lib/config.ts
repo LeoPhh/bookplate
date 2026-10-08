@@ -143,6 +143,10 @@ export const config = {
   // website served from the same domain (see README). Needs email set up.
   // Unset = no contact form.
   contactTo: address("CONTACT_FORM_TO"),
+  // Offers a newsletter: a tick box at sign-up and in Settings, off unless the
+  // reader ticks it. Bookplate only records who agreed; sending is up to the
+  // operator. Unset = no newsletter.
+  newsletter: process.env.NEWSLETTER === "true",
 };
 
 // An email address setting ("a@b.c" or "Name <a@b.c>"); "" when unset.

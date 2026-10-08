@@ -14,6 +14,7 @@ import { log } from "./log";
 
 export interface Totals {
   accounts: { confirmed: number; unconfirmed: number };
+  newsletter: { confirmed: number; unconfirmed: number }; // accounts subscribed
   newAccounts: Record<"1d" | "7d" | "30d", number>;
   activeAccounts: Record<"1d" | "7d" | "30d", number>;
   books: Record<string, number>; // by status
@@ -39,6 +40,8 @@ export async function collectTotals(): Promise<Totals> {
   const accounts = await one(sql`
     SELECT count(*) FILTER (WHERE email_verified) AS confirmed,
            count(*) FILTER (WHERE NOT email_verified) AS unconfirmed,
+           count(*) FILTER (WHERE newsletter_consent_at IS NOT NULL AND email_verified) AS newsletter_confirmed,
+           count(*) FILTER (WHERE newsletter_consent_at IS NOT NULL AND NOT email_verified) AS newsletter_unconfirmed,
            count(*) FILTER (WHERE created_at > localtimestamp - interval '1 day') AS new_1d,
            count(*) FILTER (WHERE created_at > localtimestamp - interval '7 days') AS new_7d,
            count(*) FILTER (WHERE created_at > localtimestamp - interval '30 days') AS new_30d
@@ -63,6 +66,7 @@ export async function collectTotals(): Promise<Totals> {
 
   return {
     accounts: { confirmed: num(accounts.confirmed), unconfirmed: num(accounts.unconfirmed) },
+    newsletter: { confirmed: num(accounts.newsletter_confirmed), unconfirmed: num(accounts.newsletter_unconfirmed) },
     newAccounts: { "1d": num(accounts.new_1d), "7d": num(accounts.new_7d), "30d": num(accounts.new_30d) },
     activeAccounts: { "1d": num(active.d1), "7d": num(active.d7), "30d": num(active.d30) },
     books: Object.fromEntries(byStatus.map((r) => [String(r.status), num(r.n)])),
@@ -121,6 +125,10 @@ export function renderMetrics(totals: Totals | null, version = config.version): 
       metric("bookplate_accounts", "Accounts, by whether their email address is confirmed", [
         [{ confirmed: "true" }, totals.accounts.confirmed],
         [{ confirmed: "false" }, totals.accounts.unconfirmed],
+      ]),
+      metric("bookplate_newsletter_accounts", "Accounts subscribed to the newsletter, by whether their email address is confirmed", [
+        [{ confirmed: "true" }, totals.newsletter.confirmed],
+        [{ confirmed: "false" }, totals.newsletter.unconfirmed],
       ]),
       metric("bookplate_new_accounts", "Accounts created within the period", periods(totals.newAccounts)),
       metric("bookplate_active_accounts", "Accounts that used Bookplate within the period (approximate)", periods(totals.activeAccounts)),

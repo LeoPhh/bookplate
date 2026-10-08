@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { config } from "./config";
 import { getDb, schema } from "./db";
@@ -158,7 +158,13 @@ function createAuth() {
         if (ctx.path === "/sign-up/email") {
           if (!isAPIError(result)) {
             await recordFailure(signUpKey(ctx.headers), SIGNUP_WINDOW_MS);
-            void log.info("auth.sign_up", { user: userIdOf(result), ip: clientIp(ctx.headers) });
+            const newsletter = config.newsletter && wantsNewsletter(ctx.body);
+            void log.info("auth.sign_up", { user: userIdOf(result), ip: clientIp(ctx.headers), newsletter });
+            // A sign-up with an address that already has an account answers
+            // with a made-up user (so it gives nothing away), whose id matches
+            // no row: the real account's choice stays as it was.
+            const id = userIdOf(result);
+            if (newsletter && id) await setNewsletter(id, true);
           }
           return;
         }
@@ -200,6 +206,18 @@ let instance: ReturnType<typeof createAuth> | null = null;
 export function getAuth() {
   instance ??= createAuth();
   return instance;
+}
+
+// The sign-up form's newsletter tick box (sent along with name and email).
+const wantsNewsletter = (body: unknown) => (body as { newsletter?: unknown } | undefined)?.newsletter === true;
+
+// Subscribes or unsubscribes an account. Subscribing again keeps the time
+// the reader first agreed.
+export async function setNewsletter(userId: string, on: boolean): Promise<void> {
+  await getDb()
+    .update(schema.user)
+    .set({ newsletterConsentAt: on ? sql`coalesce(${schema.user.newsletterConsentAt}, now())` : null })
+    .where(eq(schema.user.id, userId));
 }
 
 export async function countUsers(): Promise<number> {

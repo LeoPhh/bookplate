@@ -18,6 +18,7 @@ export default async function SignupPage() {
       requireVerification={config.requireEmailVerification}
       botCheck={config.signupBotCheck}
       legal={legalLinks()}
+      newsletter={config.newsletter}
     />
   );
 }

@@ -26,6 +26,8 @@ interface Props {
   botCheck?: boolean;
   // The server's privacy policy and terms, if it has them (LEGAL_DIR).
   legal?: LegalLinks;
+  // Offer the newsletter tick box at sign-up (NEWSLETTER=true).
+  newsletter?: boolean;
 }
 
 // Fetches a sign-up puzzle and solves it in the background; resolves to the
@@ -56,10 +58,12 @@ export default function AuthForm({
   notice,
   botCheck = false,
   legal,
+  newsletter = false,
 }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [subscribe, setSubscribe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkInbox, setCheckInbox] = useState(false);
@@ -82,7 +86,13 @@ export default function AuthForm({
     const solved = puzzle.current ? await puzzle.current : null;
     const { error } = creating
       ? await authClient.signUp.email(
-          { name: name.trim() || "Reader", email, password, callbackURL: "/login" },
+          {
+            name: name.trim() || "Reader",
+            email,
+            password,
+            callbackURL: "/login",
+            ...(mode === "signup" && newsletter ? { newsletter: subscribe } : {}),
+          },
           solved ? { headers: { "x-signup-challenge": solved } } : undefined
         )
       : await authClient.signIn.email({ email, password });
@@ -162,6 +172,12 @@ export default function AuthForm({
           <p className="field--wide search-note search-note--error" role="alert">
             {error}
           </p>
+        )}
+        {mode === "signup" && newsletter && (
+          <label className="checkline checkline--wrap field--wide">
+            <input type="checkbox" checked={subscribe} onChange={(e) => setSubscribe(e.target.checked)} />
+            <span>Email me the occasional Bookplate newsletter. You can stop it any time in Settings.</span>
+          </label>
         )}
         {creating && legal && (legal.privacy || legal.terms) && (
           <p className="field--wide auth-consent">

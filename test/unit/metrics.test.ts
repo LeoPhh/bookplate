@@ -3,6 +3,7 @@ import { renderMetrics, type Totals } from "@/lib/metrics";
 
 const totals: Totals = {
   accounts: { confirmed: 412, unconfirmed: 23 },
+  newsletter: { confirmed: 97, unconfirmed: 4 },
   newAccounts: { "1d": 3, "7d": 19, "30d": 80 },
   activeAccounts: { "1d": 57, "7d": 168, "30d": 301 },
   books: { read: 18233, reading: 611, "to-read": 9402 },
@@ -18,6 +19,7 @@ describe("metrics output", () => {
     const text = renderMetrics(totals, "9.9.9");
     expect(text).toContain('bookplate_info{version="9.9.9"} 1');
     expect(text).toContain('bookplate_accounts{confirmed="true"} 412');
+    expect(text).toContain('bookplate_newsletter_accounts{confirmed="true"} 97');
     expect(text).toContain('bookplate_active_accounts{period="7d"} 168');
     expect(text).toContain('bookplate_books{status="to-read"} 9402');
     expect(text).toContain('bookplate_books_per_account{quantile="0.9"} 210');

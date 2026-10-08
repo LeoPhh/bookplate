@@ -211,6 +211,7 @@ and vocabulary all come across.
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
 | `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
+| `NEWSLETTER` | `false` | `true` offers a newsletter: an unticked box at sign-up and a setting in Settings. Bookplate records who agreed and when (`newsletter_consent_at` on the `user` table) and counts them in `/api/metrics`; sending it is up to you. Mention it in your privacy policy |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
 | `PRIVACY_URL`, `TERMS_URL` | — | where your privacy policy / terms are published, if on another site instead of `LEGAL_DIR`: sign-in and sign-up link there, and `/privacy` and `/terms` send visitors there |
 | `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |

@@ -28,6 +28,7 @@ declare module "vitest" {
     baseUrl: string;
     dbUrl: string;
     emailBaseUrl: string;
+    emailDbUrl: string;
     limitedBaseUrl: string;
     plainLog: string; // files holding each server's output, for the logging tests
     emailLog: string;
@@ -71,7 +72,7 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
   // variables (TEST, VITEST…), which libraries use to switch off safeguards.
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL|LEGAL_DIR|PRIVACY_URL|TERMS_URL|SMTP_REPLY_TO|EMAIL_LIMIT_PER_DAY|CONTACT_FORM_TO)$/.test(k)
+      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL|LEGAL_DIR|PRIVACY_URL|TERMS_URL|SMTP_REPLY_TO|EMAIL_LIMIT_PER_DAY|CONTACT_FORM_TO|NEWSLETTER)$/.test(k)
     )
   );
   const child: ChildProcess = spawn(process.execPath, [SERVER], {
@@ -153,7 +154,12 @@ export default async function setup(project: TestProject) {
       : {};
 
   const [plain, email, limited] = await Promise.all([
-    startServer("plain", { ...storage("plain"), METRICS_TOKEN, LEGAL_DIR: path.join(ROOT, "test/fixtures/legal") }),
+    startServer("plain", {
+      ...storage("plain"),
+      METRICS_TOKEN,
+      LEGAL_DIR: path.join(ROOT, "test/fixtures/legal"),
+      NEWSLETTER: "true",
+    }),
     startServer("email", {
       ...storage("email"),
       SMTP_HOST: new URL(MAILPIT_URL).hostname,
@@ -161,6 +167,7 @@ export default async function setup(project: TestProject) {
       SMTP_FROM: "Bookplate <bookplate@test.local>",
       SMTP_REPLY_TO: "Bookplate Support <support@test.local>",
       CONTACT_FORM_TO: "Bookplate Inbox <inbox@test.local>",
+      NEWSLETTER: "true",
     }),
     startServer("limited", {
       ...storage("limited"),
@@ -175,6 +182,7 @@ export default async function setup(project: TestProject) {
   project.provide("baseUrl", plain.url);
   project.provide("dbUrl", plain.dbUrl);
   project.provide("emailBaseUrl", email.url);
+  project.provide("emailDbUrl", email.dbUrl);
   project.provide("limitedBaseUrl", limited.url);
   project.provide("plainLog", plain.logFile);
   project.provide("emailLog", email.logFile);

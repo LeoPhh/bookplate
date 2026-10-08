@@ -40,10 +40,10 @@ describe("counting totals", () => {
   });
 
   it("counts accounts, activity and books correctly", async () => {
-    await q(`INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at) VALUES
-      ('a', 'a', 'a@x.org', true,  localtimestamp - interval '40 days', now()),
-      ('b', 'b', 'b@x.org', true,  localtimestamp - interval '3 days',  now()),
-      ('c', 'c', 'c@x.org', false, localtimestamp - interval '1 hour',  now())`);
+    await q(`INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at, newsletter_consent_at) VALUES
+      ('a', 'a', 'a@x.org', true,  localtimestamp - interval '40 days', now(), now()),
+      ('b', 'b', 'b@x.org', true,  localtimestamp - interval '3 days',  now(), null),
+      ('c', 'c', 'c@x.org', false, localtimestamp - interval '1 hour',  now(), now())`);
     await q(`INSERT INTO session (id, user_id, token, expires_at, updated_at) VALUES
       ('s1', 'a', 't1', now() + interval '1 day', localtimestamp - interval '2 hours'),
       ('s2', 'a', 't2', now() + interval '1 day', localtimestamp - interval '10 days'),
@@ -57,6 +57,7 @@ describe("counting totals", () => {
     const { collectTotals } = await import("@/lib/metrics");
     const t = await collectTotals();
     expect(t.accounts).toEqual({ confirmed: 2, unconfirmed: 1 });
+    expect(t.newsletter).toEqual({ confirmed: 1, unconfirmed: 1 });
     expect(t.newAccounts).toEqual({ "1d": 1, "7d": 2, "30d": 2 });
     expect(t.activeAccounts).toEqual({ "1d": 1, "7d": 2, "30d": 2 });
     expect(t.books).toEqual({ read: 2, reading: 1, "to-read": 1 });

@@ -1,11 +1,30 @@
 import { eq } from "drizzle-orm";
 import { isAPIError } from "better-auth/api";
 import { headers } from "next/headers";
-import { getAuth, requireUser } from "@/lib/auth";
+import { getAuth, requireUser, setNewsletter } from "@/lib/auth";
+import { config } from "@/lib/config";
 import { getDb, schema } from "@/lib/db";
 import { getStorage, keys } from "@/lib/storage";
 import { clearThrottle, recordFailure, throttleWait } from "@/lib/authThrottle";
 import { log } from "@/lib/log";
+
+// PATCH changes the account's own settings: { newsletter: boolean }, on
+// servers that offer one.
+export async function PATCH(request: Request) {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
+  if (!config.newsletter) return Response.json({ error: "There's no newsletter on this server." }, { status: 404 });
+  let newsletter: unknown;
+  try {
+    newsletter = ((await request.json()) as { newsletter?: unknown })?.newsletter;
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  if (typeof newsletter !== "boolean") return Response.json({ error: "newsletter must be true or false" }, { status: 400 });
+  await setNewsletter(auth.userId, newsletter);
+  void log.info("account.newsletter", { user: auth.userId, newsletter });
+  return Response.json({ newsletter });
+}
 
 // DELETE permanently removes the signed-in account and everything in it.
 // The password is always required, even for a fresh session, so a stolen

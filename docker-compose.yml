@@ -57,6 +57,7 @@ services:
       PRIVACY_URL: ${PRIVACY_URL:-}
       TERMS_URL: ${TERMS_URL:-}
       CONTACT_FORM_TO: ${CONTACT_FORM_TO:-}
+      NEWSLETTER: ${NEWSLETTER:-}
     volumes:
       - uploads:/data/uploads
       # Your privacy.md / terms.md, with LEGAL_DIR=/legal in .env:
