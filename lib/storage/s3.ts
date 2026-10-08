@@ -22,6 +22,12 @@ export interface S3Options {
   pageSize?: number; // objects per listing page (S3's maximum is 1000)
 }
 
+// A library page asks for every visible cover at once, and each read waits on
+// the bucket (about half a second on Scaleway). With the SDK's default of 50
+// connections that caps a server at ~80 images a second and the rest queue,
+// so a big library took 10+ seconds to fill in. Allow more reads at a time.
+const MAX_CONNECTIONS = 200;
+
 // Stores each key as an object in an S3-compatible bucket. The bucket stays
 // private: images are fetched by the app and passed on to signed-in readers.
 export class S3Storage implements Storage {
@@ -36,6 +42,10 @@ export class S3Storage implements Storage {
       region: o.region,
       forcePathStyle: o.forcePathStyle,
       credentials: { accessKeyId: o.accessKeyId, secretAccessKey: o.secretAccessKey },
+      requestHandler: {
+        httpAgent: { keepAlive: true, maxSockets: MAX_CONNECTIONS },
+        httpsAgent: { keepAlive: true, maxSockets: MAX_CONNECTIONS },
+      },
     });
     this.bucket = o.bucket;
     this.prefix = o.prefix;
