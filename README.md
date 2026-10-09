@@ -104,6 +104,18 @@ Free-text search across titles, authors, genres, and notes; status filter
 chips; a **Show notes** toggle marking every book with notes; sorting by
 title, author, rating, date finished, or recently added.
 
+### Showcase your year
+
+**Settings → Showcase** makes a public page of one year's reading, for
+anyone you send the link to: a bookplate with your name, the year's numbers,
+every book under the month you finished it, what you're reading now and your
+five-star reads, plus a picture for link previews. It shows covers, titles,
+authors, ratings and page counts, never notes or vocabulary, and it keeps up
+as you read. Choose the year, whether to show Read, Reading or both (Reading
+only for this year) and the name on it; one link per year, turned off from
+the same dialog. Showcases live at `/s/<random id>` and ask search engines not
+to list them. Visitors are invited to sign up when registration is open.
+
 ## Install with Docker
 
 You need Docker with the Compose plugin. Bookplate runs as two containers:
@@ -214,7 +226,7 @@ and vocabulary all come across.
 | `NEWSLETTER` | `false` | `true` offers a newsletter: an unticked box at sign-up and a setting in Settings. Bookplate records who agreed and when (`newsletter_consent_at` on the `user` table) and counts them in `/api/metrics`; sending it is up to you. Mention it in your privacy policy |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
 | `PRIVACY_URL`, `TERMS_URL` | — | where your privacy policy / terms are published, if on another site instead of `LEGAL_DIR`: sign-in and sign-up link there, and `/privacy` and `/terms` send visitors there |
-| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches; they allow busier servers more requests with one |
+| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches (they allow busier servers more requests with one), and where showcases' **Report this page** links write to |
 
 ### Open registration
 
@@ -308,6 +320,17 @@ docker compose exec bookplate reset-password you@example.com
 
 It asks for the new password twice and signs out every device. Settings →
 **Send a test email** checks that your email settings work.
+
+### Reported showcases
+
+Each showcase has a **Report this page** link, emailed to `CONTACT_EMAIL` (it's
+hidden without one). To take a showcase down, give its link to:
+
+```bash
+docker compose exec bookplate remove-showcase https://books.example.com/s/AbCdEfGhIjKlMnOp
+```
+
+The reader's library isn't touched.
 
 Bookplate sends no telemetry. The only outside services it talks to are Open
 Library and iTunes (book search and covers) and Wiktionary (word lookups),

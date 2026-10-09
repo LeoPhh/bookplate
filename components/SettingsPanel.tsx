@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { fileToDataUrl } from "@/lib/image";
 import Avatar from "./Avatar";
+import ShowcaseDialog from "./ShowcaseDialog";
 import ImageCropper from "./ImageCropper";
 
 interface ImportSummary {
@@ -601,15 +602,34 @@ function Newsletter({ subscribed }: { subscribed: boolean }) {
   );
 }
 
+// The public page of a year's reading: the dialog does the work.
+function Showcase({ years }: { years: number[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <p className="settings-lede">
+        Make a page of one year&rsquo;s reading to send to friends: your covers, the year&rsquo;s numbers and your
+        favourites, never your notes or words. It keeps up as you read, and you can turn it off at any time.
+      </p>
+      <button type="button" className="btn" onClick={() => setOpen(true)}>
+        Showcase your year…
+      </button>
+      {open && <ShowcaseDialog years={years} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 export default function SettingsPanel({
   user,
   email,
   newsletter,
+  showcaseYears,
 }: {
   user: ProfileUser;
   email: { from: string } | null;
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
+  showcaseYears: number[]; // newest first
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -688,6 +708,11 @@ export default function SettingsPanel({
           </p>
         )}
         <CsvImport />
+      </section>
+
+      <section className="settings-section">
+        <h2 className="form-heading">Showcase</h2>
+        <Showcase years={showcaseYears} />
       </section>
 
       {newsletter !== null && (

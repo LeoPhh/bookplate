@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgTable, primaryKey, real, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── Auth (tables and columns as Better Auth expects them) ──────────────────
 
@@ -152,4 +152,23 @@ export const vocabEntry = pgTable(
     addedAt: text("added_at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] })]
+);
+
+// A public page of one year's reading (lib/showcase.ts), at /s/<id>. It holds
+// only the reader's choices; the books are read live each time it's opened.
+// The id is the whole address, so it's long and random, and never logged.
+export const showcase = pgTable(
+  "showcase",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    include: text("include").notNull(), // "read" | "reading" | "both"
+    name: text("name"), // shown on the page; null = no name
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("showcase_user_year_idx").on(t.userId, t.year)]
 );

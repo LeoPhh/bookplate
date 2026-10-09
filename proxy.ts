@@ -18,6 +18,7 @@ const PUBLIC = [
   "/api/client-errors",
   "/api/contact",
   "/api/metrics", // checks its own token
+  "/s", // showcases: public pages, by their unguessable address
   "/privacy",
   "/terms",
 ];

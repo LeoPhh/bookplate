@@ -166,7 +166,11 @@ button {
 .notes-prose th,
 .legal-body th,
 .fmt-btn,
-.notes-prose .callout::before {
+.notes-prose .callout::before,
+.showcase-plate-eyebrow,
+.showcase-stat-label,
+.showcase-month-name,
+.showcase-dialog-link-label {
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -3529,4 +3533,449 @@ select,
   color: var(--ink);
   text-decoration-color: var(--accent);
   text-underline-offset: 3px;
+}
+
+/* ---------- Showcase ----------
+   The public page of a year's reading (app/s/[id]): a bookplate with the
+   reader's name, the year's numbers, every book under the month it was
+   finished, what's being read and the five-star reads. Most visitors open it
+   on a phone, so below 700px the months turn into rows. */
+
+.showcase {
+  max-width: 1120px;
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.showcase-note,
+.showcase-top p {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.showcase-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.showcase-plate {
+  align-self: center;
+  width: 100%;
+  max-width: 640px;
+  padding: 40px 48px;
+  text-align: center;
+  background: #fff;
+  border: 3px solid var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: -14px;
+  box-shadow: 10px 10px 0 var(--ink);
+}
+
+.showcase-plate-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+}
+
+.showcase-plate-name {
+  margin: 14px 0 6px;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(44px, 7vw, 64px);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+}
+
+.showcase-plate-edition {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.showcase-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--tiles), minmax(0, 1fr));
+  border-top: 3px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
+}
+
+.showcase-stat {
+  padding: 20px 16px;
+  border-left: 2px solid var(--ink);
+  min-width: 0;
+}
+
+.showcase-stat:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.showcase-stat-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.showcase-stat-value {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.showcase-stat-note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.showcase-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.showcase-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.showcase-heading {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+}
+
+.showcase-heading--ruled {
+  padding-top: 12px;
+  border-top: 3px solid var(--ink);
+  font-size: 28px;
+}
+
+.showcase-section-note {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+/* Covers here are smaller than in the library: their lettering scales with
+   them, and the genre line goes. */
+.showcase-cover .cover {
+  container-type: inline-size;
+  padding: 12% 9%;
+}
+
+.showcase-cover .cover-topline {
+  display: none;
+}
+
+.showcase-cover .cover-title {
+  font-size: max(9px, 15cqw);
+  margin: auto 0;
+}
+
+.showcase-cover .cover-author {
+  font-size: max(5px, 7cqw);
+}
+
+.showcase-months {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.showcase-month {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  padding-top: 10px;
+  border-top: 3px solid var(--ink);
+}
+
+.showcase-month--ahead {
+  border-top-color: var(--hair);
+}
+
+.showcase-month--ahead .showcase-month-name {
+  color: var(--ink-soft);
+}
+
+.showcase-month-name {
+  font-size: 11px;
+}
+
+.showcase-month-books {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.showcase-month-empty {
+  display: none;
+}
+
+.showcase-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+}
+
+.showcase-reading {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.showcase-reading li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.showcase-cover--small {
+  flex: none;
+  width: 64px;
+}
+
+.showcase-reading-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.showcase-reading-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.showcase-reading-author {
+  margin: 2px 0 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.showcase-reading-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.showcase-reading-progress .progress-bar {
+  flex: 1;
+}
+
+.showcase-favourites {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.showcase-empty {
+  text-align: center;
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+
+.showcase-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding-top: 44px;
+  text-align: center;
+  border-top: 3px solid var(--ink);
+}
+
+.showcase-cta-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.showcase-cta-text {
+  max-width: 46ch;
+  font-size: 17px;
+}
+
+.showcase-cta-button {
+  font-size: 15px;
+  padding: 14px 22px;
+}
+
+.showcase-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 3px solid var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.showcase-footer a {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 700px) {
+  .showcase {
+    gap: 40px;
+    padding: 24px 16px 64px;
+  }
+
+  .showcase-plate {
+    padding: 26px 20px;
+    outline-offset: -10px;
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+
+  .showcase-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .showcase-stat {
+    padding: 14px 12px;
+  }
+
+  .showcase-stat:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .showcase-stat:nth-child(n + 3) {
+    border-top: 2px solid var(--ink);
+  }
+
+  .showcase-stat-value {
+    font-size: 34px;
+  }
+
+  .showcase-heading {
+    font-size: 28px;
+  }
+
+  .showcase-months {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .showcase-month {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    min-height: 0;
+    padding: 12px 0;
+    border-top-width: 2px;
+  }
+
+  .showcase-month-name {
+    padding-top: 2px;
+  }
+
+  .showcase-month-books {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .showcase-month-empty {
+    display: block;
+    font-weight: 700;
+    color: var(--hair);
+  }
+
+  .showcase-favourites {
+    gap: 10px;
+  }
+
+  .showcase-cta-title {
+    font-size: 32px;
+  }
+}
+
+/* The Showcase dialog, from Settings. */
+
+.showcase-dialog {
+  max-width: 520px;
+}
+
+.showcase-dialog-lede {
+  margin: -8px 0 20px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+
+.showcase-dialog-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.showcase-dialog-fields input,
+.showcase-dialog-fields select,
+.showcase-dialog-link input {
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.showcase-dialog-include {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.showcase-dialog-include .checkline input:disabled + span {
+  color: var(--ink-soft);
+}
+
+.showcase-dialog-hint {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.showcase-dialog-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 16px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+.showcase-dialog-link-label {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.showcase-dialog-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
 }

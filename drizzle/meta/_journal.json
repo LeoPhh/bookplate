@@ -50,6 +50,13 @@
       "when": 1791474461995,
       "tag": "0006_last_seen",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791483742911,
+      "tag": "0007_showcase",
+      "breakpoints": true
     }
   ]
 }

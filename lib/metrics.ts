@@ -22,6 +22,7 @@ export interface Totals {
   notes: number;
   words: number;
   progressEntries: number;
+  showcases: number; // public year pages that are on
   collectedAt: number; // ms since epoch
 }
 
@@ -62,7 +63,8 @@ export async function collectTotals(): Promise<Totals> {
   const rest = await one(sql`
     SELECT (SELECT count(*) FROM note) AS notes,
            (SELECT count(*) FROM vocab_entry) AS words,
-           (SELECT count(*) FROM reading_progress) AS progress`);
+           (SELECT count(*) FROM reading_progress) AS progress,
+           (SELECT count(*) FROM showcase) AS showcases`);
 
   return {
     accounts: { confirmed: num(accounts.confirmed), unconfirmed: num(accounts.unconfirmed) },
@@ -74,6 +76,7 @@ export async function collectTotals(): Promise<Totals> {
     notes: num(rest.notes),
     words: num(rest.words),
     progressEntries: num(rest.progress),
+    showcases: num(rest.showcases),
     collectedAt: Date.now(),
   };
 }
@@ -140,7 +143,8 @@ export function renderMetrics(totals: Totals | null, version = config.version): 
       ]),
       metric("bookplate_notes", "Books with notes", [[{}, totals.notes]]),
       metric("bookplate_words", "Vocabulary words saved", [[{}, totals.words]]),
-      metric("bookplate_progress_entries", "Reading-progress updates logged", [[{}, totals.progressEntries]])
+      metric("bookplate_progress_entries", "Reading-progress updates logged", [[{}, totals.progressEntries]]),
+      metric("bookplate_showcases", "Showcases (public year pages) that are on", [[{}, totals.showcases]])
     );
   }
   return parts.join("\n") + "\n";

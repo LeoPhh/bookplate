@@ -11,6 +11,7 @@ const totals: Totals = {
   notes: 2210,
   words: 5120,
   progressEntries: 7001,
+  showcases: 12,
   collectedAt: 1_790_000_000_000,
 };
 
@@ -24,6 +25,7 @@ describe("metrics output", () => {
     expect(text).toContain('bookplate_books{status="to-read"} 9402');
     expect(text).toContain('bookplate_books_per_account{quantile="0.9"} 210');
     expect(text).toContain("bookplate_totals_collected_timestamp_seconds 1790000000");
+    expect(text).toContain("bookplate_showcases 12");
     const names = [...text.matchAll(/^(bookplate_\w+)[{ ]/gm)].map((m) => m[1]);
     for (const name of new Set(names)) {
       expect(text).toContain(`# HELP ${name} `);

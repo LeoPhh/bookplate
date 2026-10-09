@@ -12,6 +12,7 @@
     "test:api": "vitest run --project api",
     "test:all": "vitest run",
     "reset-password": "node --env-file-if-exists=.env.local scripts/reset-password.mjs",
+    "remove-showcase": "node --env-file-if-exists=.env.local scripts/remove-showcase.mjs",
     "test:api:s3": "TEST_STORAGE=s3 vitest run --project api"
   },
   "dependencies": {
