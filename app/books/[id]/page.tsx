@@ -16,6 +16,7 @@ import { Callout } from "@/lib/callout";
 import BookCover from "@/components/BookCover";
 import NotesFormatBar from "@/components/NotesFormatBar";
 import StarRating from "@/components/StarRating";
+import VocabCard from "@/components/VocabCard";
 
 // TipTap ships list items as "paragraph block*", so a bullet's first child has
 // to be a paragraph — which makes Callout and Quote silently do nothing when
@@ -339,15 +340,7 @@ export default function BookNotesPage() {
           </div>
           <ul className="vocab-grid">
             {words.map((w) => (
-              <li key={w.id} className="vocab-card">
-                <div className="vocab-headword">
-                  <span className="vocab-word">{w.word}</span>
-                  {w.phonetic && <span className="lookup-phonetic">{w.phonetic}</span>}
-                </div>
-                {w.partOfSpeech && <span className="sense-pos">{w.partOfSpeech}</span>}
-                <p className="vocab-def">{w.definition}</p>
-                {w.example && <p className="sense-example">“{w.example}”</p>}
-              </li>
+              <VocabCard key={w.id} entry={w} />
             ))}
           </ul>
         </section>

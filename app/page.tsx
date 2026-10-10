@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Book, isCustomSource, ProgressEntry } from "@/lib/types";
 import { summarize } from "@/lib/progress";
+import { averageRating } from "@/lib/ratings";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
 import Toolbar, { StatusFilter, ViewMode } from "@/components/Toolbar";
@@ -202,8 +203,7 @@ export default function Home() {
   const stats = useMemo(() => {
     if (!books || books.length === 0) return null;
     const read = books.filter((b) => b.status === "read");
-    const rated = books.filter((b) => b.rating > 0);
-    const avg = rated.length ? (rated.reduce((s, b) => s + b.rating, 0) / rated.length).toFixed(1) : null;
+    const avg = averageRating(books)?.toFixed(1) ?? null;
     return { total: books.length, read: read.length, avg };
   }, [books]);
 

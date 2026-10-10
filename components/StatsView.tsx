@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Book, BookFormat, FORMAT_LABELS, isCustomSource, ProgressEntry, sourceLabel } from "@/lib/types";
 import { fmtShortDate, plural, summarize } from "@/lib/progress";
+import { averageRating, ratedReads } from "@/lib/ratings";
 import ProgressBar from "./ProgressBar";
 import { paletteFor } from "@/lib/palette";
 import StarRating from "./StarRating";
@@ -334,13 +335,13 @@ export default function StatsView({ books, progress, onSelect }: Props) {
     const thisYear = new Date().getFullYear();
     const readThisYear = read.filter((b) => b.dateRead?.startsWith(String(thisYear))).length;
     const pages = read.reduce((s, b) => s + (b.pages ?? 0), 0);
-    const rated = books.filter((b) => b.rating > 0);
-    const avg = rated.length ? rated.reduce((s, b) => s + b.rating, 0) / rated.length : null;
+    const avg = averageRating(books);
 
+    const rated = ratedReads(books);
     const ratings = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5].map((n) => ({
       rating: n,
       label: `${n} ★`,
-      count: books.filter((b) => b.rating === n).length,
+      count: rated.filter((b) => b.rating === n).length,
     }));
 
     const genreMap = new Map<string, number>();
@@ -480,7 +481,9 @@ export default function StatsView({ books, progress, onSelect }: Props) {
     }
 
     // rating
-    const list = books.filter((b) => b.rating === drill.rating).sort((a, b) => a.title.localeCompare(b.title));
+    const list = ratedReads(books)
+      .filter((b) => b.rating === drill.rating)
+      .sort((a, b) => a.title.localeCompare(b.title));
     return (
       <DrillDialog
         title={`Rated ${drill.rating} ★`}
@@ -544,7 +547,7 @@ export default function StatsView({ books, progress, onSelect }: Props) {
       <div className="stats-row">
         <div className="chart-card">
           <h2 className="chart-title">Ratings given</h2>
-          <p className="chart-sub">Click a row to see those books</p>
+          <p className="chart-sub">Books read — click a row to see them</p>
           <BarList rows={ratingRows} narrowLabels />
         </div>
         <div className="chart-card">

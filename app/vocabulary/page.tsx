@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { Book, VocabEntry } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import VocabCard, { vocabMeta } from "@/components/VocabCard";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
 
@@ -398,36 +398,12 @@ export default function VocabularyPage() {
               {visible.map((e) => {
                 const book = e.bookId ? bookById.get(e.bookId) : undefined;
                 return (
-                  <li key={e.id} className="vocab-card">
-                    <button
-                      type="button"
-                      className="vocab-delete"
-                      aria-label={`Remove ${e.word}`}
-                      onClick={() => setPendingDelete(e)}
-                    >
-                      ✕
-                    </button>
-                    <div className="vocab-headword">
-                      <span className="vocab-word">{e.word}</span>
-                      {e.phonetic && <span className="lookup-phonetic">{e.phonetic}</span>}
-                    </div>
-                    {e.partOfSpeech && <span className="sense-pos">{e.partOfSpeech}</span>}
-                    <p className="vocab-def">{e.definition}</p>
-                    {e.example && <p className="sense-example">“{e.example}”</p>}
-                    {e.synonyms && e.synonyms.length > 0 && <p className="sense-syn">syn. {e.synonyms.join(", ")}</p>}
-                    <p className="vocab-meta">
-                      {book ? (
-                        <>
-                          from{" "}
-                          <Link className="vocab-book-link" href={`/books/${book.id}`}>
-                            <i>{book.title}</i>
-                          </Link>{" "}
-                          ·{" "}
-                        </>
-                      ) : null}
-                      {formatDate(e.addedAt)}
-                    </p>
-                  </li>
+                  <VocabCard
+                    key={e.id}
+                    entry={e}
+                    meta={vocabMeta(book, formatDate(e.addedAt))}
+                    onDelete={() => setPendingDelete(e)}
+                  />
                 );
               })}
             </ul>

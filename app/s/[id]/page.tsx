@@ -6,7 +6,7 @@ import ProgressBar from "@/components/ProgressBar";
 import { getSession } from "@/lib/auth";
 import { config, CONTACT_EMAIL } from "@/lib/config";
 import { loadShowcase } from "@/lib/showcase";
-import { MONTHS } from "@/lib/showcaseYear";
+import { MONTHS, possessive } from "@/lib/showcaseYear";
 import { todayIso } from "@/lib/progress";
 
 // A showcase: one reader's year of reading, public to anyone with the link
@@ -17,7 +17,6 @@ const PROJECT_URL = "https://github.com/LeoPhh/bookplate";
 
 const num = (n: number) => n.toLocaleString("en-GB");
 const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
-const possessive = (name: string) => (name.endsWith("s") ? `${name}’` : `${name}’s`);
 
 function heading(name: string | null, year: number) {
   return name ? `${possessive(name)} ${year} in books` : `A ${year} in books`;
@@ -100,7 +99,7 @@ export default async function ShowcasePage({ params }: Props) {
 
       <section className="showcase-plate">
         <p className="showcase-plate-eyebrow">Ex libris</p>
-        <h1 className="showcase-plate-name">{showcase.name ?? showcase.year}</h1>
+        <h1 className="showcase-plate-name">{showcase.name ? `${possessive(showcase.name)} Library` : showcase.year}</h1>
         <p className="showcase-plate-edition">{showcase.name ? `The ${showcase.year} edition` : "A year in books"}</p>
       </section>
 

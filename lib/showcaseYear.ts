@@ -7,6 +7,9 @@ import { Book, ProgressEntry } from "./types";
 export type ShowcaseInclude = "read" | "reading" | "both";
 export const INCLUDES: ShowcaseInclude[] = ["both", "read", "reading"];
 
+// "Ada" → "Ada’s", "James" → "James’".
+export const possessive = (name: string) => (name.endsWith("s") ? `${name}’` : `${name}’s`);
+
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export interface ShowcaseYear {

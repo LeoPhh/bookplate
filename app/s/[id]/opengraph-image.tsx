@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { paletteFor } from "@/lib/palette";
 import { coverFileOf, loadShowcase } from "@/lib/showcase";
+import { possessive } from "@/lib/showcaseYear";
 import { getStorage, isSafeFileName, keys } from "@/lib/storage";
 import type { Book } from "@/lib/types";
 
@@ -63,7 +64,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           >
             <div style={{ display: "flex", fontSize: 20, fontWeight: 700, letterSpacing: 6, color: ACCENT }}>EX LIBRIS</div>
             <div style={{ display: "flex", fontSize: showcase.name ? 64 : 96, fontWeight: 700, lineHeight: 1, marginTop: 16 }}>
-              {showcase.name ?? String(showcase.year)}
+              {showcase.name ? `${possessive(showcase.name)} Library` : String(showcase.year)}
             </div>
             <div style={{ display: "flex", fontSize: 30, marginTop: 14 }}>
               {showcase.name ? `The ${showcase.year} edition` : "A year in books"}

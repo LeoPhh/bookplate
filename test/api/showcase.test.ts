@@ -85,7 +85,7 @@ describe("the public page", () => {
     expect(html).toContain("February Book");
     expect(html).toContain("March Book");
     expect(html).toContain("Current Book"); // on the nightstand
-    expect(html).toContain("Ada’s");
+    expect(html).toContain("Ada’s Library");
     expect(html).not.toContain("Last Year Book");
     expect(html).not.toContain("Someday Book");
     expect(html).not.toContain("A private thought");
