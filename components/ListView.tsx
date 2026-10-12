@@ -3,6 +3,7 @@
 import { Book } from "@/lib/types";
 import { paletteFor } from "@/lib/palette";
 import StarRating from "./StarRating";
+import { useFeature } from "./Features";
 
 interface Props {
   books: Book[];
@@ -17,6 +18,7 @@ function fmtDate(iso?: string): string {
 }
 
 export default function ListView({ books, onSelect, marked }: Props) {
+  const showCopy = useFeature("copy");
   if (books.length === 0) {
     return <p className="empty-note">The shelf is bare — add a book or clear your search.</p>;
   }
@@ -36,7 +38,7 @@ export default function ListView({ books, onSelect, marked }: Props) {
             <th>Title</th>
             <th>Author</th>
             <th>Genre</th>
-            <th>Copy</th>
+            {showCopy && <th>Copy</th>}
             <th>Rating</th>
             <th>Finished</th>
           </tr>
@@ -51,7 +53,7 @@ export default function ListView({ books, onSelect, marked }: Props) {
               </td>
               <td>{book.author}</td>
               <td>{book.genre ?? "—"}</td>
-              <td className="ledger-copy">{book.copy ? "✓" : ""}</td>
+              {showCopy && <td className="ledger-copy">{book.copy ? "✓" : ""}</td>}
               <td>{book.rating > 0 ? <StarRating value={book.rating} size="sm" /> : "—"}</td>
               <td>{fmtDate(book.dateRead)}</td>
             </tr>
@@ -59,7 +61,7 @@ export default function ListView({ books, onSelect, marked }: Props) {
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={6}>
+            <td colSpan={showCopy ? 6 : 5}>
               Count: {books.length} {books.length === 1 ? "volume" : "volumes"} · {counts.read} read ·{" "}
               {counts.reading} reading · {counts.toRead} TBR
               {counts.dnf > 0 && ` · ${counts.dnf} didn’t finish`}

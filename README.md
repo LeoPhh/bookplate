@@ -76,11 +76,13 @@ opens it in the crop dialog. Everything can also be entered fully by hand.
 
 ![Adding a book via catalogue search](docs/add-book.png)
 
-Each book carries: title, author, genre, page count, source (book store /
-Kindle / audiobook / borrowed / second hand / gifted / library), status
-(read / reading / to read / didn't finish), whether a physical copy lives at
-home, a 1–5 star rating, the date finished — or stopped, for a book you
-didn't finish — (picked with a calendar), and its notes page.
+Each book carries: title, author, genre, page count, status (read / reading
+/ to read / didn't finish), a 1–5 star rating, the date finished — or
+stopped, for a book you didn't finish — (picked with a calendar), and its
+notes page. Two more details are optional, off until switched on in Settings
+→ Optional features: the source (book store / Kindle / audiobook / borrowed /
+second hand / gifted / library, or your own) and whether a physical copy
+lives at home. Switching one off only hides it.
 
 ![The book detail dialog](docs/detail.png)
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import AuthShell, { LegalLink } from "./AuthShell";
 import type { LegalLinks } from "@/lib/legal";
+import Spinner from "./Spinner";
 
 type Mode = "setup" | "login" | "signup";
 
@@ -189,7 +190,7 @@ export default function AuthForm({
         )}
         <div className="dialog-actions field--wide">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "One moment…" : creating ? "Create account" : "Sign in"}
+            {busy ? <><Spinner />One moment…</> : creating ? "Create account" : "Sign in"}
           </button>
         </div>
       </form>

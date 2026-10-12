@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import Spinner from "./Spinner";
 
 // Choosing a new password from an emailed link (?token=…).
 export default function ResetPasswordForm({ token }: { token: string }) {
@@ -70,7 +71,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
         )}
         <div className="dialog-actions field--wide">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Saving…" : "Set new password"}
+            {busy ? <><Spinner />Saving…</> : "Set new password"}
           </button>
         </div>
       </form>

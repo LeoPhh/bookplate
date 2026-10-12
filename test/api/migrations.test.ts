@@ -80,3 +80,45 @@ describe("last_seen_at (0006)", () => {
     }
   });
 });
+
+// Upgrading a database whose readers already use Source and Copy.
+describe("features (0009)", () => {
+  const UP = `bookplate_features_${process.pid}`;
+  afterAll(() => dropDatabase(UP));
+
+  it("switches Source and Copy on for the accounts already using them", async () => {
+    const { Client } = await import("pg");
+    const c = new Client({ connectionString: await createDatabase(UP) });
+    await c.connect();
+    const run = async (file: string) => {
+      const text = readFileSync(path.join(__dirname, "../../drizzle", `${file}.sql`), "utf8");
+      for (const statement of text.split("--> statement-breakpoint")) await c.query(statement);
+    };
+    try {
+      const tags = (journal.entries as { tag: string }[]).map((e) => e.tag);
+      for (const tag of tags.slice(0, tags.indexOf("0009_features"))) await run(tag);
+      await c.query(`INSERT INTO "user" (id, name, email) VALUES
+        ('both', 'B', 'b@example.com'), ('src', 'S', 's@example.com'), ('none', 'N', 'n@example.com')`);
+      const book = (user: string, id: string, format: string | null, copy: boolean | null) =>
+        c.query(`INSERT INTO book (user_id, id, title, author, status, format, copy, added_at) VALUES ($1, $2, 'T', 'A', 'read', $3, $4, '2026-01-01')`, [
+          user,
+          id,
+          format,
+          copy,
+        ]);
+      await book("both", "1", "kindle", null);
+      await book("both", "2", null, true);
+      await book("src", "1", "My shop", false);
+      await book("none", "1", "", false);
+      await run("0009_features");
+      const { rows } = await c.query(`SELECT id, features FROM "user" ORDER BY id`);
+      expect(rows).toEqual([
+        { id: "both", features: ["source", "copy"] },
+        { id: "none", features: [] },
+        { id: "src", features: ["source"] },
+      ]);
+    } finally {
+      await c.end();
+    }
+  });
+});

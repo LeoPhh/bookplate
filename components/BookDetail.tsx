@@ -7,6 +7,7 @@ import { plural, summarize } from "@/lib/progress";
 import BookCover from "./BookCover";
 import ProgressPanel from "./ProgressPanel";
 import StarRating from "./StarRating";
+import { useFeature } from "./Features";
 
 interface Props {
   book: Book;
@@ -49,6 +50,8 @@ export default function BookDetail({
   onFinish,
   onClose,
 }: Props) {
+  const showSource = useFeature("source");
+  const showCopy = useFeature("copy");
   // For finished books whose reading was tracked: how long it took.
   const readInDays = book.status === "read" ? summarize(book, progress)?.readInDays : undefined;
 
@@ -108,16 +111,20 @@ export default function BookDetail({
                 <dt>Pages</dt>
                 <dd>{book.pages ?? "—"}</dd>
               </div>
-              <div>
-                <dt>Source</dt>
-                <dd>{sourceLabel(book.format) ?? "—"}</dd>
-              </div>
-              <div>
-                <dt>Copy</dt>
-                <dd>
-                  <Flag on={!!book.copy} />
-                </dd>
-              </div>
+              {showSource && (
+                <div>
+                  <dt>Source</dt>
+                  <dd>{sourceLabel(book.format) ?? "—"}</dd>
+                </div>
+              )}
+              {showCopy && (
+                <div>
+                  <dt>Copy</dt>
+                  <dd>
+                    <Flag on={!!book.copy} />
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>{dateLabel(book.status)}</dt>
                 <dd>{fmtDate(book.dateRead)}</dd>

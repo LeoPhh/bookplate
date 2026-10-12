@@ -7,6 +7,7 @@ import { averageRating, ratedReads } from "@/lib/ratings";
 import ProgressBar from "./ProgressBar";
 import { paletteFor } from "@/lib/palette";
 import StarRating from "./StarRating";
+import { useFeature } from "./Features";
 
 // Single-series magnitude charts: one hue (vermilion — about 3.6:1 on the
 // white card surface), direct labels, no legend.
@@ -329,6 +330,7 @@ function CurrentlyReading({
 
 export default function StatsView({ books, progress, onSelect }: Props) {
   const [drill, setDrill] = useState<Drill | null>(null);
+  const showSource = useFeature("source");
 
   const stats = useMemo(() => {
     const read = books.filter((b) => b.status === "read");
@@ -560,11 +562,13 @@ export default function StatsView({ books, progress, onSelect }: Props) {
             </button>
           )}
         </div>
-        <div className="chart-card">
-          <h2 className="chart-title">Where they came from</h2>
-          <p className="chart-sub">Share of the library by source</p>
-          <BarList rows={sourceRows} total={books.length} />
-        </div>
+        {showSource && (
+          <div className="chart-card">
+            <h2 className="chart-title">Where they came from</h2>
+            <p className="chart-sub">Share of the library by source</p>
+            <BarList rows={sourceRows} total={books.length} />
+          </div>
+        )}
       </div>
 
       {renderDrill()}

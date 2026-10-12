@@ -5,7 +5,10 @@ import { authClient } from "@/lib/auth-client";
 import { fileToDataUrl } from "@/lib/image";
 import Avatar from "./Avatar";
 import ShowcaseDialog from "./ShowcaseDialog";
+import { useFeatures } from "./Features";
+import { FEATURES, type FeatureId } from "@/lib/featureList";
 import ImageCropper from "./ImageCropper";
+import Spinner from "./Spinner";
 
 interface ImportSummary {
   books: number;
@@ -96,7 +99,7 @@ function Profile({ user }: { user: ProfileUser }) {
             }}
           />
           <button type="button" className="btn" disabled={busy} onClick={() => fileRef.current?.click()}>
-            {busy ? "Saving…" : image ? "Change photo…" : "Add a photo…"}
+            {busy ? <><Spinner />Saving…</> : image ? "Change photo…" : "Add a photo…"}
           </button>
           {image && (
             <button type="button" className="btn" disabled={busy} onClick={remove}>
@@ -200,7 +203,7 @@ function ChangePassword() {
       )}
       <div className="field--wide">
         <button type="submit" className="btn btn--primary" disabled={busy}>
-          {busy ? "Changing…" : "Change password"}
+          {busy ? <><Spinner />Changing…</> : "Change password"}
         </button>
       </div>
     </form>
@@ -263,7 +266,7 @@ function DeleteAccount() {
       )}
       <div className="field--wide settings-row">
         <button type="submit" className="btn btn--danger-solid" disabled={busy || !password}>
-          {busy ? "Deleting…" : "Delete my account and library"}
+          {busy ? <><Spinner />Deleting…</> : "Delete my account and library"}
         </button>
         <button
           type="button"
@@ -428,7 +431,7 @@ function CsvImport() {
           }}
         />
         <button type="button" className="btn" disabled={busy || covers?.running} onClick={() => fileRef.current?.click()}>
-          {busy && !preview ? "Reading…" : "Choose a CSV…"}
+          {busy && !preview ? <><Spinner />Reading…</> : "Choose a CSV…"}
         </button>
       </div>
 
@@ -451,7 +454,7 @@ function CsvImport() {
           </ul>
           <div className="settings-row">
             <button type="button" className="btn btn--primary" disabled={busy || s.total === 0} onClick={apply}>
-              {busy ? "Importing…" : `Import ${plural(s.total, "book")}`}
+              {busy ? <><Spinner />Importing…</> : `Import ${plural(s.total, "book")}`}
             </button>
             <button type="button" className="btn" disabled={busy} onClick={reset}>
               Cancel
@@ -470,6 +473,7 @@ function CsvImport() {
           </p>
           {covers && (
             <p className="settings-note">
+              {covers.running && <Spinner />}
               {covers.running
                 ? `Finding covers… ${covers.done} of ${covers.total} (${covers.found} found)`
                 : `Found ${plural(covers.found, "cover")} for ${plural(covers.done, "book")}.`}
@@ -551,7 +555,7 @@ function EmailStatus({ email, to }: { email: { from: string } | null; to: string
         Email is set up, sending as <strong>{email.from}</strong>. Password-reset links go out by email.
       </p>
       <button type="button" className="btn" disabled={busy} onClick={send}>
-        {busy ? "Sending…" : `Send a test email to ${to}`}
+        {busy ? <><Spinner />Sending…</> : `Send a test email to ${to}`}
       </button>
       {result && (
         <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
@@ -596,6 +600,62 @@ function Newsletter({ subscribed }: { subscribed: boolean }) {
       {result && (
         <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
           {result.text}
+        </p>
+      )}
+    </>
+  );
+}
+
+// Optional fields, each switched on or off as it's ticked. Off only hides a
+// field: what's stored stays, and comes back when it's switched on again.
+function OptionalFeatures() {
+  const { features, setFeatures } = useFeatures();
+  const [busy, setBusy] = useState<FeatureId | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const change = async (feature: FeatureId, on: boolean) => {
+    setBusy(feature);
+    setError(null);
+    try {
+      const res = await fetch("/api/account/features", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature, on }),
+      });
+      const data: { features?: FeatureId[] } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.features) throw new Error();
+      setFeatures(data.features);
+    } catch {
+      setError("That didn’t save — try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <>
+      <p className="settings-lede">
+        Extra details you can keep for each book. Switching one off only hides it; anything you&rsquo;ve recorded stays
+        and comes back when you switch it on again.
+      </p>
+      <div className="settings-features">
+        {FEATURES.map((f) => (
+          <label key={f.id} className="checkline checkline--wrap">
+            <input
+              type="checkbox"
+              checked={features.includes(f.id)}
+              disabled={busy === f.id}
+              onChange={(e) => void change(f.id, e.target.checked)}
+            />
+            <span>
+              <strong>{f.label}</strong> — {f.description}
+            </span>
+          </label>
+        ))}
+      </div>
+      {error && (
+        <p className="settings-note settings-note--error" role="alert">
+          {error}
         </p>
       )}
     </>
@@ -699,7 +759,7 @@ export default function SettingsPanel({
             }}
           />
           <button type="button" className="btn" disabled={importing} onClick={() => fileRef.current?.click()}>
-            {importing ? "Importing…" : "Choose a zip…"}
+            {importing ? <><Spinner />Importing…</> : "Choose a zip…"}
           </button>
         </div>
         {result && (
@@ -708,6 +768,11 @@ export default function SettingsPanel({
           </p>
         )}
         <CsvImport />
+      </section>
+
+      <section className="settings-section">
+        <h2 className="form-heading">Optional features</h2>
+        <OptionalFeatures />
       </section>
 
       <section className="settings-section">

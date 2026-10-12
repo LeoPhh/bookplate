@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import Spinner from "./Spinner";
 
 // "Send me a reset link" — only shown when the server can send email.
 export default function ForgotPasswordForm() {
@@ -54,7 +55,7 @@ export default function ForgotPasswordForm() {
         )}
         <div className="dialog-actions field--wide">
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Sending…" : "Send reset link"}
+            {busy ? <><Spinner />Sending…</> : "Send reset link"}
           </button>
         </div>
       </form>

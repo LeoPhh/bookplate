@@ -14,6 +14,7 @@ import BookDetail from "@/components/BookDetail";
 import BookForm, { CoverAction } from "@/components/BookForm";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import FinishDialog from "@/components/FinishDialog";
+import Spinner from "@/components/Spinner";
 
 // Fire-and-forget removal of a stored cover file.
 function deleteCoverFile(coverImage: string) {
@@ -284,7 +285,7 @@ export default function Home() {
 
       {books === null ? (
         <p className="empty-note">
-          {loadError ? "The library could not be opened — is the server still running?" : "Opening the library…"}
+          {loadError ? "The library could not be opened — is the server still running?" : <><Spinner />Opening the library…</>}
         </p>
       ) : (
         <>

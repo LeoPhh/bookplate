@@ -19,6 +19,8 @@ export const user = pgTable("user", {
   lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
   // Info boxes the reader chose not to see again (ids from lib/hints.ts).
   dismissedHints: text("dismissed_hints").array().notNull().default(sql`'{}'::text[]`),
+  // Optional features the reader has switched on (ids from lib/features.ts).
+  features: text("features").array().notNull().default(sql`'{}'::text[]`),
 });
 
 export const session = pgTable(

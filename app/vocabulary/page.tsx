@@ -7,6 +7,7 @@ import Hint from "@/components/Hint";
 import VocabCard, { vocabMeta } from "@/components/VocabCard";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
+import Spinner from "@/components/Spinner";
 
 interface DefineSense {
   partOfSpeech: string;
@@ -295,7 +296,7 @@ export default function VocabularyPage() {
             </select>
           </label>
           <button type="submit" className="btn btn--primary" disabled={searching}>
-            {searching ? "Consulting…" : "Look up"}
+            {searching ? <><Spinner />Consulting…</> : "Look up"}
           </button>
         </form>
 
@@ -399,7 +400,7 @@ export default function VocabularyPage() {
 
       {entries === null ? (
         <p className="empty-note">
-          {loadError ? "The registry could not be opened — is the server still running?" : "Opening the registry…"}
+          {loadError ? "The registry could not be opened — is the server still running?" : <><Spinner />Opening the registry…</>}
         </p>
       ) : entries.length === 0 ? (
         <p className="empty-note">No words yet — look one up above to begin your lexicon.</p>

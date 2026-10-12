@@ -3,7 +3,9 @@ import { Fraunces, Inter } from "next/font/google";
 import { connection } from "next/server";
 import ErrorReporter from "@/components/ErrorReporter";
 import AppBar from "@/components/AppBar";
+import { FeaturesProvider } from "@/components/Features";
 import { getSession } from "@/lib/auth";
+import { getFeatures } from "@/lib/features";
 import "./globals.css";
 
 // Fraunces carries the display type, Inter everything else; globals.css
@@ -45,11 +47,13 @@ export default async function RootLayout({
   // rendered per request, never frozen at build time.
   await connection();
   const session = await getSession().catch(() => null);
+  // Which optional fields to show, known before anything renders.
+  const features = session ? await getFeatures(session.user.id).catch(() => []) : [];
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
         <AppBar signedIn={Boolean(session)} />
-        {children}
+        <FeaturesProvider initial={features}>{children}</FeaturesProvider>
         <ErrorReporter />
       </body>
     </html>

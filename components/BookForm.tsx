@@ -17,6 +17,9 @@ import { fileToDataUrl } from "@/lib/image";
 import StarRating from "./StarRating";
 import DatePicker from "./DatePicker";
 import ImageCropper from "./ImageCropper";
+import Spinner from "./Spinner";
+import { useFeature } from "./Features";
+import { todayIso } from "@/lib/progress";
 
 // What should happen to the stored cover file when the form is saved.
 export type CoverAction = { type: "keep" } | { type: "remove" } | { type: "upload"; blob: Blob };
@@ -26,7 +29,8 @@ interface Props {
   book: Book | null; // null = adding a new book
   genres: string[]; // existing genres across the library, for the dropdown
   sources: string[]; // sources readers added themselves, for the dropdown
-  onSave: (draft: Omit<Book, "id" | "addedAt" | "coverImage">, cover: CoverAction) => void;
+  // May take a moment (a new cover uploads first): the form waits, showing so.
+  onSave: (draft: Omit<Book, "id" | "addedAt" | "coverImage">, cover: CoverAction) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -57,10 +61,10 @@ function draftFrom(book: Book | null): Draft {
       genre: "",
       pages: "",
       format: "",
-      status: "to-read",
+      status: "read", // most books added are ones already read…
       copy: false,
       rating: 0,
-      dateRead: "",
+      dateRead: todayIso(), // …and often just finished
       colorIndex: Math.floor(Math.random() * PALETTE.length),
       olWorkId: "",
     };
@@ -82,6 +86,14 @@ function draftFrom(book: Book | null): Draft {
 
 export default function BookForm({ book, genres, sources, onSave, onClose }: Props) {
   const [d, setD] = useState<Draft>(() => draftFrom(book));
+  // The date filled in for the reader when Read was picked (a new book starts
+  // on Read, finished today). Switching away clears it again, unless it's been
+  // changed: a TBR book shouldn't keep today's date.
+  const [autoDate, setAutoDate] = useState<string | null>(() => (book ? null : draftFrom(null).dateRead));
+  // Optional fields (Settings → Optional features). Hidden ones keep their
+  // values: an edited book saves them back unchanged.
+  const showSource = useFeature("source");
+  const showCopy = useFeature("copy");
   const [addingGenre, setAddingGenre] = useState(false);
   const [addingSource, setAddingSource] = useState(false);
   const [coverAction, setCoverAction] = useState<CoverAction>({ type: "keep" });
@@ -95,6 +107,14 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
   const [searchError, setSearchError] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [fetchingCover, setFetchingCover] = useState(false);
+  // Each cover fetch gets a number; choosing another cover (or skipping)
+  // moves it on, so a fetch that finishes late doesn't pop up the cropper.
+  const coverRequest = useRef(0);
+  const stopCoverFetch = () => {
+    coverRequest.current++;
+    setFetchingCover(false);
+  };
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -105,6 +125,18 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
   }, [onClose]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setD((prev) => ({ ...prev, [key]: value }));
+
+  const pickStatus = (status: BookStatus) => {
+    let dateRead = d.dateRead;
+    if (status === "read" && !dateRead) {
+      dateRead = todayIso();
+      setAutoDate(dateRead);
+    } else if (status !== "read" && autoDate && dateRead === autoDate) {
+      dateRead = "";
+      setAutoDate(null);
+    }
+    setD((prev) => ({ ...prev, status, dateRead }));
+  };
 
   // Existing genres plus the draft's own value, so an edited book's genre is
   // always selectable even if no other book shares it.
@@ -151,16 +183,18 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
     setResults([]);
     setSearched(false);
     setSearchQ("");
+    const request = ++coverRequest.current;
     setFetchingCover(true);
     try {
       const params = new URLSearchParams({ s: "L", t: r.title, a: r.author });
       if (r.coverId) params.set("id", String(r.coverId));
       const res = await fetch(`/api/booksearch/cover?${params}`);
-      if (res.ok) setRawImage(await fileToDataUrl(await res.blob())); // opens the cropper
+      const image = res.ok ? await fileToDataUrl(await res.blob()) : null;
+      if (image && request === coverRequest.current) setRawImage(image); // opens the cropper
     } catch {
       // No cover fetched — the generated cover remains.
     } finally {
-      setFetchingCover(false);
+      if (request === coverRequest.current) setFetchingCover(false);
     }
   };
 
@@ -168,6 +202,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
+    stopCoverFetch();
     try {
       setRawImage(await fileToDataUrl(file));
     } catch {
@@ -178,6 +213,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
   const [pasteError, setPasteError] = useState<string | null>(null);
 
   const cropPastedImage = async (blob: Blob) => {
+    stopCoverFetch();
     try {
       setRawImage(await fileToDataUrl(blob)); // opens the cropper
       setPasteError(null);
@@ -208,14 +244,24 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
   };
 
   const removeCover = () => {
+    stopCoverFetch();
     if (coverPreview?.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
     setCoverAction(book?.coverImage ? { type: "remove" } : { type: "keep" });
     setCoverPreview(null);
   };
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!d.title.trim() || !d.author.trim()) return;
+    if (!d.title.trim() || !d.author.trim() || saving) return;
+    setSaving(true);
+    try {
+      await save();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const save = () =>
     onSave(
       {
         title: d.title.trim(),
@@ -234,7 +280,6 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
       },
       coverAction
     );
-  };
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -266,11 +311,26 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
                 autoFocus={!book}
               />
               <button type="button" className="btn" onClick={runSearch} disabled={searching || !searchQ.trim()}>
-                {searching ? "Searching…" : "Search"}
+                {searching ? (
+                  <>
+                    <Spinner />
+                    Searching…
+                  </>
+                ) : (
+                  "Search"
+                )}
               </button>
             </div>
             {searchError && <p className="search-note search-note--error">{searchError}</p>}
-            {fetchingCover && <p className="search-note">Fetching the cover…</p>}
+            {fetchingCover && (
+              <p className="search-note cover-fetch-note" role="status">
+                <Spinner />
+                Finding the cover — you’ll crop it next.{" "}
+                <button type="button" className="cover-fetch-skip" onClick={stopCoverFetch}>
+                  Skip
+                </button>
+              </p>
+            )}
             {searched && results.length === 0 && !searchError && (
               <p className="search-note">Nothing found — try a different title, or fill in the details below.</p>
             )}
@@ -316,16 +376,25 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
             <span>Author *</span>
             <input value={d.author} onChange={(e) => set("author", e.target.value)} required />
           </label>
-          <label className="field">
-            <span>Status</span>
-            <select value={d.status} onChange={(e) => set("status", e.target.value as BookStatus)}>
+          <div className="field field--wide">
+            <span id="book-status-label">Status</span>
+            <div className="status-options" role="radiogroup" aria-labelledby="book-status-label">
               {(Object.keys(STATUS_LABELS) as BookStatus[]).map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </option>
+                <label key={s} className="checkline">
+                  <input
+                    type="radio"
+                    className="square-radio"
+                    name="book-status"
+                    value={s}
+                    checked={d.status === s}
+                    onChange={() => pickStatus(s)}
+                  />
+                  <span>{STATUS_LABELS[s]}</span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
+          {showSource && (
           <div className="field">
             <span>Source</span>
             {addingSource ? (
@@ -376,6 +445,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
               </select>
             )}
           </div>
+          )}
           <label className="field">
             <span>Pages</span>
             <input type="number" min="1" value={d.pages} onChange={(e) => set("pages", e.target.value)} />
@@ -433,34 +503,25 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
             <span>Rating</span>
             <StarRating value={d.rating} onChange={(v) => set("rating", v)} size="lg" />
           </div>
-          <div className="field">
-            <span>Copy?</span>
-            <label className="checkline">
-              <input type="checkbox" checked={d.copy} onChange={(e) => set("copy", e.target.checked)} />
-              <span>I own a physical copy</span>
-            </label>
-          </div>
-          <div className="field">
-            <span>Binding colour</span>
-            <div className="swatches">
-              {PALETTE.map((c, i) => (
-                <button
-                  key={c.name}
-                  type="button"
-                  className={i === d.colorIndex ? "swatch swatch--active" : "swatch"}
-                  style={{ background: c.bg }}
-                  title={c.name}
-                  aria-label={c.name}
-                  onClick={() => set("colorIndex", i)}
-                />
-              ))}
+          {showCopy && (
+            <div className="field">
+              <span>Copy?</span>
+              <label className="checkline">
+                <input type="checkbox" checked={d.copy} onChange={(e) => set("copy", e.target.checked)} />
+                <span>I own a physical copy</span>
+              </label>
             </div>
-          </div>
+          )}
           <div className="field field--wide">
             <span>Cover image</span>
             <div className="cover-upload">
               <div className="cover-mini">
-                {coverPreview ? (
+                {fetchingCover ? (
+                  <span className="cover-mini-busy">
+                    <Spinner large />
+                    Finding cover…
+                  </span>
+                ) : coverPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={coverPreview} alt="Cover preview" />
                 ) : (
@@ -478,22 +539,23 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
                   </button>
                 )}
                 {pasteError && <p className="search-note search-note--error">{pasteError}</p>}
-                <p className="cover-upload-hint">
-                  Without an image, the book wears its generated cloth cover. Uploads are cropped to cover
-                  proportions and stored with the library.
-                </p>
               </div>
             </div>
           </div>
-          <p className="field--wide search-note">
-            Reading notes — with markdown and pasted images — live on the book’s own notes page, opened from the book’s
-            detail view.
-          </p>
           <div className="dialog-actions field--wide">
-            <button type="submit" className="btn btn--primary">
-              {book ? "Save changes" : "Add to shelf"}
+            <button type="submit" className="btn btn--primary" disabled={saving}>
+              {saving ? (
+                <>
+                  <Spinner />
+                  {book ? "Saving…" : "Adding…"}
+                </>
+              ) : book ? (
+                "Save changes"
+              ) : (
+                "Add to shelf"
+              )}
             </button>
-            <button type="button" className="btn" onClick={onClose}>
+            <button type="button" className="btn" onClick={onClose} disabled={saving}>
               Cancel
             </button>
           </div>

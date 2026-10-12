@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import type { ShowcaseInclude } from "@/lib/showcaseYear";
+import Spinner from "./Spinner";
 
 // Makes, changes or turns off the public page of a year's reading (a
 // showcase, lib/showcase.ts). One per year; its link stays the same.
@@ -211,7 +212,7 @@ export default function ShowcaseDialog({ years, onClose }: { years: number[]; on
           {current ? (
             <>
               <button type="button" className="btn btn--primary" disabled={busy || !changed} onClick={save}>
-                {busy ? "Saving…" : "Save changes"}
+                {busy ? <><Spinner />Saving…</> : "Save changes"}
               </button>
               <button type="button" className="btn btn--danger" disabled={busy} onClick={turnOff}>
                 Turn off
@@ -219,7 +220,7 @@ export default function ShowcaseDialog({ years, onClose }: { years: number[]; on
             </>
           ) : (
             <button type="button" className="btn btn--accent" disabled={busy || !loaded} onClick={save}>
-              {busy ? "Making it…" : "Make my link"}
+              {busy ? <><Spinner />Making it…</> : "Make my link"}
             </button>
           )}
         </div>

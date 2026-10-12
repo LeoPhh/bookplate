@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Book, ProgressEntry } from "@/lib/types";
 import { apiFetch } from "@/lib/api";
 import StatsView from "@/components/StatsView";
+import Spinner from "@/components/Spinner";
 
 export default function StatisticsPage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function StatisticsPage() {
 
       {books === null ? (
         <p className="empty-note">
-          {loadError ? "The library could not be opened — is the server still running?" : "Opening the ledger…"}
+          {loadError ? "The library could not be opened — is the server still running?" : <><Spinner />Opening the ledger…</>}
         </p>
       ) : books.length === 0 ? (
         <p className="empty-note">No books yet — add one from the library to see it counted here.</p>

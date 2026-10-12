@@ -17,6 +17,7 @@ import BookCover from "@/components/BookCover";
 import NotesFormatBar from "@/components/NotesFormatBar";
 import StarRating from "@/components/StarRating";
 import VocabCard from "@/components/VocabCard";
+import Spinner from "@/components/Spinner";
 
 // TipTap ships list items as "paragraph block*", so a bullet's first child has
 // to be a paragraph — which makes Callout and Quote silently do nothing when
@@ -269,7 +270,10 @@ export default function BookNotesPage() {
   if (!book || loadedMd === null) {
     return (
       <main className="page">
-        <p className="empty-note">Opening the notebook…</p>
+        <p className="empty-note">
+          <Spinner />
+          Opening the notebook…
+        </p>
       </main>
     );
   }
@@ -301,7 +305,10 @@ export default function BookNotesPage() {
       <section className="notes-section">
         <div className="notes-toolbar">
           <h2 className="notes-section-title">Reading notes</h2>
-          <span className={uploadError || saveError ? "notes-save notes-save--error" : "notes-save"}>{status}</span>
+          <span className={uploadError || saveError ? "notes-save notes-save--error" : "notes-save"}>
+            {(uploading || saving) && !uploadError && !saveError && <Spinner />}
+            {status}
+          </span>
           {editing ? (
             <>
               <button type="button" className="btn btn--primary" onClick={save} disabled={saving}>
