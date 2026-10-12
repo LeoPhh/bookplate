@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { boolean, index, integer, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── Auth (tables and columns as Better Auth expects them) ──────────────────
@@ -16,6 +17,8 @@ export const user = pgTable("user", {
   // When the account last signed in or used Bookplate, to the day (see
   // markSeen in lib/auth.ts) — for finding long-unused accounts.
   lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+  // Info boxes the reader chose not to see again (ids from lib/hints.ts).
+  dismissedHints: text("dismissed_hints").array().notNull().default(sql`'{}'::text[]`),
 });
 
 export const session = pgTable(

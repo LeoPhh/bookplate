@@ -57,6 +57,13 @@
       "when": 1791483742911,
       "tag": "0007_showcase",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791800231889,
+      "tag": "0008_dismissed_hints",
+      "breakpoints": true
     }
   ]
 }

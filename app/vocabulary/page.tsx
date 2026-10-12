@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Book, VocabEntry } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Hint from "@/components/Hint";
 import VocabCard, { vocabMeta } from "@/components/VocabCard";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
@@ -53,6 +54,12 @@ export default function VocabularyPage() {
 
   // Registry controls
   const [query, setQuery] = useState("");
+  // Searching your words starts from the magnifier in the filter row.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const closeSearch = () => {
+    setQuery("");
+    setSearchOpen(false);
+  };
   const [sort, setSort] = useState<SortKey>("added");
   const [bookFilter, setBookFilter] = useState("all");
   const [pendingDelete, setPendingDelete] = useState<VocabEntry | null>(null);
@@ -129,6 +136,35 @@ export default function VocabularyPage() {
     setManualDef("");
     setManualExample("");
   };
+
+  // Closing the results also clears the word looked up.
+  const closeLookup = () => {
+    resetLookup();
+    setLookup("");
+  };
+
+  // The results close with Escape or a click anywhere outside the lookup
+  // panel — except while writing a definition of your own, so a stray click
+  // can't throw it away.
+  const panelRef = useRef<HTMLElement>(null);
+  const writing = manualOpen && Boolean(manualDef.trim() || manualPos.trim() || manualExample.trim());
+  useEffect(() => {
+    if (!result || pendingDelete) return;
+    const onPointer = (e: PointerEvent) => {
+      if (!writing && panelRef.current && !panelRef.current.contains(e.target as Node)) closeLookup();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !writing) closeLookup();
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+    // closeLookup only sets state, so it needn't be a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, pendingDelete, writing]);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,7 +261,14 @@ export default function VocabularyPage() {
         </p>
       </header>
 
-      <section className="lookup-panel">
+      <Hint id="vocabulary" title="What is the vocabulary registry?">
+        <p>
+          A place for the words you meet while reading. Look one up, keep the meaning that fits and note the book it
+          came from. Your words gather here to search and revisit, and each book’s page lists the words it taught you.
+        </p>
+      </Hint>
+
+      <section className="lookup-panel" ref={panelRef}>
         <form className="lookup-form" onSubmit={handleLookup}>
           <input
             type="search"
@@ -265,6 +308,9 @@ export default function VocabularyPage() {
 
         {result && (
           <div className="lookup-result">
+            <button type="button" className="dialog-close lookup-close" onClick={closeLookup} aria-label="Close the results">
+              ✕
+            </button>
             <div className="lookup-headword">
               <span className="lookup-word">{result.word}</span>
               {result.phonetic && <span className="lookup-phonetic">{result.phonetic}</span>}
@@ -360,14 +406,46 @@ export default function VocabularyPage() {
       ) : (
         <>
           <div className="toolbar">
-            <div className="toolbar-row">
-              <input
-                type="search"
-                className="search"
-                placeholder="Search your words…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+            <div className="toolbar-row vocab-filters">
+              {searchOpen ? (
+                <div className="vocab-search">
+                  <input
+                    type="text"
+                    enterKeyHint="search"
+                    className="search"
+                    placeholder="Search your words…"
+                    aria-label="Search your words"
+                    value={query}
+                    autoFocus
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Escape" && closeSearch()}
+                    onBlur={() => !query.trim() && setSearchOpen(false)}
+                  />
+                  <button
+                    type="button"
+                    className="vocab-search-close"
+                    aria-label="Close the search"
+                    // Before the input's blur, so the click isn't lost.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={closeSearch}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn vocab-search-toggle"
+                  aria-label="Search your words"
+                  title="Search your words"
+                  onClick={() => setSearchOpen(true)}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.5" />
+                    <path d="M15.5 15.5 21 21" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" />
+                  </svg>
+                </button>
+              )}
               {sourceBooks.length > 0 && (
                 <label className="sort-label">
                   Book
@@ -381,7 +459,7 @@ export default function VocabularyPage() {
                   </select>
                 </label>
               )}
-              <label className="sort-label">
+              <label className="sort-label vocab-sort">
                 Sort
                 <select className="sort-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
                   <option value="added">Recently kept</option>
