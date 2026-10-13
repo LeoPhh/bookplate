@@ -185,7 +185,7 @@ export default function VocabularyPage() {
         setManualOpen(true);
       }
     } catch {
-      setSearchError("The dictionary could not be reached — try again in a moment.");
+      setSearchError("The dictionary could not be reached. Try again in a moment.");
     } finally {
       setSearching(false);
     }
@@ -208,7 +208,7 @@ export default function VocabularyPage() {
         setEntries((prev) => prev?.filter((e) => e.id !== entry.id) ?? prev);
         setSaveError(data.error ?? "The word could not be saved.");
       })
-      .catch(() => setSaveError("The word could not be saved — is the server still running?"));
+      .catch(() => setSaveError("The word could not be saved. Is the server still running?"));
   };
 
   const addSense = (sense: DefineSense, index: number) => {
@@ -354,7 +354,7 @@ export default function VocabularyPage() {
               <form className="manual-form" onSubmit={addManual}>
                 {result.senses.length === 0 && (
                   <p className="search-note">
-                    The dictionary has no entry for “{result.word}” — record it in your own words.
+                    The dictionary has no entry for “{result.word}”. Record it in your own words.
                   </p>
                 )}
                 <div className="manual-grid">
@@ -400,10 +400,10 @@ export default function VocabularyPage() {
 
       {entries === null ? (
         <p className="empty-note">
-          {loadError ? "The registry could not be opened — is the server still running?" : <><Spinner />Opening the registry…</>}
+          {loadError ? "The registry could not be opened. Is the server still running?" : <><Spinner />Opening the registry…</>}
         </p>
       ) : entries.length === 0 ? (
-        <p className="empty-note">No words yet — look one up above to begin your lexicon.</p>
+        <p className="empty-note">No words yet. Look one up above to begin your lexicon.</p>
       ) : (
         <>
           <div className="toolbar">
@@ -471,7 +471,7 @@ export default function VocabularyPage() {
           </div>
 
           {visible.length === 0 ? (
-            <p className="empty-note">Nothing matches — try another search.</p>
+            <p className="empty-note">Nothing matches. Try another search.</p>
           ) : (
             <ul className="vocab-grid">
               {visible.map((e) => {

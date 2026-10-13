@@ -129,7 +129,7 @@ export default function Home() {
         const ref = res.headers.get("x-request-id")?.slice(0, 8);
         setSaveError(`The last change could not be saved${ref ? ` (reference ${ref})` : ""}.`);
       })
-      .catch(() => setSaveError("The last change could not be saved — is the server still running?"));
+      .catch(() => setSaveError("The last change could not be saved. Is the server still running?"));
   };
   const saveBook = (book: Book, onRefused?: () => void) => persist(putJson(`/api/books/${book.id}`, book), onRefused);
   const removeBook = (id: string) => persist(apiFetch(`/api/books/${id}`, { method: "DELETE" }));
@@ -285,7 +285,7 @@ export default function Home() {
 
       {books === null ? (
         <p className="empty-note">
-          {loadError ? "The library could not be opened — is the server still running?" : <><Spinner />Opening the library…</>}
+          {loadError ? "The library could not be opened. Is the server still running?" : <><Spinner />Opening the library…</>}
         </p>
       ) : (
         <>

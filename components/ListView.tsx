@@ -20,7 +20,7 @@ function fmtDate(iso?: string): string {
 export default function ListView({ books, onSelect, marked }: Props) {
   const showCopy = useFeature("copy");
   if (books.length === 0) {
-    return <p className="empty-note">The shelf is bare — add a book or clear your search.</p>;
+    return <p className="empty-note">The shelf is empty. Add a book or clear your filter.</p>;
   }
 
   const counts = {

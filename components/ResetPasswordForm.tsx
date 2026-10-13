@@ -27,7 +27,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
       setError(
         error.code === "INVALID_TOKEN"
           ? "This link has expired or was already used. Ask for a new one."
-          : (error.message ?? "That didn’t work — try again.")
+          : (error.message ?? "That didn’t work. Try again.")
       );
       return;
     }

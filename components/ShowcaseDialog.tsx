@@ -85,12 +85,12 @@ export default function ShowcaseDialog({ years, onClose }: { years: number[]; on
         body: JSON.stringify({ year, include: effectiveInclude, name: shownName }),
       });
       const data: { showcase?: Showcase; error?: string } = await res.json().catch(() => ({}));
-      if (!res.ok || !data.showcase) throw new Error(data.error ?? "That didn’t save — try again.");
+      if (!res.ok || !data.showcase) throw new Error(data.error ?? "That didn’t save. Try again.");
       const saved = data.showcase;
       setShowcases((list) => [...(list ?? []).filter((s) => s.year !== saved.year), saved]);
       setName(saved.name ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "That didn’t save — try again.");
+      setError(e instanceof Error ? e.message : "That didn’t save. Try again.");
     } finally {
       setBusy(false);
     }
@@ -106,7 +106,7 @@ export default function ShowcaseDialog({ years, onClose }: { years: number[]; on
       setShowcases((list) => (list ?? []).filter((s) => s.id !== current.id));
       setCopied(false);
     } catch {
-      setError("That didn’t work — try again.");
+      setError("That didn’t work. Try again.");
     } finally {
       setBusy(false);
     }
@@ -118,7 +118,7 @@ export default function ShowcaseDialog({ years, onClose }: { years: number[]; on
       await navigator.clipboard.writeText(url);
       setCopied(true);
     } catch {
-      setError("Copying didn’t work — select the link and copy it.");
+      setError("Copying didn’t work. Select the link and copy it.");
     }
   };
 

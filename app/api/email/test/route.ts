@@ -10,11 +10,11 @@ export async function POST() {
   const session = await getSession();
   if (!session) return Response.json({ error: "Not signed in" }, { status: 401 });
   if (!config.email.enabled) {
-    return Response.json({ error: "Email isn’t set up on this server — see SMTP_HOST in the documentation." }, { status: 400 });
+    return Response.json({ error: "Email isn’t set up on this server. See SMTP_HOST in the documentation." }, { status: 400 });
   }
   const key = `test-email:${session.user.id}`;
   if ((await throttleWait(key, 5)) > 0) {
-    return Response.json({ error: "That’s a lot of test emails — try again in a few minutes." }, { status: 429 });
+    return Response.json({ error: "That’s a lot of test emails. Try again in a few minutes." }, { status: 429 });
   }
   await recordFailure(key);
   try {

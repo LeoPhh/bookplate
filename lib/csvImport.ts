@@ -198,7 +198,7 @@ async function plan(userId: string, text: string): Promise<Plan> {
   const { headers, records } = csvRecords(text);
   const source = detectSource(headers);
   if (!source) {
-    throw new CsvImportError("This doesn't look like a Goodreads or StoryGraph export — no matching columns were found.");
+    throw new CsvImportError("This doesn't look like a Goodreads or StoryGraph export. No matching columns were found.");
   }
 
   const existing = await listBooks(userId);

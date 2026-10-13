@@ -102,8 +102,8 @@ export default function AuthForm({
     if (error) {
       setError(
         error.code === "EMAIL_NOT_VERIFIED"
-          ? "Confirm your email address first — we’ve sent a new link to your inbox."
-          : (error.message ?? "That didn’t work — try again.")
+          ? "Confirm your email address first. We’ve sent a new link to your inbox."
+          : (error.message ?? "That didn’t work. Try again.")
       );
       return;
     }
@@ -132,7 +132,7 @@ export default function AuthForm({
     <AuthShell title={TITLES[mode]} legal={legal}>
       {mode === "setup" && (
         <p className="auth-lede">
-          Create the account that owns this Bookplate. It’s the only one — nobody else can sign up afterwards.
+          Create the account that owns this Bookplate. It’s the only one. Nobody else can sign up afterwards.
         </p>
       )}
       {notice && (

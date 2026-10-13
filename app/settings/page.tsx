@@ -5,8 +5,10 @@ import { getSession } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { getDb, schema } from "@/lib/db";
 import SettingsPanel from "@/components/SettingsPanel";
+import { isSettingsTab } from "@/lib/settingsTabs";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
   await connection();
   const session = await getSession();
   if (!session) redirect("/login");
@@ -38,6 +40,7 @@ export default async function SettingsPage() {
         email={config.email.enabled ? { from: config.email.from } : null}
         newsletter={config.newsletter ? Boolean(row?.since) : null}
         showcaseYears={showcaseYears}
+        initialTab={isSettingsTab(tab) ? tab : "profile"}
       />
       <p className="settings-version">Bookplate version {config.version}</p>
       <footer className="colophon">— ex libris —</footer>

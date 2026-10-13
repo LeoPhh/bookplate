@@ -1674,6 +1674,61 @@ a.btn {
   gap: 4px 24px;
 }
 
+/* An on/off switch (Settings → Preferences): a checkbox drawn as a hard-edged
+   track whose square knob slides right and fills orange when on. Still a
+   checkbox underneath, with role="switch", so it's read out as on or off. */
+input.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+input.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--ink);
+  transition: transform 0.12s ease;
+}
+
+input.switch:checked {
+  background: var(--accent);
+}
+
+input.switch:checked::before {
+  transform: translateX(18px);
+}
+
+input.switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input.switch,
+  input.switch::before {
+    transition: none;
+  }
+}
+
+/* Room between a switch and its text. */
+.switch-line {
+  gap: 14px;
+}
+
 /* A radio button drawn square, in the hard-edged look: a black box that
    fills with the accent when chosen. Still a real radio underneath. */
 input.square-radio {
@@ -3354,6 +3409,22 @@ select,
   gap: 40px;
   max-width: 720px;
   padding-top: 36px;
+}
+
+/* The tab bar, under the masthead's rule; each tab's sections follow. */
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 40px;
+}
+
+.settings-panel[hidden] {
+  display: none;
 }
 
 .settings-section {

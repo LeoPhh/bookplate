@@ -48,10 +48,10 @@ export default function StatisticsPage() {
 
       {books === null ? (
         <p className="empty-note">
-          {loadError ? "The library could not be opened — is the server still running?" : <><Spinner />Opening the ledger…</>}
+          {loadError ? "The library could not be opened. Is the server still running?" : <><Spinner />Opening the ledger…</>}
         </p>
       ) : books.length === 0 ? (
-        <p className="empty-note">No books yet — add one from the library to see it counted here.</p>
+        <p className="empty-note">No books yet. Add one from the library to see it counted here.</p>
       ) : (
         <StatsView books={books} progress={progress} onSelect={openBook} />
       )}

@@ -36,7 +36,7 @@ describe("sign-up bot check", () => {
     expect((await v.signUp(newEmail(), password, "Reader", solved)).status).toBe(200);
     const again = await new Visitor().signUp(newEmail(), password, "Bot", solved);
     expect(again.status).toBe(403);
-    expect(await again.text()).toContain("reload the page");
+    expect(await again.text()).toContain("Reload the page");
   });
 });
 

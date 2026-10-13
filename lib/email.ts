@@ -182,14 +182,14 @@ function build(to: string, m: Message): Email {
 export function resetPasswordEmail(to: string, url: string): Email {
   return build(to, {
     subject: "Reset your Bookplate password",
-    preview: "Choose a new password — the link works once and expires in an hour.",
+    preview: "Choose a new password. The link works once and expires in an hour.",
     eyebrow: "Password reset",
     title: "Choose a new password",
     paragraphs: [
       "Someone asked to reset the password for your Bookplate account. If that was you, choose a new one below. The link works once and expires in an hour, and using it signs you out everywhere.",
     ],
     action: { label: "Choose a new password", url },
-    note: "If it wasn’t you, ignore this email — your password stays the same.",
+    note: "If it wasn’t you, ignore this email. Your password stays the same.",
     why: "You’re receiving this because a password reset was requested for this address on Bookplate.",
   });
 }
@@ -201,7 +201,7 @@ export function verifyEmail(to: string, url: string): Email {
     eyebrow: "Welcome",
     title: "Confirm your email",
     paragraphs: [
-      "Welcome to Bookplate! Confirm this is your email address to finish setting up your account — then your library is ready for its first book.",
+      "Welcome to Bookplate! Confirm this is your email address to finish setting up your account. Then your library is ready for its first book.",
     ],
     action: { label: "Confirm my email", url },
     note: "The link expires in an hour. If you didn’t sign up, ignore this email and no account will be activated.",

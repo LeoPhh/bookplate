@@ -138,14 +138,14 @@ function createAuth() {
           if ((await throttleWait(signUpKey(ctx.headers), SIGNUPS_PER_IP, SIGNUP_WINDOW_MS)) > 0) {
             void log.warn("auth.sign_up_limited", { ip: clientIp(ctx.headers) });
             throw new APIError("TOO_MANY_REQUESTS", {
-              message: "Too many new accounts from your network — try again in an hour.",
+              message: "Too many new accounts from your network. Try again in an hour.",
             });
           }
           const failed = config.signupBotCheck ? await checkChallenge(ctx.headers?.get(CHALLENGE_HEADER)) : null;
           if (failed) {
             void log.warn("auth.bot_check_failed", { reason: failed, ip: clientIp(ctx.headers) });
             throw new APIError("FORBIDDEN", {
-              message: "The sign-up check didn’t go through — reload the page and try again.",
+              message: "The sign-up check didn’t go through. Reload the page and try again.",
             });
           }
           return;
@@ -155,7 +155,7 @@ function createAuth() {
         if (wait > 0) {
           void log.warn("auth.sign_in_blocked", { account: account(emailOf(ctx.body)), ip: clientIp(ctx.headers) });
           throw new APIError("TOO_MANY_REQUESTS", {
-            message: `Too many wrong passwords — try again in ${wait} minute${wait === 1 ? "" : "s"}.`,
+            message: `Too many wrong passwords. Try again in ${wait} minute${wait === 1 ? "" : "s"}.`,
           });
         }
       }),

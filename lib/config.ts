@@ -28,7 +28,7 @@ function webAddress(name: string): string {
 
 function required(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`Missing required environment variable ${name} — see .env.example`);
+  if (!value) throw new Error(`Missing required environment variable ${name}. See .env.example`);
   return value;
 }
 

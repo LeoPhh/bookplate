@@ -135,7 +135,7 @@ export class S3Storage implements Storage {
       const status = e instanceof S3ServiceException ? e.$metadata.httpStatusCode : undefined;
       const why =
         status === 404
-          ? `the bucket "${this.bucket}" doesn't exist — create it in your storage provider first`
+          ? `the bucket "${this.bucket}" doesn't exist; create it in your storage provider first`
           : status === 403 || status === 401
             ? "the access key or secret was refused, or the key can't use this bucket"
             : `couldn't reach the storage server (${e instanceof Error ? e.message : String(e)})`;

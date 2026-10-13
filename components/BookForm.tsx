@@ -164,7 +164,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
       setResults(data.results);
       setSearched(true);
     } catch {
-      setSearchError("The library catalogue could not be reached — you can still fill things in by hand.");
+      setSearchError("The library catalogue could not be reached. You can still fill things in by hand.");
       setResults([]);
       setSearched(false);
     } finally {
@@ -325,14 +325,14 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
             {fetchingCover && (
               <p className="search-note cover-fetch-note" role="status">
                 <Spinner />
-                Finding the cover — you’ll crop it next.{" "}
+                Finding the cover. You’ll crop it next.{" "}
                 <button type="button" className="cover-fetch-skip" onClick={stopCoverFetch}>
                   Skip
                 </button>
               </p>
             )}
             {searched && results.length === 0 && !searchError && (
-              <p className="search-note">Nothing found — try a different title, or fill in the details below.</p>
+              <p className="search-note">Nothing found. Try a different title, or fill in the details below.</p>
             )}
             {results.length > 0 && (
               <ul className="search-results">

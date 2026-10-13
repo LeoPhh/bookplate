@@ -116,7 +116,7 @@ export default function BookNotesPage() {
         BlockListItem,
         TipTapImage,
         Callout,
-        Placeholder.configure({ placeholder: "Write your reading notes — images can be pasted straight in…" }),
+        Placeholder.configure({ placeholder: "Write your reading notes. Images can be pasted straight in…" }),
         Markdown.configure({ html: false, linkify: true }),
       ],
       editorProps: {
@@ -175,7 +175,7 @@ export default function BookNotesPage() {
             editor.chain().focus().insertContent(content).run();
           }
         } catch {
-          setUploadError("The image could not be stored — is the server still running?");
+          setUploadError("The image could not be stored. Is the server still running?");
         }
       }
     } finally {
@@ -218,7 +218,7 @@ export default function BookNotesPage() {
       setSaved(true);
       setEditing(false); // back to reading mode, box gone
     } catch {
-      setSaveError("Could not save — is the server still running?");
+      setSaveError("Could not save. Is the server still running?");
     } finally {
       setSaving(false);
     }
@@ -256,7 +256,7 @@ export default function BookNotesPage() {
     return (
       <main className="page">
         <p className="empty-note">
-          {loadError ? "The library could not be opened — is the server still running?" : "This book is no longer on the shelf."}
+          {loadError ? "The library could not be opened. Is the server still running?" : "This book is no longer on the shelf."}
         </p>
         <p className="ledger-copy">
           <Link className="notes-back" href="/">
@@ -325,7 +325,7 @@ export default function BookNotesPage() {
           )}
         </div>
         {!editing && editor?.isEmpty && (
-          <p className="notes-blank">Nothing written yet — press Edit to start these notes.</p>
+          <p className="notes-blank">Nothing written yet. Press Edit to start these notes.</p>
         )}
         <div
           className={

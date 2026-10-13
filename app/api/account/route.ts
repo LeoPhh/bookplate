@@ -45,7 +45,7 @@ export async function DELETE(request: Request) {
   const throttleKey = `password:${auth.userId}`;
   const wait = await throttleWait(throttleKey);
   if (wait > 0) {
-    return Response.json({ error: `Too many wrong passwords — try again in ${wait} minutes.` }, { status: 429 });
+    return Response.json({ error: `Too many wrong passwords. Try again in ${wait} minutes.` }, { status: 429 });
   }
   try {
     await getAuth().api.verifyPassword({ body: { password }, headers: await headers() });

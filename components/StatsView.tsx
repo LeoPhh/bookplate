@@ -125,7 +125,7 @@ function YearChart({ data, onPick }: { data: YearCount[]; onPick: (year: number)
                   setTip({
                     left: (cx / W) * 100,
                     top: (Math.min(y, pad.top + plotH - 8) / H) * 100,
-                    text: `${d.year} — ${d.count} ${d.count === 1 ? "book" : "books"}`,
+                    text: `${d.year}: ${d.count} ${d.count === 1 ? "book" : "books"}`,
                   })
                 }
                 onMouseLeave={() => setTip(null)}
@@ -317,7 +317,7 @@ function CurrentlyReading({
           ))}
         </ul>
       ) : (
-        <p className="empty-note">Nothing on the go — mark a book as Reading to track it here.</p>
+        <p className="empty-note">Nothing on the go. Mark a book as Reading to track it here.</p>
       )}
       {avg !== null && (
         <p className="reading-footnote">
@@ -442,7 +442,7 @@ export default function StatsView({ books, progress, onSelect }: Props) {
       return (
         <DrillDialog
           title="All genres"
-          sub={`${stats.allGenres.length} genres across ${books.length} books — click one for its books`}
+          sub={`${stats.allGenres.length} genres across ${books.length} books. Click one for its books`}
           onClose={() => setDrill(null)}
         >
           <BarList rows={rows} total={books.length} />
@@ -538,7 +538,7 @@ export default function StatsView({ books, progress, onSelect }: Props) {
 
       <div className="chart-card">
         <h2 className="chart-title">Books finished by year</h2>
-        <p className="chart-sub">Grouped by year — click a column for that year’s books</p>
+        <p className="chart-sub">Grouped by year. Click a column for that year’s books</p>
         {stats.years.length > 0 ? (
           <YearChart data={stats.years} onPick={(year) => setDrill({ kind: "year", year })} />
         ) : (
@@ -549,12 +549,12 @@ export default function StatsView({ books, progress, onSelect }: Props) {
       <div className="stats-row">
         <div className="chart-card">
           <h2 className="chart-title">Ratings given</h2>
-          <p className="chart-sub">Books read — click a row to see them</p>
+          <p className="chart-sub">Books read. Click a row to see them</p>
           <BarList rows={ratingRows} narrowLabels />
         </div>
         <div className="chart-card">
           <h2 className="chart-title">Genres on the shelf</h2>
-          <p className="chart-sub">Most common first — click one for its books</p>
+          <p className="chart-sub">Most common first. Click one for its books</p>
           <BarList rows={genreRows} />
           {stats.allGenres.length > 6 && (
             <button type="button" className="drill-back chart-more" onClick={() => setDrill({ kind: "genres" })}>

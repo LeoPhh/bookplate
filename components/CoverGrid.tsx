@@ -14,7 +14,7 @@ interface Props {
 
 export default function CoverGrid({ books, onSelect, marked, progress }: Props) {
   if (books.length === 0) {
-    return <p className="empty-note">The shelf is bare — add a book or clear your search.</p>;
+    return <p className="empty-note">The shelf is empty. Add a book or clear your filter.</p>;
   }
 
   return (

@@ -5,6 +5,8 @@ import { authClient } from "@/lib/auth-client";
 import { fileToDataUrl } from "@/lib/image";
 import Avatar from "./Avatar";
 import ShowcaseDialog from "./ShowcaseDialog";
+import SettingsTabs from "./SettingsTabs";
+import { SETTINGS_TABS, type SettingsTab } from "@/lib/settingsTabs";
 import { useFeatures } from "./Features";
 import { FEATURES, type FeatureId } from "@/lib/featureList";
 import ImageCropper from "./ImageCropper";
@@ -415,7 +417,7 @@ function CsvImport() {
       <h3 className="settings-subheading">From Goodreads or StoryGraph</h3>
       <p className="settings-lede">
         In Goodreads, use <strong>My Books → Import and export → Export Library</strong>; in StoryGraph,{" "}
-        <strong>Manage Account → Export StoryGraph Library</strong>. Then choose the CSV file here — you&rsquo;ll see what
+        <strong>Manage Account → Export StoryGraph Library</strong>. Then choose the CSV file here. You&rsquo;ll see what
         will be imported before anything is saved. Importing again later updates the same books instead of duplicating
         them.
       </p>
@@ -493,8 +495,8 @@ function CsvImport() {
             imported.coverIds.length > 0 && (
               <>
                 <p className="settings-lede">
-                  Exports don&rsquo;t include covers. Bookplate can look them up on Open Library — one book every few
-                  seconds to stay within its limits, so about {plural(minutes, "minute")} for{" "}
+                  Exports don&rsquo;t include covers. Bookplate can look them up on Open Library, one book every few
+                  seconds to stay within its limits: about {plural(minutes, "minute")} for{" "}
                   {plural(imported.coverIds.length, "book")}. Keep this page open; books without a cover found keep their
                   cloth one.
                 </p>
@@ -526,7 +528,7 @@ function EmailStatus({ email, to }: { email: { from: string } | null; to: string
       <p className="settings-lede">
         Email isn’t set up, so forgotten passwords are reset by whoever runs the server, with{" "}
         <code>reset-password</code>. Add <code>SMTP_HOST</code> and the other email settings to let people reset their
-        own — see{" "}
+        own. See{" "}
         <a href="https://bookplate.eu/docs#configuration" target="_blank" rel="noopener noreferrer">
           the documentation
         </a>
@@ -543,7 +545,7 @@ function EmailStatus({ email, to }: { email: { from: string } | null; to: string
       const data: { to?: string; error?: string } = await res.json().catch(() => ({}));
       setResult(res.ok ? { ok: true, text: `Sent to ${data.to}. Check your inbox.` } : { ok: false, text: data.error ?? "It didn’t send." });
     } catch {
-      setResult({ ok: false, text: "It didn’t send — is the server still running?" });
+      setResult({ ok: false, text: "It didn’t send. Is the server still running?" });
     } finally {
       setBusy(false);
     }
@@ -569,11 +571,12 @@ function EmailStatus({ email, to }: { email: { from: string } | null; to: string
 // The newsletter tick box; saved as soon as it changes.
 function Newsletter({ subscribed }: { subscribed: boolean }) {
   const [on, setOn] = useState(subscribed);
-  const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // The switch flips at once and saves in the background; it only flips back
+  // (with a message) if saving fails.
   const change = async (next: boolean) => {
-    setBusy(true);
+    setOn(next);
     setResult(null);
     try {
       const res = await fetch("/api/account", {
@@ -582,19 +585,23 @@ function Newsletter({ subscribed }: { subscribed: boolean }) {
         body: JSON.stringify({ newsletter: next }),
       });
       if (!res.ok) throw new Error();
-      setOn(next);
       setResult({ ok: true, text: next ? "You’re subscribed." : "You’re unsubscribed." });
     } catch {
-      setResult({ ok: false, text: "That didn’t save — try again." });
-    } finally {
-      setBusy(false);
+      setOn(!next);
+      setResult({ ok: false, text: "That didn’t save. Try again." });
     }
   };
 
   return (
     <>
-      <label className="checkline checkline--wrap">
-        <input type="checkbox" checked={on} disabled={busy} onChange={(e) => void change(e.target.checked)} />
+      <label className="checkline checkline--wrap switch-line">
+        <input
+          type="checkbox"
+          role="switch"
+          className="switch"
+          checked={on}
+          onChange={(e) => void change(e.target.checked)}
+        />
         <span>Email me the occasional Bookplate newsletter</span>
       </label>
       {result && (
@@ -610,11 +617,13 @@ function Newsletter({ subscribed }: { subscribed: boolean }) {
 // field: what's stored stays, and comes back when it's switched on again.
 function OptionalFeatures() {
   const { features, setFeatures } = useFeatures();
-  const [busy, setBusy] = useState<FeatureId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // The switch flips at once (and the fields appear or go straight away);
+  // saving happens in the background, and only a failure flips it back.
   const change = async (feature: FeatureId, on: boolean) => {
-    setBusy(feature);
+    const before = features;
+    setFeatures(on ? [...features.filter((f) => f !== feature), feature] : features.filter((f) => f !== feature));
     setError(null);
     try {
       const res = await fetch("/api/account/features", {
@@ -622,13 +631,10 @@ function OptionalFeatures() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feature, on }),
       });
-      const data: { features?: FeatureId[] } = await res.json().catch(() => ({}));
-      if (!res.ok || !data.features) throw new Error();
-      setFeatures(data.features);
+      if (!res.ok) throw new Error();
     } catch {
-      setError("That didn’t save — try again.");
-    } finally {
-      setBusy(null);
+      setFeatures(before);
+      setError("That didn’t save. Try again.");
     }
   };
 
@@ -640,15 +646,16 @@ function OptionalFeatures() {
       </p>
       <div className="settings-features">
         {FEATURES.map((f) => (
-          <label key={f.id} className="checkline checkline--wrap">
+          <label key={f.id} className="checkline checkline--wrap switch-line">
             <input
               type="checkbox"
+              role="switch"
+              className="switch"
               checked={features.includes(f.id)}
-              disabled={busy === f.id}
               onChange={(e) => void change(f.id, e.target.checked)}
             />
             <span>
-              <strong>{f.label}</strong> — {f.description}
+              <strong>{f.label}.</strong> {f.description}
             </span>
           </label>
         ))}
@@ -684,13 +691,22 @@ export default function SettingsPanel({
   email,
   newsletter,
   showcaseYears,
+  initialTab,
 }: {
   user: ProfileUser;
   email: { from: string } | null;
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
   showcaseYears: number[]; // newest first
+  initialTab: SettingsTab;
 }) {
+  const [tab, setTab] = useState(initialTab);
+  const tabs = SETTINGS_TABS;
+  // Each tab has its own address (/settings?tab=security), so links can open one.
+  const choose = (id: SettingsTab) => {
+    setTab(id);
+    window.history.replaceState(null, "", id === "profile" ? "/settings" : `/settings?tab=${id}`);
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -716,7 +732,7 @@ export default function SettingsPanel({
           (s.skipped ? ` ${s.skipped} unreadable items were skipped.` : ""),
       });
     } catch {
-      setResult({ ok: false, text: "The import failed — is the server still running?" });
+      setResult({ ok: false, text: "The import failed. Is the server still running?" });
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -725,86 +741,133 @@ export default function SettingsPanel({
 
   return (
     <div className="settings">
-      <section className="settings-section">
-        <h2 className="form-heading">Profile</h2>
-        <Profile user={user} />
-      </section>
+      <SettingsTabs tabs={tabs} active={tab} onChange={choose} />
 
-      <section className="settings-section">
-        <h2 className="form-heading">Export</h2>
-        <p className="settings-lede">
-          Download everything — books, notes, pasted images, covers and vocabulary — as a zip of plain JSON, markdown
-          and image files. It&rsquo;s your backup, and it imports into any Bookplate.
-        </p>
-        <a className="btn btn--primary" href="/api/export" download>
-          Export library
-        </a>
-      </section>
-
-      <section className="settings-section">
-        <h2 className="form-heading">Import</h2>
-        <p className="settings-lede">
-          Bring in a Bookplate export, or a zip of the <code>data</code> folder from the original self-run app. Books
-          and words with matching ids are updated; nothing already here is removed.
-        </p>
-        <div className="settings-row">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".zip,application/zip"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void runImport(file);
-            }}
-          />
-          <button type="button" className="btn" disabled={importing} onClick={() => fileRef.current?.click()}>
-            {importing ? <><Spinner />Importing…</> : "Choose a zip…"}
-          </button>
-        </div>
-        {result && (
-          <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
-            {result.text}
-          </p>
-        )}
-        <CsvImport />
-      </section>
-
-      <section className="settings-section">
-        <h2 className="form-heading">Optional features</h2>
-        <OptionalFeatures />
-      </section>
-
-      <section className="settings-section">
-        <h2 className="form-heading">Showcase</h2>
-        <Showcase years={showcaseYears} />
-      </section>
-
-      {newsletter !== null && (
+      <div
+        role="tabpanel"
+        id="settings-panel-profile"
+        aria-labelledby="settings-tab-profile"
+        className="settings-panel"
+        hidden={tab !== "profile"}
+      >
         <section className="settings-section">
-          <h2 className="form-heading">Newsletter</h2>
-          <Newsletter subscribed={newsletter} />
+          <h2 className="form-heading">Profile</h2>
+          <Profile user={user} />
         </section>
-      )}
+        <section className="settings-section">
+          <h2 className="form-heading">Showcase</h2>
+          <Showcase years={showcaseYears} />
+        </section>
+  
+      </div>
 
-      <section className="settings-section">
-        <h2 className="form-heading">Password</h2>
-        <ChangePassword />
-      </section>
+      <div
+        role="tabpanel"
+        id="settings-panel-preferences"
+        aria-labelledby="settings-tab-preferences"
+        className="settings-panel"
+        hidden={tab !== "preferences"}
+      >
+        <section className="settings-section">
+          <h2 className="form-heading">Optional features</h2>
+          <OptionalFeatures />
+        </section>
+  
+        {newsletter !== null && (
+          <section className="settings-section">
+            <h2 className="form-heading">Newsletter</h2>
+            <Newsletter subscribed={newsletter} />
+          </section>
+        )}
+  
+      </div>
 
-      <section className="settings-section">
-        <h2 className="form-heading">Email</h2>
-        <EmailStatus email={email} to={user.email} />
-      </section>
+      <div
+        role="tabpanel"
+        id="settings-panel-data"
+        aria-labelledby="settings-tab-data"
+        className="settings-panel"
+        hidden={tab !== "data"}
+      >
+        <section className="settings-section">
+          <h2 className="form-heading">Export</h2>
+          <p className="settings-lede">
+            Download your books, notes, pasted images, covers and vocabulary as a zip of plain JSON,
+            markdown and image files. It&rsquo;s your backup, and it imports into any Bookplate.
+          </p>
+          <a className="btn btn--primary" href="/api/export" download>
+            Export library
+          </a>
+        </section>
+  
+        <section className="settings-section">
+          <h2 className="form-heading">Import</h2>
+          <p className="settings-lede">
+            Bring in a Bookplate export, or a zip of the <code>data</code> folder from the original self-run app. Books
+            and words with matching ids are updated; nothing already here is removed.
+          </p>
+          <div className="settings-row">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".zip,application/zip"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void runImport(file);
+              }}
+            />
+            <button type="button" className="btn" disabled={importing} onClick={() => fileRef.current?.click()}>
+              {importing ? <><Spinner />Importing…</> : "Choose a zip…"}
+            </button>
+          </div>
+          {result && (
+            <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
+              {result.text}
+            </p>
+          )}
+          <CsvImport />
+        </section>
+  
+      </div>
 
-      <section className="settings-section settings-section--danger">
-        <h2 className="form-heading">Danger zone</h2>
-        <p className="settings-lede">
-          Deleting your account permanently removes it along with every book, note, pasted image, cover and word in
-          it. This can&rsquo;t be undone — export your library first if you might want it back.
-        </p>
-        <DeleteAccount />
-      </section>
+
+      <div
+        role="tabpanel"
+        id="settings-panel-security"
+        aria-labelledby="settings-tab-security"
+        className="settings-panel"
+        hidden={tab !== "security"}
+      >
+        <section className="settings-section">
+          <h2 className="form-heading">Password</h2>
+          <ChangePassword />
+        </section>
+  
+        <section className="settings-section">
+          <h2 className="form-heading">Email</h2>
+          <EmailStatus email={email} to={user.email} />
+        </section>
+  
+      </div>
+
+      <div
+        role="tabpanel"
+        id="settings-panel-delete"
+        aria-labelledby="settings-tab-delete"
+        className="settings-panel"
+        hidden={tab !== "delete"}
+      >
+        <section className="settings-section settings-section--danger">
+          <h2 className="form-heading">Danger zone</h2>
+          <p className="settings-lede">
+            Deleting your account permanently removes it along with every book, note, pasted image, cover and word in
+            it. This can&rsquo;t be undone, so export your library first if you might want it back.
+          </p>
+          <DeleteAccount />
+        </section>
+      </div>
+
     </div>
   );
 }

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   try {
     body = JSON.parse(raw);
   } catch {
-    return fail(400, "That didn't arrive properly — try again.");
+    return fail(400, "That didn't arrive properly. Try again.");
   }
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const name = str(body.name).replace(/\s+/g, " ").slice(0, 100);
@@ -52,18 +52,18 @@ export async function POST(request: Request) {
   const failed = await checkChallenge(typeof body.check === "string" ? body.check : null);
   if (failed) {
     void log.warn("contact.bot_check_failed", { reason: failed, ip });
-    return fail(403, "The spam check didn't go through — reload the page and try again.");
+    return fail(403, "The spam check didn't go through. Reload the page and try again.");
   }
   if ((await countUp(`contact:${ip}`, HOUR_MS)) > PER_HOUR) {
     void log.warn("contact.limited", { ip });
-    return fail(429, "That's a lot of messages — try again in an hour, or email us directly.");
+    return fail(429, "That's a lot of messages. Try again in an hour, or email us directly.");
   }
 
   try {
     await sendEmail(contactEmail(config.contactTo, { name, email }, message));
   } catch (e) {
     if (!(e instanceof DailyLimitError)) void log.error("contact.send_failed", { error: e });
-    return fail(503, "Your message couldn't be sent just now — try again later, or email us directly.");
+    return fail(503, "Your message couldn't be sent just now. Try again later, or email us directly.");
   }
   void log.info("contact.sent", { ip });
   return Response.json({ ok: true });

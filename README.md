@@ -80,7 +80,7 @@ Each book carries: title, author, genre, page count, status (read / reading
 / to read / didn't finish), a 1–5 star rating, the date finished — or
 stopped, for a book you didn't finish — (picked with a calendar), and its
 notes page. Two more details are optional, off until switched on in Settings
-→ Optional features: the source (book store / Kindle / audiobook / borrowed /
+→ Preferences: the source (book store / Kindle / audiobook / borrowed /
 second hand / gifted / library, or your own) and whether a physical copy
 lives at home. Switching one off only hides it.
 
@@ -108,7 +108,7 @@ title, author, rating, date finished, or recently added.
 
 ### Showcase your year
 
-**Settings → Showcase** makes a public page of one year's reading, for
+**Showcase your year** (Settings → Profile) makes a public page of one year's reading, for
 anyone you send the link to: a bookplate with your name, the year's numbers,
 every book under the month you finished it, what you're reading now and your
 five-star reads, plus a picture for link previews. It shows covers, titles,
@@ -161,9 +161,9 @@ To stay on a particular release, set `BOOKPLATE_VERSION=0.1.0` in `.env`.
 
 ### Backups
 
-The easy way: **Settings → Export library** downloads everything — books,
-notes, pasted images, covers and vocabulary — as one zip. **Settings →
-Import** reads it back into any Bookplate.
+The easy way: **Settings → Import & export → Export library** downloads
+everything (books, notes, pasted images, covers and vocabulary) as one zip.
+**Import** on the same tab reads it back into any Bookplate.
 
 For full server backups, save both volumes:
 
@@ -189,7 +189,7 @@ publicly, a VPN such as Tailscale works well too.
 ### Coming from the original app
 
 If you ran the earlier git-based version of Bookplate, zip its `data/`
-folder and use **Settings → Import**. Books, covers, notes, pasted images
+folder and use **Settings → Import & export**. Books, covers, notes, pasted images
 and vocabulary all come across.
 
 ## Configuration
@@ -257,8 +257,8 @@ Garage or RustFS. The bucket stays private — Bookplate fetches images itself
 and only shows them to their owner. With wrong `S3_*` settings, Bookplate
 won't start, and `docker compose logs bookplate` says what's wrong.
 
-Pick your storage before adding images. To switch later: **Settings → Export
-library**, change the setting and restart, then **Settings → Import** the same
+Pick your storage before adding images. To switch later: **Settings → Import &
+export → Export library**, change the setting and restart, then **Import** the same
 zip (each account does this for its own library; profile photos need re-adding).
 
 ### Logs
@@ -321,7 +321,7 @@ docker compose exec bookplate reset-password you@example.com
 ```
 
 It asks for the new password twice and signs out every device. Settings →
-**Send a test email** checks that your email settings work.
+Security → **Send a test email** checks that your email settings work.
 
 ### Reported showcases
 

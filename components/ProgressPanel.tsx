@@ -115,7 +115,7 @@ export default function ProgressPanel({ book, progress, onLog, onRemove, onFinis
         <p className="progress-meta">
           {unit === "page"
             ? "Log the page you’re on to start tracking."
-            : "This book has no page count, so progress is a percentage — or add the page count to track pages."}
+            : "This book has no page count, so progress is a percentage. Add the page count to track pages instead."}
         </p>
       )}
     </section>

@@ -114,7 +114,7 @@ export async function importArchive(userId: string, zip: Uint8Array): Promise<Im
 
   const manifest = readJson(entries[root + "manifest.json"]) as { formatVersion?: number } | null;
   if (manifest?.formatVersion && manifest.formatVersion > FORMAT_VERSION) {
-    throw new ImportError("This export was made by a newer version of Bookplate — update this server first.");
+    throw new ImportError("This export was made by a newer version of Bookplate. Update this server first.");
   }
 
   let skipped = 0;

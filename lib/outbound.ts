@@ -22,7 +22,7 @@ const nextFree: Record<Lane, number> = { openlibrary: 0, coversByIsbn: 0, itunes
 // Thrown when a lane is booked up for longer than the caller will wait.
 export class BusyError extends Error {
   constructor(public retryAfterMs: number) {
-    super("The book service is busy — try again in a moment.");
+    super("The book service is busy. Try again in a moment.");
   }
 }
 

@@ -79,7 +79,9 @@ export default async function ShowcasePage({ params }: Props) {
   return (
     <main className="page showcase">
       {owner ? (
-        <p className="showcase-note">This is your showcase. Change it or turn it off in Settings → Showcase.</p>
+        <p className="showcase-note">
+          This is your showcase. Change it or turn it off in <a href="/settings">Settings → Profile</a>.
+        </p>
       ) : (
         !session && (
           <div className="showcase-top">
