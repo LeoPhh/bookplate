@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { listBooks, listProgress } from "./library";
 import { todayIso } from "./progress";
@@ -7,9 +7,10 @@ import { buildShowcaseYear, includesReading, INCLUDES, type ShowcaseInclude, typ
 import { Book } from "./types";
 
 // Showcases: a reader's public page for one year of reading, at /s/<id>. One
-// per account and year; saving the same year again keeps its address. Only
-// the reader's choices are stored, so the page always shows the library as it
-// is now. Turning one off deletes it, and the address stops working at once.
+// per account: saving again, even for another year, keeps its address, so
+// links already sent keep working. Only the reader's choices are stored, so
+// the page always shows the library as it is now. Turning it off deletes it,
+// and the address stops working at once.
 
 export interface Showcase {
   id: string;
@@ -36,7 +37,7 @@ const toShowcase = (r: typeof showcase.$inferSelect): Showcase => ({
 
 export class ShowcaseError extends Error {}
 
-// Checks what the Showcase dialog sends. Returns the cleaned settings, or
+// Checks what the Showcase setup page sends. Returns the cleaned settings, or
 // throws a ShowcaseError with a message for the reader.
 export function parseShowcase(body: unknown, thisYear: number): Omit<Showcase, "id"> {
   const o = (body ?? {}) as Record<string, unknown>;
@@ -68,19 +69,21 @@ export function parseShowcase(body: unknown, thisYear: number): Omit<Showcase, "
   };
 }
 
-export async function listShowcases(userId: string): Promise<Showcase[]> {
-  const rows = await getDb().select().from(showcase).where(eq(showcase.userId, userId)).orderBy(asc(showcase.year));
-  return rows.map(toShowcase);
+// The reader's showcase, or null when they haven't one on.
+export async function getShowcase(userId: string): Promise<Showcase | null> {
+  const [row] = await getDb().select().from(showcase).where(eq(showcase.userId, userId));
+  return row ? toShowcase(row) : null;
 }
 
-// Creates the year's showcase, or changes it and keeps its address.
+// Creates the reader's showcase, or changes it (year included) and keeps its
+// address.
 export async function saveShowcase(userId: string, s: Omit<Showcase, "id">): Promise<Showcase> {
   const [row] = await getDb()
     .insert(showcase)
     .values({ id: newId(), userId, year: s.year, include: s.include, name: s.name })
     .onConflictDoUpdate({
-      target: [showcase.userId, showcase.year],
-      set: { include: s.include, name: s.name, updatedAt: sql`now()` },
+      target: showcase.userId,
+      set: { year: s.year, include: s.include, name: s.name, updatedAt: sql`now()` },
     })
     .returning();
   return toShowcase(row);
@@ -111,8 +114,37 @@ export async function loadShowcase(id: string): Promise<{ showcase: Showcase; us
   return { showcase: s, userId: row.userId, view };
 }
 
+// What a showcase would look like, for its owner only: the Showcase tab and
+// its previews. Covers stay at their private addresses, which the owner can
+// load.
+export async function previewShowcase(
+  userId: string,
+  { year, include }: { year: number; include: ShowcaseInclude },
+): Promise<ShowcaseYear> {
+  const [books, progress] = await Promise.all([listBooks(userId), listProgress(userId)]);
+  return buildShowcaseYear(books.map((b) => shownBook(b)), progress, { year, include, today: todayIso() });
+}
+
+// The years a reader can showcase, newest first, with how many books they
+// finished in each: this one, and any earlier year with a finished book. A
+// date in the future (from before such dates were refused) doesn't count.
+export async function showcaseYears(userId: string): Promise<{ year: number; books: number }[]> {
+  const thisYear = Number(todayIso().slice(0, 4));
+  const counts = new Map<number, number>([[thisYear, 0]]);
+  for (const b of await listBooks(userId)) {
+    const year = b.status === "read" ? Number(b.dateRead?.slice(0, 4)) : NaN;
+    if (Number.isInteger(year) && year >= FIRST_YEAR && year <= thisYear) counts.set(year, (counts.get(year) ?? 0) + 1);
+  }
+  return [...counts].map(([year, books]) => ({ year, books })).sort((a, b) => b.year - a.year);
+}
+
 // Only what a showcase shows: never notes, sources or ownership.
 function publicBook(b: Book, showcaseId: string): Book {
+  const shown = shownBook(b);
+  return { ...shown, coverImage: shown.coverImage ? showcaseCover(showcaseId, shown.coverImage) : undefined };
+}
+
+function shownBook(b: Book): Book {
   return {
     id: b.id,
     title: b.title,
@@ -124,7 +156,7 @@ function publicBook(b: Book, showcaseId: string): Book {
     dateRead: b.dateRead,
     colorIndex: b.colorIndex,
     addedAt: b.addedAt,
-    coverImage: b.coverImage ? showcaseCover(showcaseId, b.coverImage) : undefined,
+    coverImage: b.coverImage,
   };
 }
 

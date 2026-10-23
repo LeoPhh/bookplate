@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { deleteBook, upsertBook } from "@/lib/library";
 import { checkBooks, overLimit } from "@/lib/limits";
 import { isSafeId } from "@/lib/storage";
-import { isValidBook } from "@/lib/validate";
+import { isFutureDate, isValidBook } from "@/lib/validate";
 
 // PUT creates or replaces one book. Saving one record at a time means two
 // open tabs editing different books never overwrite each other.
@@ -18,6 +18,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
   if (!isSafeId(id) || !isValidBook(body) || body.id !== id) {
     return Response.json({ error: "Invalid book" }, { status: 400 });
+  }
+  if (body.dateRead && isFutureDate(body.dateRead)) {
+    return Response.json({ error: "The date can’t be in the future." }, { status: 400 });
   }
   const over = await checkBooks(auth.userId, [id]);
   if (over) return overLimit(over);

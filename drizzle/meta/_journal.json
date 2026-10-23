@@ -71,6 +71,13 @@
       "when": 1791814465385,
       "tag": "0009_features",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792768898290,
+      "tag": "0010_one_showcase",
+      "breakpoints": true
     }
   ]
 }

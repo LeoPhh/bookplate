@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidBook, isValidProgress, isValidVocab } from "@/lib/validate";
+import { isFutureDate, isValidBook, isValidProgress, isValidVocab } from "@/lib/validate";
 
 describe("isValidBook", () => {
   it("accepts a minimal book and rejects bad ids or types", () => {
@@ -36,5 +36,16 @@ describe("isValidProgress", () => {
     expect(isValidProgress({ ...ok, date: "yesterday" })).toBe(false);
     expect(isValidProgress({ ...ok, page: 1.5 })).toBe(false);
     expect(isValidProgress({ ...ok, bookId: "a/b" })).toBe(false);
+  });
+});
+
+describe("isFutureDate", () => {
+  it("allows up to tomorrow, for readers whose day has already turned over", () => {
+    const now = new Date(2026, 11, 31, 22, 0); // 31 Dec 2026, 22:00
+    expect(isFutureDate("2026-12-31", now)).toBe(false);
+    expect(isFutureDate("2027-01-01", now)).toBe(false);
+    expect(isFutureDate("2027-01-02", now)).toBe(true);
+    expect(isFutureDate("2027-06-01", now)).toBe(true);
+    expect(isFutureDate("1999-01-01", now)).toBe(false);
   });
 });

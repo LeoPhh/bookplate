@@ -3,7 +3,8 @@ import path from "path";
 import { describe, expect, inject, it } from "vitest";
 import { book, jpeg, reader, Visitor, type Reader } from "./client";
 
-// Showcases: a public page of a year's reading at /s/<id> (lib/showcase.ts).
+// Showcases: a public page of a year's reading at /s/<id> (lib/showcase.ts),
+// one per reader, managed from the Showcase tab (app/showcase).
 
 const YEAR = new Date().getFullYear();
 
@@ -40,25 +41,37 @@ async function library(): Promise<Reader> {
 }
 
 describe("making a showcase", () => {
-  it("gives a link to a public page of the year, keeping it when changed", async () => {
+  it("gives a link to a public page of the year, keeping it when changed, even to another year", async () => {
     const r = await library();
+    expect((await r.get<{ showcase: Showcase | null }>("/api/showcases")).showcase).toBeNull();
     const s = await made(r, { year: YEAR, include: "both", name: "Ada" });
     expect(s).toMatchObject({ year: YEAR, include: "both", name: "Ada" });
     expect(s.id).toMatch(/^[A-Za-z0-9_-]{16}$/);
 
     const again = await made(r, { year: YEAR, include: "read", name: "  Ada   L. " });
     expect(again).toEqual({ id: s.id, year: YEAR, include: "read", name: "Ada L." });
-    expect((await r.get<{ showcases: Showcase[] }>("/api/showcases")).showcases).toEqual([again]);
+
+    // One showcase per reader: another year takes over the same link.
+    const moved = await made(r, { year: YEAR - 1, include: "read", name: "Ada" });
+    expect(moved).toEqual({ id: s.id, year: YEAR - 1, include: "read", name: "Ada" });
+    expect((await r.get<{ showcase: Showcase }>("/api/showcases")).showcase).toEqual(moved);
+    const html = await (await new Visitor().fetch(`/s/${s.id}`)).text();
+    expect(html).toContain("Last Year Book");
+    expect(html).not.toContain("February Book");
   });
 
-  it("starts from Settings", async () => {
+  it("starts from the Showcase tab, no longer from Settings", async () => {
     const r = await reader();
-    expect(await (await r.fetch("/settings")).text()).toContain("Showcase your year");
+    const tab = await (await r.fetch("/showcase")).text();
+    expect(tab).toContain("Showcase your library");
+    expect(tab).toContain('href="/showcase/setup"');
+    expect(tab).toContain("A sample shelf"); // too few books for a demo of their own
+    expect(await (await r.fetch("/settings")).text()).not.toContain("Showcase your year");
   });
 
   it("checks what it's given", async () => {
     const r = await reader();
-    expect((await make(r, { year: YEAR + 1, include: "read" })).status).toBe(400);
+    expect((await make(r, { year: YEAR + 1, include: "read" })).status).toBe(400); // not a year still to come
     expect((await make(r, { year: "2020", include: "read" })).status).toBe(400);
     expect((await make(r, { year: YEAR, include: "everything" })).status).toBe(400);
     expect((await make(r, { year: YEAR, include: "read", name: "x".repeat(41) })).status).toBe(400);
@@ -142,6 +155,61 @@ describe("the public page", () => {
   it("doesn't exist for a made-up address", async () => {
     expect((await new Visitor().fetch("/s/AAAAAAAAAAAAAAAA")).status).toBe(404);
     expect((await new Visitor().fetch("/s/not-an-id")).status).toBe(404);
+  });
+});
+
+describe("the Showcase tab", () => {
+  it("demos the reader's own best year until they have a showcase", async () => {
+    const r = await library();
+    for (const id of ["apr", "may"]) {
+      await r.json(`/api/books/${id}`, "PUT", book(id, { title: `Book ${id}`, status: "read", dateRead: `${YEAR}-05-01`, rating: 4 }));
+    }
+    const html = await (await r.fetch("/showcase")).text();
+    expect(html).toContain(`Your ${YEAR}, the way your friends would see it.`);
+    expect(html).toContain("February Book");
+    expect(html).not.toContain("A private thought");
+  });
+
+  it("shows the showcase that's on, with its link and what visitors see", async () => {
+    const r = await library();
+    const s = await made(r, { year: YEAR, include: "both", name: "Ada" });
+    const html = await (await r.fetch("/showcase")).text();
+    expect(html).toContain(`Your ${YEAR} is on show.`);
+    expect(html).toContain(`/s/${s.id}`);
+    expect(html).toContain("February Book");
+    expect(html).toContain("Change year or details");
+    expect(html).not.toContain("Showcase your library");
+
+    // Turned off, the pitch is back.
+    await r.fetch(`/api/showcases/${s.id}`, { method: "DELETE" });
+    expect(await (await r.fetch("/showcase")).text()).toContain("Showcase your library");
+  });
+
+  it("offers this year and each year with a finished book, never a later one", async () => {
+    const r = await library();
+    const html = await (await r.fetch("/showcase/setup")).text();
+    expect(html).toContain(`value="${YEAR}"`);
+    expect(html).toContain(`value="${YEAR - 1}"`);
+    expect(html).not.toContain(`value="${YEAR + 1}"`);
+    expect(html).not.toContain(`value="${YEAR - 2}"`); // nothing finished then
+    expect(html).toContain(`/showcase/preview/${YEAR - 1}?`);
+  });
+
+  it("previews any year privately, without saving anything", async () => {
+    const r = await library();
+    const page = await r.fetch(`/showcase/preview/${YEAR - 1}?include=read&name=Ada`);
+    expect(page.status).toBe(200);
+    const html = await page.text();
+    expect(html).toContain("Only you can see this page.");
+    expect(html).toContain("Ada’s Library");
+    expect(html).toContain("Last Year Book");
+    expect(html).not.toContain("February Book");
+    expect((await r.get<{ showcase: Showcase | null }>("/api/showcases")).showcase).toBeNull();
+
+    expect((await r.fetch(`/showcase/preview/${YEAR + 1}`)).status).toBe(404);
+    expect((await r.fetch("/showcase/preview/nonsense")).status).toBe(404);
+    const visitor = await new Visitor().fetch(`/showcase/preview/${YEAR}`, { redirect: "manual" });
+    expect(visitor.status).toBe(307);
   });
 });
 

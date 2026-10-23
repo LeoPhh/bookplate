@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getSession } from "@/lib/auth";
@@ -19,16 +19,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         .where(eq(schema.user.id, session.user.id))
     : [];
 
-  // Showcase years: this one, and any with a finished book.
-  const thisYear = new Date().getFullYear();
-  const finished = await getDb()
-    .selectDistinct({ year: sql<string>`substr(${schema.book.dateRead}, 1, 4)` })
-    .from(schema.book)
-    .where(and(eq(schema.book.userId, session.user.id), eq(schema.book.status, "read"), isNotNull(schema.book.dateRead)));
-  const showcaseYears = [...new Set([thisYear, ...finished.map((r) => Number(r.year))])]
-    .filter((y) => Number.isInteger(y) && y >= 1900 && y <= thisYear)
-    .sort((a, b) => b - a);
-
   return (
     <main className="page">
       <header className="masthead">
@@ -40,7 +30,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         email={config.email.enabled ? { from: config.email.from } : null}
         emailSettings={config.emailSettings}
         newsletter={config.newsletter ? Boolean(row?.since) : null}
-        showcaseYears={showcaseYears}
         initialTab={isSettingsTab(tab) ? tab : "profile"}
       />
       <p className="settings-version">Bookplate version {config.version}</p>

@@ -30,6 +30,16 @@ describe("books", () => {
     expect((await r.fetch("/api/books/b1", { method: "PUT", body: "not json" })).status).toBe(400);
   });
 
+  it("refuse a finished date in the future", async () => {
+    const r = await reader();
+    const year = new Date().getFullYear();
+    const later = await r.json("/api/books/b1", "PUT", book("b1", { status: "read", dateRead: `${year + 1}-01-15` }));
+    expect(later.status).toBe(400);
+    expect(((await later.json()) as { error: string }).error).toContain("future");
+    const today = new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
+    expect((await r.json("/api/books/b1", "PUT", book("b1", { status: "read", dateRead: today }))).status).toBe(200);
+  });
+
   it("are deleted with their cover, notes and progress", async () => {
     const r = await reader();
     await r.json("/api/books/b1", "PUT", book("b1", { coverImage: "/api/covers/b1.jpg", pages: 100 }));

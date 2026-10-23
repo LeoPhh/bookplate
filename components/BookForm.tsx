@@ -497,7 +497,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
           </div>
           <div className="field">
             <span>Date {dateLabel(d.status).toLowerCase()}</span>
-            <DatePicker value={d.dateRead} onChange={(v) => set("dateRead", v)} />
+            <DatePicker value={d.dateRead} onChange={(v) => set("dateRead", v)} max={todayIso()} />
           </div>
           <div className="field">
             <span>Rating</span>

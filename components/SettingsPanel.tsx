@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { fileToDataUrl } from "@/lib/image";
 import Avatar from "./Avatar";
-import ShowcaseDialog from "./ShowcaseDialog";
 import SettingsTabs from "./SettingsTabs";
 import { SETTINGS_TABS, type SettingsTab } from "@/lib/settingsTabs";
 import { useFeatures } from "./Features";
@@ -669,29 +668,11 @@ function OptionalFeatures() {
   );
 }
 
-// The public page of a year's reading: the dialog does the work.
-function Showcase({ years }: { years: number[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <p className="settings-lede">
-        Make a page of one year&rsquo;s reading to send to friends: your covers, the year&rsquo;s numbers and your
-        favourites, never your notes or words. It keeps up as you read, and you can turn it off at any time.
-      </p>
-      <button type="button" className="btn" onClick={() => setOpen(true)}>
-        Showcase your year…
-      </button>
-      {open && <ShowcaseDialog years={years} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
 export default function SettingsPanel({
   user,
   email,
   emailSettings,
   newsletter,
-  showcaseYears,
   initialTab,
 }: {
   user: ProfileUser;
@@ -699,7 +680,6 @@ export default function SettingsPanel({
   emailSettings: boolean; // whether to show the Email section
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
-  showcaseYears: number[]; // newest first
   initialTab: SettingsTab;
 }) {
   const [tab, setTab] = useState(initialTab);
@@ -755,10 +735,6 @@ export default function SettingsPanel({
         <section className="settings-section">
           <h2 className="form-heading">Profile</h2>
           <Profile user={user} />
-        </section>
-        <section className="settings-section">
-          <h2 className="form-heading">Showcase</h2>
-          <Showcase years={showcaseYears} />
         </section>
   
       </div>

@@ -122,3 +122,35 @@ describe("features (0009)", () => {
     }
   });
 });
+
+// Upgrading a database where readers have a showcase for several years.
+describe("one showcase per reader (0010)", () => {
+  const UP = `bookplate_showcase_${process.pid}`;
+  afterAll(() => dropDatabase(UP));
+
+  it("keeps each reader's most recently saved showcase", async () => {
+    const { Client } = await import("pg");
+    const c = new Client({ connectionString: await createDatabase(UP) });
+    await c.connect();
+    const run = async (file: string) => {
+      const text = readFileSync(path.join(__dirname, "../../drizzle", `${file}.sql`), "utf8");
+      for (const statement of text.split("--> statement-breakpoint")) await c.query(statement);
+    };
+    try {
+      const tags = (journal.entries as { tag: string }[]).map((e) => e.tag);
+      for (const tag of tags.slice(0, tags.indexOf("0010_one_showcase"))) await run(tag);
+      await c.query(`INSERT INTO "user" (id, name, email) VALUES ('many', 'M', 'm@example.com'), ('one', 'O', 'o@example.com')`);
+      await c.query(`INSERT INTO showcase (id, user_id, year, include, updated_at) VALUES
+        ('old', 'many', 2024, 'read', '2026-01-01'), ('new', 'many', 2025, 'read', '2026-06-01'),
+        ('mid', 'many', 2026, 'both', '2026-03-01'), ('only', 'one', 2023, 'read', '2025-01-01')`);
+      await run("0010_one_showcase");
+      const { rows } = await c.query(`SELECT id FROM showcase ORDER BY id`);
+      expect(rows).toEqual([{ id: "new" }, { id: "only" }]);
+      await expect(c.query(`INSERT INTO showcase (id, user_id, year, include) VALUES ('x', 'one', 2024, 'read')`)).rejects.toThrow(
+        /showcase_user_idx/,
+      );
+    } finally {
+      await c.end();
+    }
+  });
+});

@@ -159,9 +159,10 @@ export const vocabEntry = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.id] })]
 );
 
-// A public page of one year's reading (lib/showcase.ts), at /s/<id>. It holds
-// only the reader's choices; the books are read live each time it's opened.
-// The id is the whole address, so it's long and random, and never logged.
+// A public page of one year's reading (lib/showcase.ts), at /s/<id>. One per
+// reader. It holds only the reader's choices; the books are read live each
+// time it's opened. The id is the whole address, so it's long and random, and
+// never logged.
 export const showcase = pgTable(
   "showcase",
   {
@@ -175,5 +176,5 @@ export const showcase = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("showcase_user_year_idx").on(t.userId, t.year)]
+  (t) => [uniqueIndex("showcase_user_idx").on(t.userId)]
 );

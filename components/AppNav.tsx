@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/", label: "Library" },
   { href: "/vocabulary", label: "Vocabulary" },
   { href: "/statistics", label: "Statistics" },
+  { href: "/showcase", label: "Showcase" },
 ];
 
 // The app's sections, in the bar along the top (a tab bar at the bottom of

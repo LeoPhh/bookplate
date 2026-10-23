@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 interface Props {
   value: string; // ISO yyyy-mm-dd, or "" for unset
   onChange: (value: string) => void;
+  max?: string; // ISO yyyy-mm-dd: the latest date that can be picked
 }
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -32,7 +33,7 @@ function parseISO(value: string): { y: number; m: number; d: number } | null {
   return { y: Number(value.slice(0, 4)), m: Number(value.slice(5, 7)) - 1, d: Number(value.slice(8, 10)) };
 }
 
-export default function DatePicker({ value, onChange }: Props) {
+export default function DatePicker({ value, onChange, max }: Props) {
   const [open, setOpen] = useState(false);
   const selected = parseISO(value);
   const now = new Date();
@@ -71,13 +72,21 @@ export default function DatePicker({ value, onChange }: Props) {
     setOpen(!open);
   };
 
+  // Paging stops at the month holding the latest date.
+  const maxMonth = parseISO(max ?? "");
+  const pastMax = (y: number, m: number) => !!maxMonth && (y > maxMonth.y || (y === maxMonth.y && m > maxMonth.m));
+
   const moveMonth = (delta: number) =>
     setView((v) => {
       const m = v.m + delta;
       return { y: v.y + Math.floor(m / 12), m: ((m % 12) + 12) % 12 };
     });
 
-  const moveYear = (delta: number) => setView((v) => ({ ...v, y: v.y + delta }));
+  const moveYear = (delta: number) =>
+    setView((v) => {
+      const y = v.y + delta;
+      return maxMonth && pastMax(y, v.m) ? { y: maxMonth.y, m: maxMonth.m } : { ...v, y };
+    });
 
   const pick = (d: number) => {
     onChange(toISO(view.y, view.m, d));
@@ -88,6 +97,8 @@ export default function DatePicker({ value, onChange }: Props) {
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
   const isToday = (d: number) =>
     view.y === now.getFullYear() && view.m === now.getMonth() && d === now.getDate();
+  const isAfterMax = (d: number) => !!max && toISO(view.y, view.m, d) > max;
+  const nextMonthPastMax = view.m === 11 ? pastMax(view.y + 1, 0) : pastMax(view.y, view.m + 1);
   const isSelected = (d: number) => !!selected && view.y === selected.y && view.m === selected.m && d === selected.d;
 
   const label = value
@@ -116,10 +127,22 @@ export default function DatePicker({ value, onChange }: Props) {
             <span className="datepicker-month">
               {MONTHS[view.m]} {view.y}
             </span>
-            <button type="button" className="datepicker-nav" onClick={() => moveMonth(1)} aria-label="Next month">
+            <button
+              type="button"
+              className="datepicker-nav"
+              onClick={() => moveMonth(1)}
+              disabled={nextMonthPastMax}
+              aria-label="Next month"
+            >
               ›
             </button>
-            <button type="button" className="datepicker-nav" onClick={() => moveYear(1)} aria-label="Next year">
+            <button
+              type="button"
+              className="datepicker-nav"
+              onClick={() => moveYear(1)}
+              disabled={!!maxMonth && view.y >= maxMonth.y}
+              aria-label="Next year"
+            >
               »
             </button>
           </div>
@@ -142,7 +165,7 @@ export default function DatePicker({ value, onChange }: Props) {
                 .filter(Boolean)
                 .join(" ");
               return (
-                <button key={d} type="button" className={cls} onClick={() => pick(d)}>
+                <button key={d} type="button" className={cls} onClick={() => pick(d)} disabled={isAfterMax(d)}>
                   {d}
                 </button>
               );

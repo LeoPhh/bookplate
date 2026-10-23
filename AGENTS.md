@@ -30,7 +30,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
   (`PRIVACY_URL`, `TERMS_URL`): links and `/privacy`, `/terms` then lead there.
 - Every page has the app bar (`components/AppBar.tsx`, from `app/layout.tsx`):
   the mark (a link to the Library), and when signed in the sections
-  (Library, Vocabulary, Statistics) and the account menu. On phones the
+  (Library, Vocabulary, Statistics, Showcase) and the account menu. On phones the
   sections become the bottom tab bar. It never links out of the app.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
   check `config.email.enabled`. Emails that reveal whether an account exists

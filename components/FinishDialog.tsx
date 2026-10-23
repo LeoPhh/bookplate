@@ -48,7 +48,7 @@ export default function FinishDialog({ book, onConfirm, onCancel }: Props) {
         <div className="finish-fields">
           <div className="field">
             <span>Date finished</span>
-            <DatePicker value={dateRead} onChange={setDateRead} />
+            <DatePicker value={dateRead} onChange={setDateRead} max={todayISO()} />
           </div>
           <div className="field">
             <span>Rating</span>

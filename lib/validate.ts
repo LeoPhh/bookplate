@@ -1,4 +1,5 @@
 import { isWorkId } from "./openLibrary";
+import { todayIso } from "./progress";
 import { Book, ProgressEntry, VocabEntry } from "./types";
 
 const ID_RE = /^[a-zA-Z0-9_-]+$/;
@@ -32,6 +33,13 @@ export function isValidBook(b: unknown): b is Book {
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// A finished date can't be in the future. Measured against the server's
+// tomorrow, so a reader whose day has already turned over isn't refused.
+export function isFutureDate(iso: string, now = new Date()): boolean {
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return iso > todayIso(tomorrow);
+}
 
 export function isValidProgress(p: unknown): p is ProgressEntry {
   if (typeof p !== "object" || p === null) return false;
