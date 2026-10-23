@@ -5,8 +5,9 @@ import { DailyLimitError, sendEmail, testEmail } from "@/lib/email";
 
 // POST sends a test email to the signed-in reader, and — unlike the other
 // emails — reports exactly what went wrong, so the server's owner can fix
-// their SMTP settings.
+// their SMTP settings. Gone with EMAIL_SETTINGS=false, like its button.
 export async function POST() {
+  if (!config.emailSettings) return Response.json({ error: "Not found" }, { status: 404 });
   const session = await getSession();
   if (!session) return Response.json({ error: "Not signed in" }, { status: 401 });
   if (!config.email.enabled) {

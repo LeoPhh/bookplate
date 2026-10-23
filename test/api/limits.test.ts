@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { book, limitedBaseUrl, reader } from "./client";
 
 // Against the "limited" test server: LIMIT_BOOKS=3, LIMIT_WORDS=2,
-// LIMIT_STORAGE_MB=1, LIMIT_UPLOAD_MB=1, LIMIT_IMPORT_MB=1.
+// LIMIT_STORAGE_MB=1, LIMIT_UPLOAD_MB=1, LIMIT_IMPORT_MB=1 (and EMAIL_SETTINGS=false).
 
 const limitedReader = () => reader("Reader", limitedBaseUrl());
 const KB = 1024;

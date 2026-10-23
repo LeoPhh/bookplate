@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reader } from "./client";
+import { limitedBaseUrl, reader } from "./client";
 
 // The Settings page's tabs (lib/settingsTabs.ts).
 
@@ -16,5 +16,20 @@ describe("settings tabs", () => {
     expect(html).toMatch(/id="settings-panel-profile"[^>]*hidden/);
     expect(html).toContain("Change password");
     expect(selected(await (await r.fetch("/settings?tab=nonsense")).text())).toBe("profile");
+  });
+});
+
+describe("the Email section", () => {
+  it("shows by default", async () => {
+    const r = await reader();
+    expect(await (await r.fetch("/settings?tab=security")).text()).toContain("Email isn’t set up");
+  });
+
+  it("is gone, with its test email, with EMAIL_SETTINGS=false (the limited server)", async () => {
+    const r = await reader("Reader", limitedBaseUrl());
+    const html = await (await r.fetch("/settings?tab=security")).text();
+    expect(html).toContain("Change password");
+    expect(html).not.toContain("Email isn’t set up");
+    expect((await r.fetch("/api/email/test", { method: "POST" })).status).toBe(404);
   });
 });

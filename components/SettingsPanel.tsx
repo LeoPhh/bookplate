@@ -689,12 +689,14 @@ function Showcase({ years }: { years: number[] }) {
 export default function SettingsPanel({
   user,
   email,
+  emailSettings,
   newsletter,
   showcaseYears,
   initialTab,
 }: {
   user: ProfileUser;
   email: { from: string } | null;
+  emailSettings: boolean; // whether to show the Email section
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
   showcaseYears: number[]; // newest first
@@ -844,10 +846,12 @@ export default function SettingsPanel({
           <ChangePassword />
         </section>
   
-        <section className="settings-section">
-          <h2 className="form-heading">Email</h2>
-          <EmailStatus email={email} to={user.email} />
-        </section>
+        {emailSettings && (
+          <section className="settings-section">
+            <h2 className="form-heading">Email</h2>
+            <EmailStatus email={email} to={user.email} />
+          </section>
+        )}
   
       </div>
 

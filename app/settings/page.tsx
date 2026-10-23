@@ -38,6 +38,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <SettingsPanel
         user={{ name: session.user.name, email: session.user.email, image: session.user.image ?? null }}
         email={config.email.enabled ? { from: config.email.from } : null}
+        emailSettings={config.emailSettings}
         newsletter={config.newsletter ? Boolean(row?.since) : null}
         showcaseYears={showcaseYears}
         initialTab={isSettingsTab(tab) ? tab : "profile"}

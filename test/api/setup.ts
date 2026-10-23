@@ -72,7 +72,7 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
   // variables (TEST, VITEST…), which libraries use to switch off safeguards.
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL|LEGAL_DIR|PRIVACY_URL|TERMS_URL|SMTP_REPLY_TO|EMAIL_LIMIT_PER_DAY|CONTACT_FORM_TO|NEWSLETTER)$/.test(k)
+      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL|LEGAL_DIR|PRIVACY_URL|TERMS_URL|SMTP_REPLY_TO|EMAIL_LIMIT_PER_DAY|CONTACT_FORM_TO|NEWSLETTER|EMAIL_SETTINGS)$/.test(k)
     )
   );
   const child: ChildProcess = spawn(process.execPath, [SERVER], {
@@ -176,6 +176,7 @@ export default async function setup(project: TestProject) {
       LIMIT_STORAGE_MB: "1",
       LIMIT_UPLOAD_MB: "1",
       LIMIT_IMPORT_MB: "1",
+      EMAIL_SETTINGS: "false",
     }),
   ]);
 
