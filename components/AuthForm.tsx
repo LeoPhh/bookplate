@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import AuthShell, { LegalLink } from "./AuthShell";
+import AuthShell from "./AuthShell";
 import type { LegalLinks } from "@/lib/legal";
+import { isPlausibleEmail, meetsPasswordRules, MESSAGES, MIN_PASSWORD_LENGTH } from "@/lib/signupChecks";
 import Spinner from "./Spinner";
 
 type Mode = "setup" | "login" | "signup";
@@ -66,8 +67,13 @@ export default function AuthForm({
   const [confirm, setConfirm] = useState("");
   const [subscribe, setSubscribe] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode>(null);
   const [checkInbox, setCheckInbox] = useState(false);
+  // Checked only on submit; editing a field clears its message until the
+  // next try.
+  const [emailBad, setEmailBad] = useState(false);
+  const [passwordBad, setPasswordBad] = useState(false);
+  const [mismatch, setMismatch] = useState(false);
   const creating = mode !== "login";
 
   // Started as soon as the form opens, so it's usually done before anyone
@@ -80,9 +86,14 @@ export default function AuthForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (creating && password !== confirm) {
-      setError("The passwords don’t match.");
-      return;
+    if (creating) {
+      // One problem at a time, by its own field, from the top down.
+      const emailOk = isPlausibleEmail(email);
+      const passwordOk = emailOk && meetsPasswordRules(password);
+      setEmailBad(!emailOk);
+      setPasswordBad(emailOk && !passwordOk);
+      setMismatch(passwordOk && password !== confirm);
+      if (!passwordOk || password !== confirm) return;
     }
     setBusy(true);
     setError(null);
@@ -104,10 +115,21 @@ export default function AuthForm({
     if (error) startPuzzle();
     setBusy(false);
     if (error) {
+      // With email confirmation on, Better Auth answers a taken address as
+      // if it were new (so nobody can test which addresses have accounts);
+      // the code only arrives on servers without it.
       setError(
-        error.code === "EMAIL_NOT_VERIFIED"
-          ? "Confirm your email address first. We’ve sent a new link to your inbox."
-          : (error.message ?? "That didn’t work. Try again.")
+        error.code === "EMAIL_NOT_VERIFIED" ? (
+          "Confirm your email address first. We’ve sent a new link to your inbox."
+        ) : error.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" ? (
+          <>
+            {MESSAGES.emailTaken} <Link href="/login">Sign in</Link> instead?
+          </>
+        ) : error.code === "INVALID_EMAIL" ? (
+          MESSAGES.email
+        ) : (
+          (error.message ?? "That didn’t work. Try again.")
+        )
       );
       return;
     }
@@ -144,28 +166,50 @@ export default function AuthForm({
           {notice}
         </p>
       )}
-      <form className="book-form auth-form" onSubmit={submit}>
+      {/* Creating an account, our own messages replace the browser's. */}
+      <form className="book-form auth-form" onSubmit={submit} noValidate={creating}>
         <label className="field field--wide">
           <span>Email</span>
           <input
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEmailBad(false);
+            }}
             autoComplete="username"
             autoFocus
+            aria-invalid={emailBad || undefined}
+            aria-describedby={emailBad ? "email-note" : undefined}
           />
+          {emailBad && (
+            <small id="email-note" className="field-note field-note--error" role="alert">
+              {MESSAGES.email}
+            </small>
+          )}
         </label>
         <label className="field field--wide">
           <span>Password</span>
           <input
             type="password"
             required
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordBad(false);
+              setMismatch(false);
+            }}
             autoComplete={creating ? "new-password" : "current-password"}
+            aria-invalid={passwordBad || undefined}
+            aria-describedby={passwordBad ? "password-note" : undefined}
           />
+          {passwordBad && (
+            <small id="password-note" className="field-note field-note--error" role="alert">
+              {MESSAGES.password}
+            </small>
+          )}
         </label>
         {creating && (
           <label className="field field--wide">
@@ -173,11 +217,21 @@ export default function AuthForm({
             <input
               type="password"
               required
-              minLength={8}
+              minLength={MIN_PASSWORD_LENGTH}
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => {
+                setConfirm(e.target.value);
+                setMismatch(false);
+              }}
               autoComplete="new-password"
+              aria-invalid={mismatch || undefined}
+              aria-describedby={mismatch ? "confirm-note" : undefined}
             />
+            {mismatch && (
+              <small id="confirm-note" className="field-note field-note--error" role="alert">
+                {MESSAGES.mismatch}
+              </small>
+            )}
           </label>
         )}
         {error && (
@@ -193,10 +247,10 @@ export default function AuthForm({
         )}
         {creating && legal && (legal.privacy || legal.terms) && (
           <p className="field--wide auth-consent">
-            By creating an account you agree to the{" "}
-            {legal.terms && <LegalLink href={legal.terms}>Terms of use</LegalLink>}
+            {/* The links themselves are in the footer, just below. */}
+            By creating an account you agree to the {legal.terms && "Terms of use"}
             {legal.terms && legal.privacy && " and "}
-            {legal.privacy && <LegalLink href={legal.privacy}>Privacy policy</LegalLink>}.
+            {legal.privacy && "Privacy policy"}.
           </p>
         )}
         <div className="dialog-actions field--wide">

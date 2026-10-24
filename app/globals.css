@@ -3392,6 +3392,17 @@ select,
   line-height: 1.5;
 }
 
+/* A message under one field of the account forms. */
+.field-note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.field-note--error {
+  color: var(--danger);
+}
+
 /* A tick box whose label runs to two lines: the box sits by the first. */
 .checkline--wrap {
   align-items: flex-start;

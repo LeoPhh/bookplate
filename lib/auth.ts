@@ -11,6 +11,7 @@ import { CHALLENGE_HEADER, checkChallenge } from "./botCheck";
 import { CLIENT_IP_HEADER, clientIp } from "./clientIp";
 import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
 import { account, log } from "./log";
+import { MIN_PASSWORD_LENGTH } from "./signupChecks";
 
 const emailOf = (body: unknown) => String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase();
 const signInKey = (body: unknown) => `sign-in:${emailOf(body)}`;
@@ -74,7 +75,7 @@ function createAuth() {
     },
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 8,
+      minPasswordLength: MIN_PASSWORD_LENGTH,
       // Only with open registration and email set up (see lib/config.ts).
       requireEmailVerification: config.requireEmailVerification,
       // Password reset by email, when email is set up. Without it, the
