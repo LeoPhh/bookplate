@@ -61,9 +61,9 @@ export default function AuthForm({
   legal,
   newsletter = false,
 }: Props) {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [subscribe, setSubscribe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +80,10 @@ export default function AuthForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating && password !== confirm) {
+      setError("The passwords don’t match.");
+      return;
+    }
     setBusy(true);
     setError(null);
     // After confirming their email, new readers land on the sign-in page,
@@ -88,7 +92,7 @@ export default function AuthForm({
     const { error } = creating
       ? await authClient.signUp.email(
           {
-            name: name.trim() || "Reader",
+            name: "", // added later in Settings, if at all
             email,
             password,
             callbackURL: "/login",
@@ -141,12 +145,6 @@ export default function AuthForm({
         </p>
       )}
       <form className="book-form auth-form" onSubmit={submit}>
-        {creating && (
-          <label className="field field--wide">
-            <span>Your name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-          </label>
-        )}
         <label className="field field--wide">
           <span>Email</span>
           <input
@@ -169,6 +167,19 @@ export default function AuthForm({
             autoComplete={creating ? "new-password" : "current-password"}
           />
         </label>
+        {creating && (
+          <label className="field field--wide">
+            <span>Confirm password</span>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+        )}
         {error && (
           <p className="field--wide search-note search-note--error" role="alert">
             {error}
@@ -202,7 +213,9 @@ export default function AuthForm({
       )}
       {mode === "signup" && (
         <p className="auth-links">
-          <Link href="/login">Already have an account? Sign in</Link>
+          <span>
+            Already have an account? <Link href="/login">Sign in</Link>
+          </span>
         </p>
       )}
     </AuthShell>

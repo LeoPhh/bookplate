@@ -110,16 +110,17 @@ title, author, rating, date finished, or recently added.
 
 The **Showcase** tab makes a public page of one year's reading, for anyone
 you send the link to: a bookplate with your name, the year's numbers, every
-book under the month you finished it, what you're reading now and your
-five-star reads, plus a picture for link previews. It shows covers, titles,
-authors, ratings and page counts, never notes or vocabulary, and it keeps up
-as you read. Until you have one, the tab shows what yours would look like.
-Pick this year or any earlier year you finished books in (preview each one
-first), whether to show Read, Reading or both (Reading only for this year)
-and the name on it. You have one showcase at a time: switching it to another
-year keeps the same link, and turning it off stops the link working at once.
+book you finished that year, then your highest-rated reads and your longest
+read, plus a picture for link previews. It shows the covers, titles,
+authors, ratings and page counts of the books you finished, never what
+you're reading now, notes or vocabulary, and it keeps up as you read. Until you have one, the tab shows
+what yours would look like; at its foot you pick this year or any earlier
+year you finished books in, and the name on it. You have one showcase at a
+time: switching it to another year keeps the same link, and turning it off
+stops the link working at once.
 Showcases live at `/s/<random id>` and ask search engines not to list them.
-Visitors are invited to sign up when registration is open.
+Signed-out visitors are invited to try Bookplate, with a link to
+[bookplate.eu](https://bookplate.eu).
 
 Finished dates can't be set in the future.
 

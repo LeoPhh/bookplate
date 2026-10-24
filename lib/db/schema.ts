@@ -171,7 +171,6 @@ export const showcase = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     year: integer("year").notNull(),
-    include: text("include").notNull(), // "read" | "reading" | "both"
     name: text("name"), // shown on the page; null = no name
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

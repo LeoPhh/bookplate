@@ -11,9 +11,8 @@ export async function GET() {
   return Response.json({ showcase: await getShowcase(auth.userId) });
 }
 
-// POST { year, include: "both" | "read" | "reading", name } creates the
-// reader's showcase, or changes it (even to another year) and keeps its
-// address.
+// POST { year, name } creates the reader's showcase, or changes it (even to
+// another year) and keeps its address.
 export async function POST(request: Request) {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;
@@ -26,7 +25,7 @@ export async function POST(request: Request) {
   try {
     const showcase = await saveShowcase(auth.userId, parseShowcase(body, Number(todayIso().slice(0, 4))));
     // Never the address or the name: the address is the only key to the page.
-    void log.info("showcase.saved", { user: auth.userId, year: showcase.year, include: showcase.include });
+    void log.info("showcase.saved", { user: auth.userId, year: showcase.year });
     return Response.json({ showcase });
   } catch (e) {
     if (e instanceof ShowcaseError) return Response.json({ error: e.message }, { status: 400 });

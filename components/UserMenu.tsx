@@ -51,7 +51,7 @@ export default function UserMenu() {
         <div className="user-menu-panel" role="menu">
           {user && (
             <div className="user-menu-who">
-              <span className="user-menu-name">{user.name}</span>
+              {user.name && <span className="user-menu-name">{user.name}</span>}
               <span className="user-menu-email">{user.email}</span>
             </div>
           )}

@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { book, jpeg, reader, Visitor } from "./client";
 
+describe("the account's name", () => {
+  it("starts empty when sign-up gives none, and is set and tidied in Settings", async () => {
+    const r = await reader("");
+    const session = async () => (await r.get<{ user: { name: string } }>("/api/auth/get-session")).user;
+    expect((await session()).name).toBe("");
+    const settings = await (await r.fetch("/settings")).text();
+    expect(settings).toContain("Add your name");
+
+    expect((await r.json("/api/auth/update-user", "POST", { name: "  Ada\u202e   Lovelace\n" })).status).toBe(200);
+    expect((await session()).name).toBe("Ada Lovelace");
+    expect((await r.json("/api/auth/update-user", "POST", { name: "x".repeat(61) })).status).toBe(400);
+    expect((await session()).name).toBe("Ada Lovelace");
+  });
+});
+
 describe("changing the password", () => {
   it("needs the current one and signs other devices out", async () => {
     const r = await reader();

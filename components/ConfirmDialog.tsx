@@ -43,7 +43,6 @@ export default function ConfirmDialog({
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="confirm-ornament">❦</p>
         <h2 className="confirm-title">{title}</h2>
         <p className="confirm-message">{message}</p>
         <div className="dialog-actions">

@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import BookCover from "./BookCover";
-import { MONTHS, possessive, type ShowcaseYear } from "@/lib/showcaseYear";
+import { possessive, type ShowcaseYear } from "@/lib/showcaseYear";
 
 // The Showcase tab before a reader has one on: a moving demo of their own
 // best year as a showcase (or a sample shelf when they haven't enough books
-// yet), how setting one up goes, and the way in. Everything plays once it
-// scrolls into view, and stands still for readers who ask for less motion.
+// yet), how setting one up goes, and (passed in) the year picker. The demo
+// plays once when it scrolls into view, and stands still for readers who ask
+// for less motion.
 
-const SHELF_PER_MONTH = 3;
-const STAGE_LOOP_MS = 14_000;
+const SHELF_MAX = 24; // about two rows of covers in the demo
 
 function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -67,38 +66,16 @@ function CountUp({ to, run, decimals = 0, delay = 0 }: { to: number; run: boolea
   return <>{decimals ? shown.toFixed(decimals) : Math.round(shown).toLocaleString("en-GB")}</>;
 }
 
-// Steps through 0…n-1 every `ms` while `run`, for the looping step demos.
-function useCycle(n: number, ms: number, run: boolean): number {
-  const reduced = useReducedMotion();
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (!run || reduced || n < 2) return;
-    const id = setInterval(() => setI((x) => (x + 1) % n), ms);
-    return () => clearInterval(id);
-  }, [n, ms, run, reduced]);
-  return i;
-}
-
-// The demo showcase in a browser window, replaying every so often while on
-// screen.
+// The demo showcase in a browser window. It builds itself once, the first
+// time it scrolls into view, and then stays put.
 function Stage({ name, view, host }: { name: string; view: ShowcaseYear; host: string }) {
   const [ref, seen] = useInView<HTMLDivElement>();
-  const reduced = useReducedMotion();
-  const [round, setRound] = useState(0);
-  useEffect(() => {
-    if (!seen || reduced) return;
-    const id = setInterval(() => setRound((r) => r + 1), STAGE_LOOP_MS);
-    return () => clearInterval(id);
-  }, [seen, reduced]);
 
   const { stats } = view;
-  // Each month's first few covers, numbered across the year so they drop in
-  // one after another.
-  const firsts = view.months.map((books) => books.slice(0, SHELF_PER_MONTH));
-  const offsets = firsts.map((_, m) => firsts.slice(0, m).reduce((n, books) => n + books.length, 0));
+  const longest = view.read.find((b) => b.id === stats.longest?.id);
   return (
     <div ref={ref} className={seen ? "promo-stage promo-stage--on" : "promo-stage"} aria-hidden="true">
-      <div key={round} className="promo-window">
+      <div className="promo-window">
         <div className="promo-window-bar">
           <span className="promo-window-dots">
             <i />
@@ -121,51 +98,54 @@ function Stage({ name, view, host }: { name: string; view: ShowcaseYear; host: s
             <div className="promo-stat">
               <p className="promo-stat-label">Books</p>
               <p className="promo-stat-value">
-                <CountUp key={round} to={stats.books} run={seen} delay={900} />
+                <CountUp to={stats.books} run={seen} delay={900} />
               </p>
             </div>
             <div className="promo-stat">
               <p className="promo-stat-label">Pages</p>
               <p className="promo-stat-value">
-                <CountUp key={round} to={stats.pages} run={seen} delay={1050} />
+                <CountUp to={stats.pages} run={seen} delay={1050} />
               </p>
             </div>
             <div className="promo-stat">
               <p className="promo-stat-label">{stats.rating !== undefined ? "Avg rating" : "A day"}</p>
               <p className="promo-stat-value">
                 {stats.rating !== undefined ? (
-                  <CountUp key={round} to={stats.rating} run={seen} decimals={1} delay={1200} />
+                  <CountUp to={stats.rating} run={seen} decimals={1} delay={1200} />
                 ) : (
-                  <CountUp key={round} to={stats.pagesPerDay ?? 0} run={seen} delay={1200} />
+                  <CountUp to={stats.pagesPerDay ?? 0} run={seen} delay={1200} />
                 )}
               </p>
             </div>
           </div>
 
+          {/* Covers drop in one after another. */}
           <ol className="promo-shelf">
-            {view.months.map((books, m) => (
-              <li key={MONTHS[m]} className="promo-month">
-                <span className="promo-month-name">{MONTHS[m].slice(0, 1)}</span>
-                {firsts[m].map((b, i) => (
-                  <div key={b.id} className="promo-cover" style={{ "--i": offsets[m] + i } as CSSProperties}>
-                    <BookCover book={b} />
-                  </div>
-                ))}
-                {books.length > SHELF_PER_MONTH && <span className="promo-month-more">+{books.length - SHELF_PER_MONTH}</span>}
+            {view.read.slice(0, SHELF_MAX).map((b, i) => (
+              <li key={b.id} className="promo-cover" style={{ "--i": i } as CSSProperties}>
+                <BookCover book={b} />
               </li>
             ))}
           </ol>
 
-          {view.favourites.length > 0 && (
+          {view.topRated.length > 0 && (
             <div className="promo-stars">
-              <span className="promo-stars-label">Five stars</span>
+              <span className="promo-stars-label">Highest rated</span>
               <div className="promo-stars-row">
-                {view.favourites.slice(0, 5).map((b, i) => (
+                {view.topRated.slice(0, 4).map((b, i) => (
                   <div key={b.id} className="promo-cover promo-cover--star" style={{ "--i": i } as CSSProperties}>
                     <BookCover book={b} />
                   </div>
                 ))}
               </div>
+              {longest && (
+                <>
+                  <span className="promo-stars-label">Longest read</span>
+                  <div className="promo-cover promo-cover--star promo-cover--longest" style={{ "--i": 4 } as CSSProperties}>
+                    <BookCover book={longest} />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -174,49 +154,40 @@ function Stage({ name, view, host }: { name: string; view: ShowcaseYear; host: s
   );
 }
 
-function StepYears({ years, run }: { years: number[]; run: boolean }) {
-  const active = useCycle(years.length, 1500, run);
+// A small copy of the year picker at the foot of the page, newest year chosen.
+function StepYears({ years, thisYear }: { years: { year: number; books: number }[]; thisYear: number }) {
   return (
     <div className="promo-demo promo-years" aria-hidden="true">
-      {years.map((y, i) => (
-        <span key={y} className={i === active ? "promo-chip promo-chip--on" : "promo-chip"}>
-          {y}
+      {years.map(({ year, books }, i) => (
+        <span key={year} className={i === 0 ? "setup-year setup-year--chosen" : "setup-year"}>
+          <span className="setup-year-pick">
+            <i className={i === 0 ? "promo-radio promo-radio--on" : "promo-radio"} />
+            <span className="setup-year-num">{year}</span>
+            <span className="setup-year-count">
+              {books === 0 ? "No books yet" : `${books} ${books === 1 ? "book" : "books"}`}
+              {year === thisYear && books > 0 ? " so far" : ""}
+            </span>
+          </span>
         </span>
       ))}
     </div>
   );
 }
 
-function StepChoices({ name, run }: { name: string; run: boolean }) {
-  const phase = useCycle(3, 1800, run);
-  const shown = name || "Your name";
+function StepChoices({ name }: { name: string }) {
   return (
     <div className="promo-demo promo-choices" aria-hidden="true">
-      <span className="promo-toggle promo-toggle--on">
-        <i />
-        Books I finished
-      </span>
-      <span className={phase !== 1 ? "promo-toggle promo-toggle--on" : "promo-toggle"}>
-        <i />
-        What I&rsquo;m reading now
-      </span>
-      <span className="promo-name">
-        <span className="promo-name-text" style={{ "--chars": [...shown].length } as CSSProperties} key={phase === 0 ? "a" : "b"}>
-          {shown}
-        </span>
-      </span>
+      <span className="promo-name-label">Name on the page</span>
+      <span className="promo-name">{name || "Your name"}</span>
     </div>
   );
 }
 
-function StepLink({ host, run }: { host: string; run: boolean }) {
-  const phase = useCycle(2, 2200, run);
+function StepLink({ host }: { host: string }) {
   return (
     <div className="promo-demo promo-link" aria-hidden="true">
       <span className="promo-link-url">{host}/s/rB7kXq2m…</span>
-      <span className={phase === 1 ? "promo-link-btn promo-link-btn--done" : "promo-link-btn"}>
-        {phase === 1 ? "Copied ✓" : "Copy link"}
-      </span>
+      <span className="promo-link-btn">Copy link</span>
     </div>
   );
 }
@@ -227,16 +198,19 @@ export default function ShowcasePromo({
   sample,
   years,
   host,
+  children,
 }: {
   name: string; // the reader's first name
   view: ShowcaseYear; // the year the demo shows
   sample: boolean; // whether that's the made-up sample shelf
-  years: number[]; // the years they could showcase, newest first
+  years: { year: number; books: number }[]; // the years they could showcase, newest first
   host: string; // this server's address, for the demo link
+  children: ReactNode; // the year picker, at the foot
 }) {
-  const [stepsRef, stepsSeen] = useInView<HTMLOListElement>();
-  // Their own years when there's a choice; a new reader sees what it'll be like.
-  const chips = years.length >= 2 ? years.slice(0, 4) : [years[0], years[0] - 1, years[0] - 2];
+  // Their own years when there's a choice; a new reader gets last year from
+  // the sample shelf (fifteen books) to see what choosing is like.
+  const thisYear = years[0].year;
+  const rows = years.length >= 2 ? years.slice(0, 2) : [years[0], { year: thisYear - 1, books: 15 }];
 
   return (
     <div className="promo">
@@ -244,66 +218,51 @@ export default function ShowcasePromo({
         <div className="promo-copy">
           <p className="promo-eyebrow">Showcase</p>
           <h1 className="promo-title">
-            Your year in books, <em>on show.</em>
+            Your year in books, <em>on display</em>
           </h1>
           <p className="promo-lede">
-            One link that shows off a whole year of reading: every cover under the month you finished it, your numbers,
-            your five-star reads. Send it to a friend, drop it in the group chat, put it in your bio.
+            One link that shows off a whole year of reading: every book you finished, your numbers, your highest-rated
+            reads. Send it to a friend, drop it in the group chat, put it in your bio.
           </p>
-          <div className="promo-actions">
-            <Link href="/showcase/setup" className="btn btn--accent promo-cta">
-              Showcase your library
-            </Link>
-          </div>
-          <p className="promo-fine">Free, private until you share it, and off again in one click.</p>
         </div>
         <figure className="promo-figure">
           <Stage name={name} view={view} host={host} />
-          <figcaption className="promo-caption">
-            {sample
-              ? "A sample shelf. Yours fills in as you finish books."
-              : `Your ${view.year}, the way your friends would see it.`}
-          </figcaption>
+          {!sample && <figcaption className="promo-caption">{`Your ${view.year}, the way your friends would see it.`}</figcaption>}
         </figure>
       </section>
 
       <section className="promo-how">
-        <h2 className="promo-heading">Three steps, about a minute.</h2>
-        <ol ref={stepsRef} className={stepsSeen ? "promo-steps promo-steps--on" : "promo-steps"}>
-          <li className="promo-step" style={{ "--i": 0 } as CSSProperties}>
+        <h2 className="promo-heading">Three steps, about a minute</h2>
+        <ol className="promo-steps">
+          <li className="promo-step">
             <span className="promo-step-num">1</span>
             <h3 className="promo-step-title">Pick a year</h3>
-            <StepYears years={chips} run={stepsSeen} />
+            <StepYears years={rows} thisYear={thisYear} />
             <p className="promo-step-text">
-              This year so far, or any year you&rsquo;ve finished books in. Preview each one first, and switch whenever you
+              This year so far, or any year you&rsquo;ve finished books in. Switch whenever you
               like: your link stays the same.
             </p>
           </li>
-          <li className="promo-step" style={{ "--i": 1 } as CSSProperties}>
+          <li className="promo-step">
             <span className="promo-step-num">2</span>
             <h3 className="promo-step-title">Make it yours</h3>
-            <StepChoices name={name} run={stepsSeen} />
+            <StepChoices name={name} />
             <p className="promo-step-text">
-              Show the books you finished, what&rsquo;s on your nightstand, or both, under your name or none at all.
+              Put your name on the page, or leave it off. Your notes, words and what you&rsquo;re reading now stay
+              private.
             </p>
           </li>
-          <li className="promo-step" style={{ "--i": 2 } as CSSProperties}>
+          <li className="promo-step">
             <span className="promo-step-num">3</span>
             <h3 className="promo-step-title">Send the link</h3>
-            <StepLink host={host} run={stepsSeen} />
+            <StepLink host={host} />
             <p className="promo-step-text">
               It keeps up as you read. Covers, numbers and ratings only: never your notes, your words or your email.
             </p>
           </li>
         </ol>
       </section>
-
-      <section className="promo-close">
-        <p className="promo-close-title">Your shelf deserves an audience.</p>
-        <Link href="/showcase/setup" className="btn btn--accent promo-cta">
-          Showcase your library
-        </Link>
-      </section>
+      {children}
     </div>
   );
 }

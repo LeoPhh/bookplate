@@ -210,17 +210,36 @@ function createAuth() {
         create: {
           // With registration closed, only the very first account (the
           // owner, created on the /setup screen) may sign up.
-          before: async () => {
-            if (config.registration === "open") return;
-            if ((await countUsers()) > 0) {
+          before: async (user) => {
+            if (config.registration !== "open" && (await countUsers()) > 0) {
               throw new APIError("FORBIDDEN", { message: "Registration is closed on this server." });
             }
+            return { data: { ...user, name: cleanName(user.name) } };
           },
+        },
+        update: {
+          before: async (user) => (typeof user.name === "string" ? { data: { ...user, name: cleanName(user.name) } } : undefined),
         },
       },
     },
     plugins: [nextCookies()],
   });
+}
+
+// An account's name, as given at sign-up or in Settings: plain text on one
+// line (control characters go, runs of spaces become one), at most
+// NAME_MAX characters. Empty means no name.
+export const NAME_MAX = 60;
+
+function cleanName(raw: unknown): string {
+  const name = String(raw ?? "")
+    .replace(/[\p{Cc}\p{Cf}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if ([...name].length > NAME_MAX) {
+    throw new APIError("BAD_REQUEST", { message: `Keep your name to ${NAME_MAX} characters.` });
+  }
+  return name;
 }
 
 let instance: ReturnType<typeof createAuth> | null = null;

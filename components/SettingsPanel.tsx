@@ -31,6 +31,76 @@ function refreshSession() {
   authClient.$store.notify("$sessionSignal");
 }
 
+const NAME_MAX = 60;
+
+// The account's name: shown in the account menu and offered for a showcase.
+// New accounts start without one.
+function ProfileName({ initial }: { initial: string }) {
+  const [name, setName] = useState(initial);
+  const [draft, setDraft] = useState<string | null>(null); // null = not editing
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    if (draft === null) return;
+    setBusy(true);
+    setError(null);
+    const { data, error } = await authClient.updateUser({ name: draft });
+    setBusy(false);
+    if (error || !data) {
+      setError(error?.message ?? "Your name could not be saved.");
+      return;
+    }
+    setName(draft.trim().replace(/\s+/g, " "));
+    setDraft(null);
+    refreshSession();
+  };
+
+  if (draft === null) {
+    return (
+      <div className="profile-name-row">
+        <p className={name ? "profile-name" : "profile-name profile-name--empty"}>{name || "No name yet"}</p>
+        <button type="button" className="profile-name-edit" onClick={() => setDraft(name)}>
+          {name ? "Change name" : "Add your name"}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <form
+      className="profile-name-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <label className="field">
+        <span>Name</span>
+        <input
+          value={draft}
+          maxLength={NAME_MAX}
+          autoComplete="name"
+          autoFocus
+          onChange={(e) => setDraft(e.target.value)}
+        />
+      </label>
+      <div className="settings-row">
+        <button type="submit" className="btn btn--primary" disabled={busy}>
+          {busy ? <><Spinner />Saving…</> : "Save"}
+        </button>
+        <button type="button" className="btn" disabled={busy} onClick={() => setDraft(null)}>
+          Cancel
+        </button>
+      </div>
+      {error && (
+        <p className="settings-note settings-note--error" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
 function Profile({ user }: { user: ProfileUser }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState(user.image);
@@ -85,7 +155,7 @@ function Profile({ user }: { user: ProfileUser }) {
     <div className="profile">
       <Avatar image={image} size={112} />
       <div className="profile-body">
-        <p className="profile-name">{user.name}</p>
+        <ProfileName initial={user.name} />
         <p className="profile-email">{user.email}</p>
         <div className="settings-row">
           <input

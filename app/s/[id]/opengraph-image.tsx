@@ -33,9 +33,9 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   if (!found) return new Response("Not found", { status: 404 });
   const { showcase, userId, view } = found;
 
-  // Favourites first, then the most recently finished, then what's being read.
+  // The best rated first, then the most recently finished.
   const picks: Book[] = [];
-  for (const b of [...view.favourites, ...[...view.read].reverse(), ...view.reading.map((r) => r.book)]) {
+  for (const b of [...view.topRated, ...[...view.read].reverse()]) {
     if (picks.length < COVERS && !picks.some((p) => p.id === b.id)) picks.push(b);
   }
   const covers = await Promise.all(picks.map(async (b) => ({ book: b, src: await photo(userId, b, view) })));
@@ -45,7 +45,6 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     view.stats.pages ? `${view.stats.pages.toLocaleString("en-GB")} pages` : null,
     // Words, not a ★: the renderer would fetch a font from the internet for it.
     view.stats.rating !== undefined ? `rated ${view.stats.rating.toFixed(1)}` : null,
-    !view.read.length && view.reading.length ? `${view.reading.length} on the go` : null,
   ].filter(Boolean);
 
   return new ImageResponse(

@@ -1,41 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { includesReading, type ShowcaseInclude } from "@/lib/showcaseYear";
 import Spinner from "./Spinner";
 
-// Choosing what the reader's showcase shows: which year (each with a preview
-// of how it would look), which books, and the name on it. Saving makes the
-// showcase, or changes the one that's on and keeps its link.
+// Choosing what the reader's showcase shows, at the foot of the Showcase tab:
+// which year and the name on it.
+// Saving makes the showcase, or changes the one that's on and keeps its link.
 
 interface Showcase {
   id: string;
   year: number;
-  include: ShowcaseInclude;
   name: string | null;
 }
 
 const NAME_MAX = 40;
-
-const CHOICES: { value: ShowcaseInclude; label: string }[] = [
-  { value: "both", label: "Books I finished and what I’m reading now" },
-  { value: "read", label: "Only books I finished" },
-  { value: "reading", label: "Only what I’m reading now" },
-];
-
-// What a year can show: what's being read belongs to this year alone.
-const allowed = (include: ShowcaseInclude, year: number, thisYear: number): ShowcaseInclude =>
-  year === thisYear ? include : "read";
-
-export function previewHref(year: number, include: ShowcaseInclude, name: string): string {
-  return `/showcase/preview/${year}?${new URLSearchParams({ include, name })}`;
-}
-
-export function setupHref(year: number, include: ShowcaseInclude, name: string): string {
-  return `/showcase/setup?${new URLSearchParams({ year: String(year), include, name })}`;
-}
 
 export default function ShowcaseSetup({
   years,
@@ -44,19 +23,16 @@ export default function ShowcaseSetup({
 }: {
   years: { year: number; books: number }[]; // newest first; the first is this year
   live: Showcase | null;
-  initial: { year: number; include: ShowcaseInclude; name: string };
+  initial: { year: number; name: string };
 }) {
   const router = useRouter();
   const thisYear = years[0].year;
   const [year, setYear] = useState(initial.year);
-  const [include, setInclude] = useState<ShowcaseInclude>(initial.include);
   const [name, setName] = useState(initial.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const effective = allowed(include, year, thisYear);
-  const unchanged =
-    live && live.year === year && live.include === effective && (live.name ?? "") === name.trim().replace(/\s+/g, " ");
+  const unchanged = live && live.year === year && (live.name ?? "") === name.trim().replace(/\s+/g, " ");
 
   const save = async () => {
     setBusy(true);
@@ -65,11 +41,14 @@ export default function ShowcaseSetup({
       const res = await fetch("/api/showcases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ year, include: effective, name }),
+        body: JSON.stringify({ year, name }),
       });
       const data: { error?: string } = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "That didn’t save. Try again.");
-      router.push("/showcase");
+      // The tab turns into the one for a showcase that's on.
+      router.replace("/showcase");
+      router.refresh();
+      setBusy(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn’t save. Try again.");
       setBusy(false);
@@ -100,11 +79,8 @@ export default function ShowcaseSetup({
                   {books === 0 ? "No books finished yet" : `${books} ${books === 1 ? "book" : "books"}`}
                   {y === thisYear && books > 0 ? " so far" : ""}
                 </span>
-                {live?.year === y && <span className="badge setup-year-badge">On show</span>}
+                {live?.year === y && <span className="badge setup-year-badge">On display</span>}
               </label>
-              <Link className="setup-year-preview" href={previewHref(y, allowed(include, y, thisYear), name)}>
-                Preview
-              </Link>
             </li>
           ))}
         </ul>
@@ -112,31 +88,7 @@ export default function ShowcaseSetup({
 
       <fieldset className="setup-step">
         <legend className="setup-legend">
-          <span className="setup-legend-num">2</span>Choose what&rsquo;s on it
-        </legend>
-        <div className="setup-choices">
-          {CHOICES.map((c) => (
-            <label key={c.value} className="checkline">
-              <input
-                type="radio"
-                name="include"
-                value={c.value}
-                checked={effective === c.value}
-                disabled={year !== thisYear && c.value !== "read"}
-                onChange={() => setInclude(c.value)}
-              />
-              <span>{c.label}</span>
-            </label>
-          ))}
-          {!includesReading("both", year, thisYear) && (
-            <p className="setup-hint">Only {thisYear}&rsquo;s showcase can show what you&rsquo;re reading now.</p>
-          )}
-        </div>
-      </fieldset>
-
-      <fieldset className="setup-step">
-        <legend className="setup-legend">
-          <span className="setup-legend-num">3</span>Put your name on it
+          <span className="setup-legend-num">2</span>Put your name on it
         </legend>
         <label className="field setup-name">
           <span>Name on the page</span>
@@ -160,12 +112,6 @@ export default function ShowcaseSetup({
         <button type="submit" className="btn btn--accent setup-save" disabled={busy || Boolean(unchanged)}>
           {busy ? <><Spinner />Saving…</> : label}
         </button>
-        <Link className="btn" href={previewHref(year, effective, name)}>
-          Preview {year}
-        </Link>
-        <Link className="setup-cancel" href="/showcase">
-          Cancel
-        </Link>
       </div>
       {live && live.year !== year && (
         <p className="setup-hint">Your link stays the same: it&rsquo;ll show {year} instead of {live.year}.</p>

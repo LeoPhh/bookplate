@@ -220,15 +220,12 @@ button {
 .fmt-btn,
 .notes-prose .callout::before,
 .showcase-plate-eyebrow,
-.showcase-stat-label,
-.showcase-month-name,
 .promo-eyebrow,
 .promo-plate-eyebrow,
+.promo-name-label,
 .promo-stat-label,
-.promo-month-name,
 .promo-stars-label,
-.live-badge,
-.live-preview-label {
+.live-badge {
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -285,11 +282,8 @@ button {
 .auth-legal,
 .legal-back,
 .appbar-nav,
-.promo-chip,
-.promo-toggle,
 .promo-link-btn,
-.setup-year-preview,
-.setup-cancel {
+.profile-name-edit {
   font-weight: 700;
   letter-spacing: 0.01em;
 }
@@ -535,6 +529,10 @@ a.btn {
   background: var(--danger);
   border-color: var(--ink);
   color: #fff;
+}
+
+.btn--danger-solid:hover {
+  background: var(--danger);
 }
 
 /* ---------- Cover grid ---------- */
@@ -2168,12 +2166,6 @@ input.square-radio:focus-visible {
 
 /* Confirm + cropper */
 
-.confirm-ornament {
-  font-size: 19px;
-  margin-bottom: 4px;
-  color: var(--accent);
-}
-
 .confirm-title {
   font-size: 25px;
   margin-bottom: 8px;
@@ -2197,12 +2189,6 @@ input.square-radio:focus-visible {
   /* Reserve room for the open datepicker calendar, which is absolutely
      positioned and would otherwise be clipped by the dialog's overflow-y. */
   min-height: 580px;
-}
-
-/* The ❦ ornament belongs to confirmations, not this prompt. */
-
-.dialog--finish .confirm-ornament {
-  display: none;
 }
 
 .finish-fields {
@@ -3370,6 +3356,11 @@ select,
   color: var(--accent);
 }
 
+/* The signed-out screens' headings ("Sign in", "Create an account"). */
+.auth-card .form-heading {
+  font-weight: 400;
+}
+
 /* The server's privacy policy and terms (LEGAL_DIR), under the sign-in card
    and in the sign-up form. */
 .auth-legal {
@@ -3492,6 +3483,41 @@ select,
   font-size: 26px;
   letter-spacing: -0.03em;
   line-height: 1.1;
+}
+
+.profile-name--empty {
+  color: var(--ink-soft);
+}
+
+.profile-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+.profile-name-edit {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.profile-name-edit:hover {
+  color: var(--accent);
+}
+
+.profile-name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+  margin-bottom: 4px;
 }
 
 .profile-email {
@@ -3930,9 +3956,9 @@ select,
 
 /* ---------- Showcase ----------
    The public page of a year's reading (app/s/[id]): a bookplate with the
-   reader's name, the year's numbers, every book under the month it was
-   finished, what's being read and the five-star reads. Most visitors open it
-   on a phone, so below 700px the months turn into rows. */
+   reader's name, the year's numbers, every book finished that year, then the
+   best rated and the longest again, larger. Most
+   visitors open it on a phone, so below 700px everything gets smaller. */
 
 .showcase {
   max-width: 1120px;
@@ -3942,20 +3968,6 @@ select,
 }
 
 .showcase-note,
-.showcase-top p {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-
-.showcase-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-}
-
 .showcase-plate {
   align-self: center;
   width: 100%;
@@ -3978,10 +3990,10 @@ select,
 .showcase-plate-name {
   margin: 14px 0 6px;
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
+  font-weight: 400;
   font-size: clamp(44px, 7vw, 64px);
   line-height: 0.95;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.03em;
   overflow-wrap: anywhere;
 }
 
@@ -3991,40 +4003,13 @@ select,
   letter-spacing: -0.02em;
 }
 
-.showcase-stats {
-  display: grid;
-  grid-template-columns: repeat(var(--tiles), minmax(0, 1fr));
-  border-top: 3px solid var(--ink);
-  border-bottom: 3px solid var(--ink);
-}
-
-.showcase-stat {
-  padding: 20px 16px;
-  border-left: 2px solid var(--ink);
+/* The Statistics tab's tiles (.stat-tile), with a line under each number. */
+.showcase-stats .stat-tile {
   min-width: 0;
 }
 
-.showcase-stat:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.showcase-stat-label {
-  font-size: 11px;
-  color: var(--ink-soft);
-  margin-bottom: 8px;
-}
-
-.showcase-stat-value {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 400;
-  font-size: 44px;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
 .showcase-stat-note {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 13px;
   color: var(--ink-soft);
   overflow-wrap: anywhere;
@@ -4057,10 +4042,9 @@ select,
   letter-spacing: -0.03em;
 }
 
-.showcase-heading--ruled {
+.showcase-section-head--ruled {
   padding-top: 12px;
   border-top: 3px solid var(--ink);
-  font-size: 28px;
 }
 
 .showcase-section-note {
@@ -4088,101 +4072,43 @@ select,
   font-size: max(5px, 7cqw);
 }
 
-.showcase-months {
+/* The year's books in the order they were finished, all one size, floating
+   on the page like the Library's covers. */
+.showcase-shelf {
+  --book: 84px;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, var(--book));
+  gap: 22px 18px;
 }
 
-.showcase-month {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 220px;
-  padding-top: 10px;
-  border-top: 3px solid var(--ink);
-}
-
-.showcase-month--ahead {
-  border-top-color: var(--hair);
-}
-
-.showcase-month--ahead .showcase-month-name {
-  color: var(--ink-soft);
-}
-
-.showcase-month-name {
-  font-size: 11px;
-}
-
-.showcase-month-books {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.showcase-month-empty {
-  display: none;
-}
-
-.showcase-pair {
+/* The best rated and the longest, side by side under the shelf. */
+.showcase-highlights {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 40px;
 }
 
-.showcase-reading {
+/* Picked-out books, larger, with their titles. */
+.showcase-best {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 150px));
+  gap: 22px 18px;
 }
 
-.showcase-reading li {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.showcase-cover--small {
-  flex: none;
-  width: 64px;
-}
-
-.showcase-reading-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.showcase-reading-title {
+.showcase-best-title {
+  margin-top: 12px;
   font-family: var(--font-display), Georgia, serif;
-  font-size: 19px;
-  letter-spacing: -0.02em;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-.showcase-reading-author {
-  margin: 2px 0 10px;
+.showcase-best-author {
+  margin-top: 2px;
   font-size: 13px;
   color: var(--ink-soft);
-}
-
-.showcase-reading-progress {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.showcase-reading-progress .progress-bar {
-  flex: 1;
-}
-
-.showcase-favourites {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
 }
 
 .showcase-empty {
@@ -4203,10 +4129,10 @@ select,
 
 .showcase-cta-title {
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
+  font-weight: 400;
   font-size: 40px;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.025em;
   overflow-wrap: anywhere;
 }
 
@@ -4247,65 +4173,31 @@ select,
     box-shadow: 6px 6px 0 var(--ink);
   }
 
-  .showcase-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .showcase-stat {
-    padding: 14px 12px;
-  }
-
-  .showcase-stat:nth-child(odd) {
-    border-left: 0;
-    padding-left: 0;
-  }
-
-  .showcase-stat:nth-child(n + 3) {
-    border-top: 2px solid var(--ink);
-  }
-
-  .showcase-stat-value {
-    font-size: 34px;
-  }
-
   .showcase-heading {
     font-size: 28px;
   }
 
-  .showcase-months {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+  .showcase-shelf {
+    --book: 58px;
+    gap: 16px 12px;
   }
 
-  .showcase-month {
-    display: grid;
-    grid-template-columns: 40px minmax(0, 1fr);
-    align-items: start;
-    gap: 12px;
-    min-height: 0;
-    padding: 12px 0;
-    border-top-width: 2px;
+  .showcase-highlights {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
   }
 
-  .showcase-month-name {
-    padding-top: 2px;
+  .showcase-best {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px 12px;
   }
 
-  .showcase-month-books {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+  .showcase-best-title {
+    font-size: 14px;
   }
 
-  .showcase-month-empty {
-    display: block;
-    font-weight: 700;
-    color: var(--hair);
-  }
-
-  .showcase-favourites {
-    gap: 10px;
+  .showcase-best-author {
+    font-size: 12px;
   }
 
   .showcase-cta-title {
@@ -4343,10 +4235,10 @@ select,
 .promo-title {
   margin: 14px 0 20px;
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
+  font-weight: 400;
   font-size: clamp(46px, 6.4vw, 84px);
   line-height: 0.92;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.03em;
 }
 
 .promo-title em {
@@ -4360,24 +4252,6 @@ select,
   max-width: 44ch;
   font-size: 17px;
   line-height: 1.55;
-}
-
-.promo-actions {
-  margin: 28px 0 14px;
-}
-
-.promo-cta {
-  font-size: 15px;
-  padding: 15px 26px;
-  box-shadow: var(--hard-lg);
-  text-decoration: none;
-  display: inline-block;
-}
-
-.promo-fine {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
 }
 
 .promo-figure {
@@ -4478,10 +4352,10 @@ select,
 .promo-plate-name {
   margin: 6px 0 2px;
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
+  font-weight: 400;
   font-size: clamp(24px, 3vw, 34px);
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.025em;
   overflow-wrap: anywhere;
 }
 
@@ -4490,26 +4364,24 @@ select,
   font-size: 14px;
 }
 
+/* The showcase's stat tiles (.stat-tile), in miniature. */
 .promo-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 3px solid var(--ink);
-  border-bottom: 3px solid var(--ink);
+  gap: 10px;
 }
 
 .promo-stat {
-  padding: 10px 12px;
-  border-left: 2px solid var(--ink);
-}
-
-.promo-stat:first-child {
-  border-left: 0;
-  padding-left: 0;
+  min-width: 0;
+  padding: 8px 10px 7px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
 .promo-stat-label {
-  font-size: 9.5px;
-  color: var(--ink-soft);
+  font-size: 9px;
+  color: var(--accent);
 }
 
 .promo-stat-value {
@@ -4520,32 +4392,21 @@ select,
   font-variant-numeric: tabular-nums;
 }
 
+/* The showcase's books (.showcase-shelf), in miniature. */
 .promo-shelf {
+  --book: 34px;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 6px;
-  min-height: 150px;
+  grid-template-columns: repeat(auto-fill, var(--book));
+  align-content: start;
+  gap: 10px 8px;
+  min-height: calc(var(--book) * 3 + 10px);
 }
 
-.promo-month {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 5px;
-  border-top: 3px solid var(--ink);
+.promo-shelf .promo-cover {
+  position: relative;
 }
 
-.promo-month-name {
-  font-size: 9px;
-  color: var(--ink-soft);
-}
-
-.promo-month-more {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
 
 /* Covers this small keep their colour and lose most of their lettering. */
 .promo-cover .cover {
@@ -4582,10 +4443,18 @@ select,
 }
 
 .promo-stars-row {
-  flex: 1;
+  flex: 0 1 auto;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 52px));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 52px);
   gap: 10px;
+}
+
+.promo-cover--longest {
+  flex: none;
+  width: 44px;
+  margin-right: 6px;
 }
 
 .promo-cover--star .cover {
@@ -4594,18 +4463,15 @@ select,
 
 /* How it goes */
 
-.promo-heading,
-.promo-close-title {
+.promo-heading {
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
-  letter-spacing: -0.04em;
+  font-weight: 400;
+  letter-spacing: -0.025em;
   line-height: 1;
 }
 
 .promo-heading {
-  padding-top: 14px;
   margin-bottom: 28px;
-  border-top: 3px solid var(--ink);
   font-size: clamp(30px, 4vw, 44px);
 }
 
@@ -4663,65 +4529,46 @@ select,
   border: 2px solid var(--ink);
 }
 
-.promo-chip {
-  padding: 6px 12px;
-  background: #fff;
-  border: 2px solid var(--ink);
-  font-size: 14px;
-  transition:
-    background 0.25s ease,
-    color 0.25s ease,
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+/* The year picker in miniature (.setup-year, scaled down). */
+.promo-years {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
 }
 
-.promo-chip--on {
-  background: var(--ink);
-  color: #fff;
-  transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 var(--accent);
+.promo-years .setup-year-pick {
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  cursor: default;
+}
+
+.promo-years .setup-year-num {
+  font-size: 22px;
+}
+
+.promo-years .setup-year-count {
+  font-size: 12.5px;
+}
+
+.promo-radio {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.promo-radio--on {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 3.5px, #fff 4px);
 }
 
 .promo-choices {
   flex-direction: column;
   align-items: stretch;
-}
-
-.promo-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13.5px;
-}
-
-.promo-toggle i {
-  position: relative;
-  flex: none;
-  width: 30px;
-  height: 16px;
-  background: #fff;
-  border: 2px solid var(--ink);
-  transition: background 0.25s ease;
-}
-
-.promo-toggle i::after {
-  content: "";
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 10px;
-  height: 10px;
-  background: var(--ink);
-  transition: transform 0.25s ease;
-}
-
-.promo-toggle--on i {
-  background: var(--accent);
-}
-
-.promo-toggle--on i::after {
-  transform: translateX(14px);
-  background: #fff;
+  justify-content: center;
 }
 
 .promo-name {
@@ -4733,12 +4580,6 @@ select,
   font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
-}
-
-.promo-name-text {
-  display: inline-block;
-  padding-right: 3px;
-  border-right: 2px solid var(--accent);
 }
 
 .promo-link {
@@ -4765,32 +4606,6 @@ select,
   border: 2px solid var(--ink);
   box-shadow: 3px 3px 0 var(--ink);
   font-size: 13px;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.promo-link-btn--done {
-  background: var(--accent);
-  color: #fff;
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
-}
-
-.promo-close {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 26px;
-  padding-top: 48px;
-  text-align: center;
-  border-top: 3px solid var(--ink);
-}
-
-.promo-close-title {
-  font-size: clamp(36px, 5.5vw, 64px);
 }
 
 /* The motion. Before a part scrolls into view it waits, hidden; then it
@@ -4809,17 +4624,11 @@ select,
     animation-delay: 0.16s;
   }
 
-  .promo-copy > :nth-child(4),
-  .promo-copy > :nth-child(5) {
-    animation-delay: 0.26s;
-  }
-
   .promo-title em {
     animation: promo-stamp 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s both;
   }
 
-  .promo-stage:not(.promo-stage--on) .promo-window,
-  .promo-steps:not(.promo-steps--on) .promo-step {
+  .promo-stage:not(.promo-stage--on) .promo-window {
     opacity: 0;
   }
 
@@ -4847,10 +4656,6 @@ select,
     animation-delay: 1.2s;
   }
 
-  .promo-stage--on .promo-month {
-    animation: promo-rule 0.5s ease 1.2s both;
-  }
-
   .promo-stage--on .promo-cover {
     animation: promo-drop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) calc(1.5s + var(--i) * 70ms) both;
   }
@@ -4861,20 +4666,6 @@ select,
 
   .promo-stage--on .promo-cover--star {
     animation: promo-pop 0.45s cubic-bezier(0.3, 1.8, 0.5, 1) calc(2.9s + var(--i) * 120ms) both;
-  }
-
-  .promo-steps--on .promo-step {
-    animation: promo-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--i) * 0.15s) both;
-  }
-
-  .promo-steps--on .promo-name-text {
-    animation:
-      promo-reveal 0.9s steps(var(--chars)) both,
-      promo-caret 0.8s step-end infinite;
-  }
-
-  .promo-close .promo-cta {
-    animation: promo-nudge 3.2s ease-in-out 1s infinite;
   }
 }
 
@@ -4898,12 +4689,6 @@ select,
   }
 }
 
-@keyframes promo-rule {
-  from {
-    border-top-color: var(--hair);
-  }
-}
-
 @keyframes promo-drop {
   from {
     opacity: 0;
@@ -4918,34 +4703,6 @@ select,
   }
 }
 
-@keyframes promo-reveal {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes promo-caret {
-  50% {
-    border-right-color: transparent;
-  }
-}
-
-@keyframes promo-nudge {
-  0%,
-  86%,
-  100% {
-    transform: none;
-  }
-  90% {
-    transform: translate(-2px, -3px) rotate(-1.5deg);
-  }
-  95% {
-    transform: translate(1px, -1px) rotate(1deg);
-  }
-}
 
 /* With a showcase on */
 
@@ -4995,10 +4752,10 @@ select,
 
 .live-title {
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
+  font-weight: 400;
   font-size: clamp(34px, 5vw, 54px);
   line-height: 0.95;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.03em;
 }
 
 .live-text {
@@ -5038,34 +4795,17 @@ select,
   text-decoration: none;
 }
 
-.live-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.live-setup {
   margin-top: 56px;
 }
 
-.live-preview-label {
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  color: var(--ink-soft);
-}
-
-.showcase--framed {
-  max-width: none;
-  padding: 40px 32px;
-  background: var(--paper);
-  border: 3px solid var(--ink);
-}
-
-/* Choosing the year (app/showcase/setup) */
+/* Choosing the year (components/ShowcaseSetup, foot of the Showcase tab) */
 
 .setup {
   max-width: 760px;
   display: flex;
   flex-direction: column;
   gap: 40px;
-  margin-top: 36px;
 }
 
 .setup-step {
@@ -5155,31 +4895,6 @@ select,
   color: #fff;
 }
 
-.setup-year-preview {
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  border-left: 2px solid var(--ink);
-  color: var(--ink);
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.setup-year-preview:hover {
-  background: var(--ink);
-  color: #fff;
-}
-
-.setup-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.setup-choices .checkline input:disabled + span {
-  color: var(--ink-soft);
-}
-
 .setup-hint {
   font-size: 13.5px;
   color: var(--ink-soft);
@@ -5219,49 +4934,6 @@ select,
   transform: none;
 }
 
-.setup-cancel {
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
-/* A preview's bar (app/showcase/preview) */
-
-.preview-bar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-  padding: 12px 16px;
-  background: var(--ink);
-  color: #fff;
-  border: 3px solid var(--ink);
-  box-shadow: 5px 5px 0 var(--accent);
-}
-
-.preview-bar-text {
-  font-size: 14px;
-}
-
-.preview-bar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.preview-bar-actions .btn {
-  text-decoration: none;
-  box-shadow: none;
-}
-
-.preview-bar .settings-note {
-  flex-basis: 100%;
-  color: #fff;
-}
-
 @media (max-width: 960px) {
   .promo-hero {
     grid-template-columns: minmax(0, 1fr);
@@ -5292,8 +4964,22 @@ select,
   }
 
   .promo-shelf {
-    gap: 3px;
-    min-height: 110px;
+    --book: 26px;
+    gap: 8px 6px;
+  }
+
+  .promo-stars {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+
+  .promo-stars-row {
+    grid-auto-columns: 34px;
+    gap: 6px;
+  }
+
+  .promo-cover--longest {
+    width: 34px;
   }
 
   .promo-stat {
@@ -5308,19 +4994,11 @@ select,
     padding: 22px 18px;
   }
 
-  .showcase--framed {
-    padding: 24px 14px;
-  }
-
   .setup-year-pick {
     padding: 12px 14px;
   }
 
   .setup-year-num {
     font-size: 26px;
-  }
-
-  .setup-year-preview {
-    padding: 0 14px;
   }
 }

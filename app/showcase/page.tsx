@@ -2,18 +2,29 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import ShowcaseLive from "@/components/ShowcaseLive";
 import ShowcasePromo from "@/components/ShowcasePromo";
-import ShowcaseView, { plural } from "@/components/ShowcaseView";
+import ShowcaseSetup from "@/components/ShowcaseSetup";
+import { plural } from "@/components/ShowcaseView";
 import { getSession } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { todayIso } from "@/lib/progress";
 import { getShowcase, previewShowcase, showcaseYears } from "@/lib/showcase";
 import { sampleShowcase } from "@/lib/showcaseSample";
 
-// The Showcase tab. With a showcase on: its link, ways to change it or turn
-// it off, and what visitors see. Without: the pitch, with a demo of the
+// The Showcase tab. With a showcase on: its link, and ways to change it or
+// turn it off. Without: the pitch, with a demo of the
 // reader's own best year (or a sample shelf when they've too few books).
+// Either way the year picker is at the foot of the page.
 
-const DEMO_MIN_BOOKS = 4;
+const DEMO_MIN_BOOKS = 10;
+
+// The address in the demo's mock link: this server's, unless it's a local
+// one nobody else could open, which would spoil the illusion.
+const DEMO_HOST = "app.bookplate.eu";
+
+function demoHost(publicUrl: string): string {
+  const { hostname, host } = new URL(publicUrl);
+  return /^(localhost|127\.|\[::1\]$|0\.0\.0\.0$)/.test(hostname) || hostname.endsWith(".local") ? DEMO_HOST : host;
+}
 
 export default async function ShowcasePage() {
   await connection();
@@ -21,15 +32,20 @@ export default async function ShowcasePage() {
   if (!session) redirect("/login");
   const userId = session.user.id;
   const today = todayIso();
-  const thisYear = Number(today.slice(0, 4));
-  const live = await getShowcase(userId);
+  const [live, years] = await Promise.all([getShowcase(userId), showcaseYears(userId)]);
+  const firstName = session.user.name.trim().split(/\s+/)[0] ?? "";
+
+  const year = live?.year ?? years[0].year;
+  const name = live ? (live.name ?? "") : firstName;
+  const setup = (title: string) => (
+    <section>
+      <h2 className="promo-heading">{title}</h2>
+      <ShowcaseSetup years={years} live={live} initial={{ year, name }} />
+    </section>
+  );
 
   if (live) {
-    const view = await previewShowcase(userId, live);
-    const parts = [
-      view.read.length > 0 && `${plural(view.read.length, "book")} you finished in ${live.year}`,
-      view.reading.length > 0 && `${plural(view.reading.length, "book")} you’re reading`,
-    ].filter(Boolean);
+    const view = await previewShowcase(userId, live.year);
     return (
       <main className="page">
         <header className="masthead">
@@ -40,36 +56,36 @@ export default async function ShowcasePage() {
           id={live.id}
           year={live.year}
           url={`${config.publicUrl}/s/${live.id}`}
-          summary={parts.length ? parts.join(" and ") : `your ${live.year} shelf, still empty for now`}
+          summary={
+            view.read.length > 0
+              ? `the ${plural(view.read.length, "book")} you finished in ${live.year}`
+              : `your ${live.year} shelf, still empty for now`
+          }
         />
-        <section className="live-preview">
-          <p className="live-preview-label">What visitors see</p>
-          <div className="showcase showcase--framed">
-            <ShowcaseView name={live.name} view={view} today={today} />
-          </div>
-        </section>
+        <div className="live-setup">{setup("Change the year or name")}</div>
         <footer className="colophon">— ex libris —</footer>
       </main>
     );
   }
 
-  const years = await showcaseYears(userId);
   const best = years
     .filter((y) => y.books >= DEMO_MIN_BOOKS)
     .sort((a, b) => b.books - a.books || b.year - a.year)[0];
   const view = best
-    ? await previewShowcase(userId, { year: best.year, include: best.year === thisYear ? "both" : "read" })
+    ? await previewShowcase(userId, best.year)
     : sampleShowcase(today);
 
   return (
     <main className="page">
       <ShowcasePromo
-        name={session.user.name.trim().split(/\s+/)[0] ?? ""}
+        name={firstName}
         view={view}
         sample={!best}
-        years={years.map((y) => y.year)}
-        host={new URL(config.publicUrl).host}
-      />
+        years={years}
+        host={demoHost(config.publicUrl)}
+      >
+        {setup("Put yours on display")}
+      </ShowcasePromo>
       <footer className="colophon">— ex libris —</footer>
     </main>
   );

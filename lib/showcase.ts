@@ -1,9 +1,9 @@
 import { randomBytes } from "crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
-import { listBooks, listProgress } from "./library";
+import { listBooks } from "./library";
 import { todayIso } from "./progress";
-import { buildShowcaseYear, includesReading, INCLUDES, type ShowcaseInclude, type ShowcaseYear } from "./showcaseYear";
+import { buildShowcaseYear, type ShowcaseYear } from "./showcaseYear";
 import { Book } from "./types";
 
 // Showcases: a reader's public page for one year of reading, at /s/<id>. One
@@ -15,7 +15,6 @@ import { Book } from "./types";
 export interface Showcase {
   id: string;
   year: number;
-  include: ShowcaseInclude;
   name: string | null;
 }
 
@@ -31,7 +30,6 @@ export const isShowcaseId = (id: string) => /^[A-Za-z0-9_-]{16}$/.test(id);
 const toShowcase = (r: typeof showcase.$inferSelect): Showcase => ({
   id: r.id,
   year: r.year,
-  include: r.include as ShowcaseInclude,
   name: r.name,
 });
 
@@ -45,13 +43,6 @@ export function parseShowcase(body: unknown, thisYear: number): Omit<Showcase, "
   if (typeof year !== "number" || !Number.isInteger(year) || year < FIRST_YEAR || year > thisYear) {
     throw new ShowcaseError("Choose a year up to this one.");
   }
-  const include = o.include;
-  if (typeof include !== "string" || !INCLUDES.includes(include as ShowcaseInclude)) {
-    throw new ShowcaseError("Choose which books to show.");
-  }
-  if (include === "reading" && !includesReading(include, year, thisYear)) {
-    throw new ShowcaseError("Books you're reading can only go in this year's showcase.");
-  }
   if (o.name !== undefined && o.name !== null && typeof o.name !== "string") throw new ShowcaseError("Invalid name.");
   // Plain text on one line: control characters (line breaks, direction
   // overrides…) go, and runs of spaces become one.
@@ -61,12 +52,7 @@ export function parseShowcase(body: unknown, thisYear: number): Omit<Showcase, "
     .replace(/\s+/g, " ")
     .trim();
   if ([...name].length > NAME_MAX) throw new ShowcaseError(`Keep the name to ${NAME_MAX} characters.`);
-  return {
-    year,
-    // "Both" for a past year is just "read": there's nothing being read then.
-    include: include === "both" && year !== thisYear ? "read" : (include as ShowcaseInclude),
-    name: name || null,
-  };
+  return { year, name: name || null };
 }
 
 // The reader's showcase, or null when they haven't one on.
@@ -80,10 +66,10 @@ export async function getShowcase(userId: string): Promise<Showcase | null> {
 export async function saveShowcase(userId: string, s: Omit<Showcase, "id">): Promise<Showcase> {
   const [row] = await getDb()
     .insert(showcase)
-    .values({ id: newId(), userId, year: s.year, include: s.include, name: s.name })
+    .values({ id: newId(), userId, year: s.year, name: s.name })
     .onConflictDoUpdate({
       target: showcase.userId,
-      set: { year: s.year, include: s.include, name: s.name, updatedAt: sql`now()` },
+      set: { year: s.year, name: s.name, updatedAt: sql`now()` },
     })
     .returning();
   return toShowcase(row);
@@ -105,24 +91,17 @@ export async function loadShowcase(id: string): Promise<{ showcase: Showcase; us
   const [row] = await getDb().select().from(showcase).where(eq(showcase.id, id));
   if (!row) return null;
   const s = toShowcase(row);
-  const [books, progress] = await Promise.all([listBooks(row.userId), listProgress(row.userId)]);
-  const view = buildShowcaseYear(books.map((b) => publicBook(b, id)), progress, {
-    year: s.year,
-    include: s.include,
-    today: todayIso(),
-  });
+  const books = await listBooks(row.userId);
+  const view = buildShowcaseYear(books.map((b) => publicBook(b, id)), { year: s.year, today: todayIso() });
   return { showcase: s, userId: row.userId, view };
 }
 
 // What a showcase would look like, for its owner only: the Showcase tab and
-// its previews. Covers stay at their private addresses, which the owner can
+// its demo. Covers stay at their private addresses, which the owner can
 // load.
-export async function previewShowcase(
-  userId: string,
-  { year, include }: { year: number; include: ShowcaseInclude },
-): Promise<ShowcaseYear> {
-  const [books, progress] = await Promise.all([listBooks(userId), listProgress(userId)]);
-  return buildShowcaseYear(books.map((b) => shownBook(b)), progress, { year, include, today: todayIso() });
+export async function previewShowcase(userId: string, year: number): Promise<ShowcaseYear> {
+  const books = await listBooks(userId);
+  return buildShowcaseYear(books.map((b) => shownBook(b)), { year, today: todayIso() });
 }
 
 // The years a reader can showcase, newest first, with how many books they
@@ -169,8 +148,7 @@ export function showcaseCover(showcaseId: string, coverImage: string): string | 
 
 // The stored cover file a showcase may serve: one belonging to a book it shows.
 export function coverFileOf(view: ShowcaseYear, file: string): boolean {
-  const shown = [...view.read, ...view.reading.map((r) => r.book)];
-  return shown.some((b) => b.coverImage?.split("?")[0].endsWith(`/covers/${file}`));
+  return view.read.some((b) => b.coverImage?.split("?")[0].endsWith(`/covers/${file}`));
 }
 
 export async function countShowcases(): Promise<number> {

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
@@ -42,9 +41,9 @@ export default function ShowcaseLive({ id, year, url, summary }: { id: string; y
     <section className="live">
       <p className="live-badge">
         <span className="live-dot" />
-        On show
+        On display
       </p>
-      <h2 className="live-title">{`Your ${year} is on show.`}</h2>
+      <h2 className="live-title">{`Your ${year} is on display`}</h2>
       <p className="live-text">
         Anyone with the link sees {summary}. It keeps up as you read, and never shows your notes, words or email.
       </p>
@@ -66,9 +65,6 @@ export default function ShowcaseLive({ id, year, url, summary }: { id: string; y
       )}
 
       <div className="live-actions">
-        <Link href="/showcase/setup" className="btn">
-          Change year or details
-        </Link>
         <button type="button" className="btn btn--danger" disabled={busy} onClick={() => setConfirming(true)}>
           {busy ? <><Spinner />Turning off…</> : "Turn it off"}
         </button>

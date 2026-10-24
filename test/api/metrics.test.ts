@@ -53,7 +53,7 @@ describe("counting totals", () => {
     await q(`INSERT INTO book (user_id, id, title, author, status, added_at) VALUES
       ${[book("a", "1", "read"), book("a", "2", "read"), book("a", "3", "reading"), book("b", "1", "to-read")].join(",")}`);
     await q(`INSERT INTO vocab_entry (user_id, id, word, definition, added_at) VALUES ('a', 'w', 'w', 'd', '2026-01-01')`);
-    await q(`INSERT INTO showcase (id, user_id, year, include) VALUES ('AAAAAAAAAAAAAAAA', 'a', 2026, 'read')`);
+    await q(`INSERT INTO showcase (id, user_id, year) VALUES ('AAAAAAAAAAAAAAAA', 'a', 2026)`);
 
     const { collectTotals } = await import("@/lib/metrics");
     const t = await collectTotals();

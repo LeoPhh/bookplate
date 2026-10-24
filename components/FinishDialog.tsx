@@ -42,7 +42,6 @@ export default function FinishDialog({ book, onConfirm, onCancel }: Props) {
         aria-label="Finished reading"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="confirm-ornament">❦</p>
         <h2 className="confirm-title">Finished reading</h2>
         <p className="confirm-message">Mark “{book.title}” as read.</p>
         <div className="finish-fields">

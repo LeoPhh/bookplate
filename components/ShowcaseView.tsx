@@ -1,18 +1,30 @@
-import type { CSSProperties } from "react";
 import BookCover from "@/components/BookCover";
-import ProgressBar from "@/components/ProgressBar";
-import { MONTHS, possessive, type ShowcaseYear } from "@/lib/showcaseYear";
+import type { Book } from "@/lib/types";
+import { possessive, type ShowcaseYear } from "@/lib/showcaseYear";
 
 // The body of a showcase: a bookplate with the reader's name, the year's
-// numbers, every book under the month it was finished, what's being read and
-// the five-star reads. The public page (app/s/[id]) and its owner's previews
-// (app/showcase) both show it, so a preview is exactly what visitors see.
+// numbers, every book in the order it was finished, then the best rated and
+// the longest again, up close. The public page (app/s/[id]) and the Showcase tab (app/showcase)
+// both show it, so the tab shows exactly what visitors see.
 
 const num = (n: number) => n.toLocaleString("en-GB");
 export const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 
 export function showcaseHeading(name: string | null, year: number) {
   return name ? `${possessive(name)} ${year} in books` : `A ${year} in books`;
+}
+
+// A book picked out below the shelf: its cover, larger, with its title.
+function Highlight({ book }: { book: Book }) {
+  return (
+    <li>
+      <div className="showcase-cover">
+        <BookCover book={book} />
+      </div>
+      <p className="showcase-best-title">{book.title}</p>
+      <p className="showcase-best-author">{book.author}</p>
+    </li>
+  );
 }
 
 export default function ShowcaseView({
@@ -26,18 +38,18 @@ export default function ShowcaseView({
 }) {
   const { year, stats } = view;
   const thisYear = Number(today.slice(0, 4));
-  const thisMonth = Number(today.slice(5, 7)) - 1;
+  const longest = view.read.find((b) => b.id === stats.longest?.id);
   const tiles = [
     view.read.length > 0 && {
       label: "Books read",
       value: num(stats.books),
-      note: view.reading.length ? `and ${view.reading.length} on the go` : year === thisYear ? "so far" : "",
+      note: year === thisYear ? "so far" : "",
     },
     stats.pages > 0 && { label: "Pages", value: num(stats.pages), note: `about ${num(stats.pagesPerDay ?? 0)} a day` },
     stats.rating !== undefined && {
       label: "Average rating",
       value: stats.rating.toFixed(1),
-      note: view.favourites.length ? plural(view.favourites.length, "five-star read") : "",
+      note: view.topRating === 5 ? plural(view.topRated.length, "five-star read") : "",
     },
     stats.longest && { label: "Longest", value: num(stats.longest.pages), note: `pages · ${stats.longest.title}` },
   ].filter((t): t is { label: string; value: string; note: string } => Boolean(t));
@@ -51,11 +63,11 @@ export default function ShowcaseView({
       </section>
 
       {tiles.length > 0 && (
-        <section className="showcase-stats" style={{ "--tiles": tiles.length } as CSSProperties}>
+        <section className="stat-tiles showcase-stats">
           {tiles.map((t) => (
-            <div key={t.label} className="showcase-stat">
-              <p className="showcase-stat-label">{t.label}</p>
-              <p className="showcase-stat-value">{t.value}</p>
+            <div key={t.label} className="stat-tile">
+              <p className="stat-tile-label">{t.label}</p>
+              <p className="stat-tile-value">{t.value}</p>
               {t.note && <p className="showcase-stat-note">{t.note}</p>}
             </div>
           ))}
@@ -66,71 +78,48 @@ export default function ShowcaseView({
         <section className="showcase-section">
           <div className="showcase-section-head">
             <h2 className="showcase-heading">The year on the shelf</h2>
-            <p className="showcase-section-note">Each book under the month it was finished</p>
+            <p className="showcase-section-note">In the order they were finished</p>
           </div>
-          <ol className="showcase-months">
-            {view.months.map((books, i) => (
-              <li
-                key={MONTHS[i]}
-                className={year === thisYear && i > thisMonth ? "showcase-month showcase-month--ahead" : "showcase-month"}
-              >
-                <p className="showcase-month-name">{MONTHS[i]}</p>
-                <div className="showcase-month-books">
-                  {books.map((b) => (
-                    <div key={b.id} className="showcase-cover" title={`${b.title} by ${b.author}`}>
-                      <BookCover book={b} />
-                    </div>
-                  ))}
-                  {books.length === 0 && <span className="showcase-month-empty">—</span>}
-                </div>
+          <ol className="showcase-shelf">
+            {view.read.map((b) => (
+              <li key={b.id} className="showcase-cover" title={`${b.title} by ${b.author}`}>
+                <BookCover book={b} />
               </li>
             ))}
           </ol>
         </section>
       )}
 
-      {(view.reading.length > 0 || view.favourites.length > 0) && (
-        <div className="showcase-pair">
-          {view.reading.length > 0 && (
+      {(view.topRated.length > 0 || longest) && (
+        <div className="showcase-highlights">
+          {view.topRated.length > 0 && (
             <section className="showcase-section">
-              <h2 className="showcase-heading showcase-heading--ruled">On the nightstand</h2>
-              <ul className="showcase-reading">
-                {view.reading.map(({ book, percent }) => (
-                  <li key={book.id}>
-                    <div className="showcase-cover showcase-cover--small">
-                      <BookCover book={book} />
-                    </div>
-                    <div className="showcase-reading-body">
-                      <p className="showcase-reading-title">{book.title}</p>
-                      <p className="showcase-reading-author">{book.author}</p>
-                      {percent !== undefined && (
-                        <div className="showcase-reading-progress">
-                          <ProgressBar percent={percent} />
-                          <span>{percent}%</span>
-                        </div>
-                      )}
-                    </div>
-                  </li>
+              <div className="showcase-section-head showcase-section-head--ruled">
+                <h2 className="showcase-heading">Highest rated</h2>
+                <p className="showcase-section-note">{view.topRating === 5 ? "Five stars" : `${view.topRating} stars`}</p>
+              </div>
+              <ul className="showcase-best">
+                {view.topRated.map((b) => (
+                  <Highlight key={b.id} book={b} />
                 ))}
               </ul>
             </section>
           )}
-          {view.favourites.length > 0 && (
+          {longest && (
             <section className="showcase-section">
-              <h2 className="showcase-heading showcase-heading--ruled">Five stars</h2>
-              <div className="showcase-favourites">
-                {view.favourites.map((b) => (
-                  <div key={b.id} className="showcase-cover" title={`${b.title} by ${b.author}`}>
-                    <BookCover book={b} />
-                  </div>
-                ))}
+              <div className="showcase-section-head showcase-section-head--ruled">
+                <h2 className="showcase-heading">Longest read</h2>
+                <p className="showcase-section-note">{plural(stats.longest!.pages, "page")}</p>
               </div>
+              <ul className="showcase-best">
+                <Highlight book={longest} />
+              </ul>
             </section>
           )}
         </div>
       )}
 
-      {view.read.length === 0 && view.reading.length === 0 && (
+      {view.read.length === 0 && (
         <p className="showcase-empty">Nothing on the shelf for {year} yet.</p>
       )}
     </>
