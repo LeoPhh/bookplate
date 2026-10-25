@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Book, VocabEntry } from "@/lib/types";
+import BookPicker from "@/components/BookPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Hint from "@/components/Hint";
 import VocabCard, { vocabMeta } from "@/components/VocabCard";
@@ -48,6 +49,7 @@ export default function VocabularyPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [addedSenses, setAddedSenses] = useState<Set<number>>(new Set());
   const [bookId, setBookId] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualPos, setManualPos] = useState("");
   const [manualDef, setManualDef] = useState("");
@@ -279,26 +281,31 @@ export default function VocabularyPage() {
             onChange={(e) => setLookup(e.target.value)}
             aria-label="Word to look up"
           />
-          <label className="sort-label">
+          <div className="sort-label">
             From
-            <select
-              className="sort-select"
-              value={bookId}
-              onChange={(e) => setBookId(e.target.value)}
-              aria-label="Book the word came from"
+            <button
+              type="button"
+              className="book-pick"
+              aria-label={`Book the word came from: ${bookById.get(bookId)?.title ?? "no book"}`}
+              aria-haspopup="dialog"
+              onClick={() => setPickerOpen(true)}
             >
-              <option value="">— no book —</option>
-              {booksAlphabetical.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.title}
-                </option>
-              ))}
-            </select>
-          </label>
+              <span className="book-pick-title">{bookById.get(bookId)?.title ?? "No book"}</span>
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M2.5 4.5 6 8l3.5-3.5" />
+              </svg>
+            </button>
+          </div>
           <button type="submit" className="btn btn--primary" disabled={searching}>
             {searching ? <><Spinner />Consulting…</> : "Look up"}
           </button>
         </form>
+
+        {/* Inside the panel, so picking a book doesn't count as a click
+            outside it and close the lookup results. */}
+        {pickerOpen && (
+          <BookPicker books={books} selectedId={bookId} onSelect={setBookId} onClose={() => setPickerOpen(false)} />
+        )}
 
         {searchError && <p className="search-note search-note--error">{searchError}</p>}
         {saveError && (

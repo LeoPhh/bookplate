@@ -203,8 +203,6 @@ button {
 .masthead-eyebrow,
 .cover-topline,
 .cover-author,
-.ledger th,
-.ledger tfoot td,
 .badge,
 .stat-tile-label,
 .detail-kicker,
@@ -212,6 +210,7 @@ button {
 .progress-label,
 .drill-section-title,
 .field > span,
+.filter-group legend,
 .search-divider,
 .datepicker-wd,
 .sense-pos,
@@ -267,8 +266,8 @@ button {
    reads is shouted. */
 
 .sort-label,
-.view-btn,
-.chip,
+.filter-btn,
+.settings-tab,
 .btn,
 .cover-status,
 .drill-back,
@@ -306,10 +305,6 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-}
-
-.toolbar-row--chips {
-  gap: 8px;
 }
 
 .search,
@@ -373,63 +368,110 @@ button {
   font-size: 14px;
 }
 
-.view-toggle {
+/* The Library's filter: a button that opens the filter dialog. It stays
+   white whatever is on; a badge counts the filters in use. */
+
+.filter-btn {
   display: inline-flex;
-  overflow: hidden;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
   border: 2px solid var(--ink);
   border-radius: 0;
-  box-shadow: var(--hard);
-}
-
-.view-btn {
-  border: none;
-  cursor: pointer;
-  padding: 9px 17px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
   font-size: 12px;
-  color: var(--ink);
-  background: #fff;
-}
-
-.view-btn + .view-btn {
-  border-left: 2px solid var(--ink);
-}
-
-.view-btn--active {
-  background: var(--ink);
-  color: #fff;
-}
-
-.chip {
-  cursor: pointer;
-  border: 2px solid var(--ink);
-  border-radius: 0;
-  background: #fff;
-  color: var(--ink);
-  font-size: 11.5px;
-  padding: 6px 13px;
+  padding: 9px 17px;
   box-shadow: var(--hard);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
-.chip:hover {
+.filter-btn:hover {
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0 var(--ink);
 }
 
-.chip--active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+.filter-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-.chip--notes {
-  margin-left: 10px;
+.filter-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
 }
 
-.chip--notes-active {
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   background: var(--accent);
-  border-color: var(--ink);
   color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.dialog--filter {
+  max-width: 420px;
+}
+
+.filter-group {
+  border: 0;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.filter-group legend {
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  color: var(--accent);
+}
+
+.filter-option {
+  padding: 9px 0;
+  border-bottom: 2px solid var(--hair);
+}
+
+.filter-option-label {
+  flex: 1;
+}
+
+.filter-option-count {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-option-hint {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.filter-option input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.filter-actions {
+  justify-content: space-between;
+}
+
+/* Nothing to clear: greyed out, and it doesn't press. */
+.filter-actions .btn:disabled {
+  color: var(--ink-soft);
+  border-color: var(--hair);
+  box-shadow: none;
+  transform: none;
+  cursor: default;
 }
 
 /* ---------- Notes bookmark ribbon ---------- */
@@ -455,16 +497,6 @@ button {
 .cover-wrap .note-ribbon {
   top: -3px;
   right: 11%;
-}
-
-.note-ribbon--inline {
-  position: static;
-  display: inline-block;
-  margin-left: 9px;
-  vertical-align: -3px;
-  width: 11px;
-  height: 19px;
-  border-width: 1.5px;
 }
 
 .btn {
@@ -863,72 +895,6 @@ a.btn {
   margin-top: 14px;
   font-size: 13px;
   color: var(--ink-soft);
-}
-
-/* ---------- Ledger (list) view ---------- */
-
-/* ---------- Ledger ---------- */
-
-.ledger-wrap {
-  overflow-x: auto;
-  border: 2px solid var(--ink);
-  border-radius: 0;
-  background: #fff;
-  box-shadow: var(--hard);
-}
-
-.ledger {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14.5px;
-}
-
-.ledger th {
-  text-align: left;
-  padding: 12px 14px;
-  font-size: 10.5px;
-  color: var(--accent);
-  border-bottom: 3px solid var(--ink);
-}
-
-.ledger td {
-  padding: 11px 14px;
-  border-bottom: 1px solid rgba(203, 187, 153, 0.45);
-  white-space: nowrap;
-  border-bottom-color: var(--hair);
-  font-weight: 500;
-}
-
-.ledger tbody tr {
-  cursor: pointer;
-}
-
-.ledger tbody tr:hover {
-  background: var(--paper-deep);
-}
-
-.ledger-title {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-}
-
-.ledger-swatch {
-  display: inline-block;
-  width: 10px;
-  height: 16px;
-  margin-right: 10px;
-  vertical-align: -2px;
-  border-radius: 0;
-  border: 1px solid var(--ink);
-}
-
-.ledger tfoot td {
-  padding: 12px 14px;
-  border-bottom: none;
-  font-size: 10.5px;
-  border-top: 3px solid var(--ink);
-  color: var(--ink);
 }
 
 .badge {
@@ -1780,6 +1746,71 @@ input.square-radio:focus-visible {
 .genre-new input {
   flex: 1;
   min-width: 0;
+}
+
+/* ---------- Book picker (Vocabulary's "From") ---------- */
+
+/* A fixed width, so a long title is cut short rather than stretching the
+   lookup row. */
+.book-pick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 240px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.book-pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.book-pick-title {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-pick svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.dialog--picker {
+  max-width: 520px;
+}
+
+.picker-search {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.picker-results {
+  max-height: min(400px, calc(100vh - 260px));
+}
+
+.search-result.search-result--chosen {
+  background: var(--ink);
+  color: #fff;
+}
+
+.search-result.search-result--chosen .search-result-meta {
+  color: var(--hair);
 }
 
 /* ---------- Catalogue search ---------- */
@@ -3160,19 +3191,19 @@ input.square-radio:focus-visible {
 
 /* ---------- Phones ---------- */
 
-/* Touch devices get no hover, so the press that .btn, .chip and the covers
+/* Touch devices get no hover, so the press that .btn, the filter and the covers
    play on hover would stick after a tap. There it plays while the finger is
    down instead. */
 
 @media (hover: none) {
   .btn:hover,
-  .chip:hover {
+  .filter-btn:hover {
     transform: none;
     box-shadow: var(--hard);
   }
 
   .btn:active,
-  .chip:active {
+  .filter-btn:active {
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0 var(--ink);
   }
@@ -3191,14 +3222,6 @@ input.square-radio:focus-visible {
 
   .cover-card:active .cover {
     box-shadow: 2px 2px 0 var(--ink);
-  }
-
-  .ledger tbody tr:hover {
-    background: none;
-  }
-
-  .ledger tbody tr:active {
-    background: var(--paper-deep);
   }
 }
 
@@ -3435,8 +3458,41 @@ select,
 /* The tab bar, under the masthead's rule; each tab's sections follow. */
 .settings-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px;
+  /* The rule is a shadow, not a border, so the open tab's underline can sit
+     on it while the row scrolls sideways on narrow screens. */
+  box-shadow: inset 0 -2px 0 var(--hair);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.settings-tab {
+  flex: none;
+  padding: 6px 4px 10px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.settings-tab:hover {
+  color: var(--ink);
+}
+
+.settings-tab--active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.settings-tab:focus-visible {
+  /* Inside the tab: the scrolling row would clip an outline drawn outside. */
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .settings-panel {
@@ -3709,25 +3765,22 @@ select,
     min-width: 0;
   }
 
-  .toolbar-row .view-toggle {
+  .book-pick {
     flex: 1;
+    width: auto;
+    min-width: 0;
+    padding: 10px;
+    font-size: 16px;
   }
 
-  .view-btn {
+  .filter-btn {
     flex: 1;
+    justify-content: center;
     padding: 12px 10px;
   }
 
   .toolbar-row .btn--primary {
     padding: 12px 16px;
-  }
-
-  .chip {
-    padding: 9px 14px;
-  }
-
-  .chip--notes {
-    margin-left: 0;
   }
 
   /* Dialogs rise from the bottom edge as a sheet. */
@@ -3790,52 +3843,6 @@ select,
   .detail-cover {
     width: 100%;
     max-width: 160px;
-  }
-
-  /* The ledger drops to a list: title over author, rating at the side. */
-
-  .ledger,
-  .ledger tbody,
-  .ledger tfoot,
-  .ledger tfoot tr,
-  .ledger tfoot td {
-    display: block;
-  }
-
-  .ledger thead {
-    display: none;
-  }
-
-  .ledger tbody tr {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    column-gap: 12px;
-    align-items: center;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--hair);
-  }
-
-  .ledger tbody td {
-    padding: 0;
-    border: none;
-    white-space: normal;
-  }
-
-  .ledger tbody td:nth-child(3),
-  .ledger tbody td:nth-child(4),
-  .ledger tbody td:nth-child(6) {
-    display: none;
-  }
-
-  .ledger tbody td:nth-child(2) {
-    grid-row: 2;
-    font-size: 13px;
-    color: var(--ink-soft);
-  }
-
-  .ledger tbody td:nth-child(5) {
-    grid-column: 2;
-    grid-row: 1 / span 2;
   }
 
   .vocab-delete {

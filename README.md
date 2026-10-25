@@ -19,13 +19,11 @@ Newsprint white, heavy black rules, one hot vermilion accent, Fraunces and
 Inter set in sentence case, and hard offset shadows with no blur. Books without a
 cover photo get a generated cloth cover in one of twelve binding colours.
 
-### Three views of the library
+### Two views of the library
 
 - **Covers** — a grid of front covers. Books without a photo wear a
   generated cloth cover in one of twelve binding colours; books with one
   show the real thing.
-- **Ledger** — a sortable table of every volume with status badges, ratings,
-  and dates, ending in a count row (respects the active search/filter).
 - **Statistics** — stat tiles (books read, read this year, pages, average
   rating) plus charts: books finished per year, ratings distribution, genres,
   and sources. Everything drills down: click a year column for that year's
@@ -36,8 +34,6 @@ cover photo get a generated cloth cover in one of twelve binding colours.
 ![The statistics view](docs/statistics.png)
 
 ![Drilling into a year](docs/drill-down.png)
-
-![The ledger view](docs/ledger.png)
 
 ### A notes page per book
 

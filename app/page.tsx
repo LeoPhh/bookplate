@@ -7,9 +7,8 @@ import { summarize } from "@/lib/progress";
 import { averageRating } from "@/lib/ratings";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
-import Toolbar, { StatusFilter, ViewMode } from "@/components/Toolbar";
+import Toolbar, { StatusFilter } from "@/components/Toolbar";
 import CoverGrid from "@/components/CoverGrid";
-import ListView from "@/components/ListView";
 import BookDetail from "@/components/BookDetail";
 import BookForm, { CoverAction } from "@/components/BookForm";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -40,7 +39,6 @@ function compare(a: Book, b: Book): number {
 
 export default function Home() {
   const [books, setBooks] = useState<Book[] | null>(null);
-  const [view, setView] = useState<ViewMode>("covers");
   const [query, setQuery] = useState("");
   // "All" by default, so a newly added book always shows up straight away.
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -97,7 +95,7 @@ export default function Home() {
         // The library works without it; the bars just don't show.
       }
     })();
-    // Which books have notes files — used by the "Show notes" toggle.
+    // Which books have notes files — used by the filter menu's "Show notes".
     (async () => {
       try {
         const res = await apiFetch("/api/notes");
@@ -155,21 +153,31 @@ export default function Home() {
     return m;
   }, [books, progress]);
 
-  const visible = useMemo(() => {
+  // Books matching the search, before the status filter.
+  const searched = useMemo(() => {
     if (!books) return [];
     const q = query.trim().toLowerCase();
-    return books
-      .filter((b) => status === "all" || b.status === status)
-      .filter(
-        (b) =>
-          !q ||
-          b.title.toLowerCase().includes(q) ||
-          b.author.toLowerCase().includes(q) ||
-          (b.genre ?? "").toLowerCase().includes(q) ||
-          (b.notes ?? "").toLowerCase().includes(q)
-      )
-      .sort(compare);
-  }, [books, query, status]);
+    return books.filter(
+      (b) =>
+        !q ||
+        b.title.toLowerCase().includes(q) ||
+        b.author.toLowerCase().includes(q) ||
+        (b.genre ?? "").toLowerCase().includes(q) ||
+        (b.notes ?? "").toLowerCase().includes(q)
+    );
+  }, [books, query]);
+
+  const visible = useMemo(
+    () => searched.filter((b) => status === "all" || b.status === status).sort(compare),
+    [searched, status]
+  );
+
+  // How many books each status would show, for the filter dialog.
+  const statusCounts = useMemo(() => {
+    const counts: Record<StatusFilter, number> = { all: searched.length, read: 0, reading: 0, "to-read": 0, dnf: 0 };
+    for (const b of searched) counts[b.status]++;
+    return counts;
+  }, [searched]);
 
   const selected = books?.find((b) => b.id === selectedId) ?? null;
 
@@ -269,14 +277,13 @@ export default function Home() {
       </header>
 
       <Toolbar
-        view={view}
-        onView={setView}
         query={query}
         onQuery={setQuery}
         status={status}
         onStatus={setStatus}
         showNotes={showNotes}
         onShowNotes={setShowNotes}
+        counts={statusCounts}
         onAdd={() => {
           setEditing(null);
           setFormOpen(true);
@@ -295,10 +302,7 @@ export default function Home() {
             </p>
           )}
         <section className="view-area">
-          {view === "covers" && (
-            <CoverGrid books={visible} onSelect={setSelectedId} marked={marked} progress={coverProgress} />
-          )}
-          {view === "list" && <ListView books={visible} onSelect={setSelectedId} marked={marked} />}
+          <CoverGrid books={visible} onSelect={setSelectedId} marked={marked} progress={coverProgress} />
         </section>
         </>
       )}

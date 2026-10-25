@@ -10,7 +10,7 @@ export const FEATURES = [
   {
     id: "copy",
     label: "Copy",
-    description: "Whether you own a physical copy, with a column in the Ledger.",
+    description: "Whether you own a physical copy, shown in each book's details.",
   },
 ] as const;
 

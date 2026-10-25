@@ -3,8 +3,8 @@
 import { useRef, type KeyboardEvent } from "react";
 import type { SettingsTab } from "@/lib/settingsTabs";
 
-// The Settings page's tab bar, styled like the Library's filter chips. A real
-// tablist: the arrow keys (and Home/End) move between tabs.
+// The Settings page's tab bar: labels on a rule, the open one underlined in
+// the accent. A real tablist: the arrow keys (and Home/End) move between tabs.
 export default function SettingsTabs({
   tabs,
   active,
@@ -44,7 +44,7 @@ export default function SettingsTabs({
           aria-selected={t.id === active}
           aria-controls={`settings-panel-${t.id}`}
           tabIndex={t.id === active ? 0 : -1}
-          className={t.id === active ? "chip chip--active" : "chip"}
+          className={t.id === active ? "settings-tab settings-tab--active" : "settings-tab"}
           onClick={() => onChange(t.id)}
         >
           {t.label}
