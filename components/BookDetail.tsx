@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Book, dateLabel, ProgressEntry, sourceLabel, STATUS_LABELS } from "@/lib/types";
 import { plural, summarize } from "@/lib/progress";
+import { timesRead } from "@/lib/reads";
 import BookCover from "./BookCover";
 import ProgressPanel from "./ProgressPanel";
 import StarRating from "./StarRating";
@@ -18,6 +19,7 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onFinish: () => void;
+  onReread: () => void;
   onClose: () => void;
 }
 
@@ -48,12 +50,15 @@ export default function BookDetail({
   onEdit,
   onDelete,
   onFinish,
+  onReread,
   onClose,
 }: Props) {
   const showSource = useFeature("source");
   const showCopy = useFeature("copy");
   // For finished books whose reading was tracked: how long it took.
   const readInDays = book.status === "read" ? summarize(book, progress)?.readInDays : undefined;
+  const pastReads = book.pastReads ?? [];
+  const times = timesRead(book);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -96,7 +101,9 @@ export default function BookDetail({
             <BookCover book={book} />
           </div>
           <div className="detail-body">
-            <p className="detail-kicker">{STATUS_LABELS[book.status]}</p>
+            <p className="detail-kicker">
+              {book.status === "reading" && pastReads.length > 0 ? "Rereading" : STATUS_LABELS[book.status]}
+            </p>
             <h2 className="detail-title">{book.title}</h2>
             <p className="detail-author">by {book.author}</p>
             <div className="detail-rating">
@@ -135,6 +142,18 @@ export default function BookDetail({
                   <Flag on={hasNotes} />
                 </dd>
               </div>
+              {times > 1 && (
+                <div>
+                  <dt>Times read</dt>
+                  <dd>{times}</dd>
+                </div>
+              )}
+              {pastReads.length > 0 && (
+                <div className="detail-facts-wide">
+                  <dt>Earlier reads</dt>
+                  <dd>{pastReads.map((r) => (r.date ? fmtDate(r.date) : "Date unknown")).join(" · ")}</dd>
+                </div>
+              )}
               {readInDays !== undefined && (
                 <div>
                   <dt>Read in</dt>
@@ -152,9 +171,13 @@ export default function BookDetail({
               />
             )}
             <div className="dialog-actions">
-              {book.status !== "read" && (
+              {book.status !== "read" ? (
                 <button type="button" className="btn btn--primary" onClick={onFinish}>
                   Finished Reading
+                </button>
+              ) : (
+                <button type="button" className="btn" onClick={onReread}>
+                  Read again
                 </button>
               )}
               <Link className="btn btn--accent" href={`/books/${book.id}`}>

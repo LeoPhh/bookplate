@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── Auth (tables and columns as Better Auth expects them) ──────────────────
 
@@ -101,6 +101,7 @@ export const book = pgTable(
     copy: boolean("copy"),
     rating: real("rating").notNull().default(0),
     dateRead: text("date_read"), // ISO yyyy-mm-dd, kept as text like the app uses it
+    pastReads: jsonb("past_reads").$type<{ date?: string }[]>(), // earlier finishes, oldest first; null = none
     shortNotes: text("short_notes"), // legacy one-line notes from before notes pages
     coverImage: text("cover_image"),
     colorIndex: integer("color_index").notNull().default(0),

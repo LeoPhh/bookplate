@@ -40,6 +40,23 @@ describe("books", () => {
     expect((await r.json("/api/books/b1", "PUT", book("b1", { status: "read", dateRead: today }))).status).toBe(200);
   });
 
+  it("keep earlier reads, tidied, and refuse malformed or future ones", async () => {
+    const r = await reader();
+    const year = new Date().getFullYear();
+    const reads = [{ date: "2024-05-01" }, {}, { date: "2019-07-02" }];
+    expect((await r.json("/api/books/b1", "PUT", book("b1", { status: "read", dateRead: "2025-01-01", pastReads: reads }))).status).toBe(200);
+    const saved = (await r.get<{ books: Book[] }>("/api/books")).books[0];
+    expect(saved.pastReads).toEqual([{}, { date: "2019-07-02" }, { date: "2024-05-01" }]);
+
+    expect((await r.json("/api/books/b1", "PUT", book("b1", { pastReads: [{ date: "May 2019" }] }))).status).toBe(400);
+    expect((await r.json("/api/books/b1", "PUT", book("b1", { pastReads: "twice" as never }))).status).toBe(400);
+    expect((await r.json("/api/books/b1", "PUT", book("b1", { pastReads: [{ date: `${year + 1}-01-15` }] }))).status).toBe(400);
+
+    // Saving without them clears them.
+    await r.json("/api/books/b1", "PUT", book("b1", { status: "read" }));
+    expect((await r.get<{ books: Book[] }>("/api/books")).books[0].pastReads).toBeUndefined();
+  });
+
   it("are deleted with their cover, notes and progress", async () => {
     const r = await reader();
     await r.json("/api/books/b1", "PUT", book("b1", { coverImage: "/api/covers/b1.jpg", pages: 100 }));

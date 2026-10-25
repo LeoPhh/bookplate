@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { getStorage, keys } from "./storage";
 import { Book, BookStatus, ProgressEntry, VocabEntry } from "./types";
+import { tidyReads } from "./reads";
 
 // Every function takes the signed-in user's id and only ever touches that
 // user's rows and files.
@@ -26,6 +27,7 @@ function toBook(r: BookRow): Book {
     copy: r.copy ?? undefined,
     rating: r.rating,
     dateRead: r.dateRead ?? undefined,
+    pastReads: r.pastReads?.length ? r.pastReads : undefined,
     notes: r.shortNotes ?? undefined,
     coverImage: r.coverImage ?? undefined,
     colorIndex: r.colorIndex,
@@ -48,6 +50,7 @@ function toBookRow(userId: string, b: Book): BookRow {
     copy: b.copy ?? null,
     rating: b.rating ?? 0,
     dateRead: b.dateRead ?? null,
+    pastReads: b.pastReads?.length ? tidyReads(b.pastReads) : null,
     shortNotes: b.notes ?? null,
     coverImage: b.coverImage ?? null,
     colorIndex: b.colorIndex ?? 0,

@@ -3,7 +3,7 @@ import type { Book } from "@/lib/types";
 import { possessive, type ShowcaseYear } from "@/lib/showcaseYear";
 
 // The body of a showcase: a bookplate with the reader's name, the year's
-// numbers, every book in the order it was finished, then the best rated and
+// numbers, every book in the order it was finished (rereads marked), then the best rated and
 // the longest again, up close. The public page (app/s/[id]) and the Showcase tab (app/showcase)
 // both show it, so the tab shows exactly what visitors see.
 
@@ -43,7 +43,9 @@ export default function ShowcaseView({
     view.read.length > 0 && {
       label: "Books read",
       value: num(stats.books),
-      note: year === thisYear ? "so far" : "",
+      note: [year === thisYear ? "so far" : "", stats.rereads ? `${plural(stats.rereads, "reread")} among them` : ""]
+        .filter(Boolean)
+        .join(" · "),
     },
     stats.pages > 0 && { label: "Pages", value: num(stats.pages), note: `about ${num(stats.pagesPerDay ?? 0)} a day` },
     stats.rating !== undefined && {
@@ -81,9 +83,14 @@ export default function ShowcaseView({
             <p className="showcase-section-note">In the order they were finished</p>
           </div>
           <ol className="showcase-shelf">
-            {view.read.map((b) => (
-              <li key={b.id} className="showcase-cover" title={`${b.title} by ${b.author}`}>
+            {view.read.map((b, i) => (
+              <li
+                key={`${b.id}-${i}`}
+                className="showcase-cover"
+                title={`${b.title} by ${b.author}${b.reread ? " (reread)" : ""}`}
+              >
                 <BookCover book={b} />
+                {b.reread && <span className="reread-tag">Reread</span>}
               </li>
             ))}
           </ol>

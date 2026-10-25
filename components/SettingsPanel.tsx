@@ -366,6 +366,7 @@ interface CsvSummary {
   toRead: number;
   dnf: number;
   withIsbn: number;
+  rereads: number;
   notes: number;
   skipped: number;
 }
@@ -520,6 +521,7 @@ function CsvImport() {
               {plural(s.added, "new book")}
               {s.updated ? `, and ${plural(s.updated, "book")} already in your library will be updated` : ""}
             </li>
+            {s.rereads > 0 && <li>{plural(s.rereads, "book")} read more than once, with every read counted</li>}
             {s.notes > 0 && <li>{plural(s.notes, "review")} will become notes pages</li>}
             {s.skipped > 0 && <li>{plural(s.skipped, "row")} without a title or author will be skipped</li>}
           </ul>

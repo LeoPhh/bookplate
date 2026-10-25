@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { listBooks } from "./library";
 import { todayIso } from "./progress";
+import { finishes } from "./reads";
 import { buildShowcaseYear, type ShowcaseYear } from "./showcaseYear";
 import { Book } from "./types";
 
@@ -110,8 +111,8 @@ export async function previewShowcase(userId: string, year: number): Promise<Sho
 export async function showcaseYears(userId: string): Promise<{ year: number; books: number }[]> {
   const thisYear = Number(todayIso().slice(0, 4));
   const counts = new Map<number, number>([[thisYear, 0]]);
-  for (const b of await listBooks(userId)) {
-    const year = b.status === "read" ? Number(b.dateRead?.slice(0, 4)) : NaN;
+  for (const f of (await listBooks(userId)).flatMap(finishes)) {
+    const year = Number(f.date?.slice(0, 4));
     if (Number.isInteger(year) && year >= FIRST_YEAR && year <= thisYear) counts.set(year, (counts.get(year) ?? 0) + 1);
   }
   return [...counts].map(([year, books]) => ({ year, books })).sort((a, b) => b.year - a.year);
@@ -133,6 +134,7 @@ function shownBook(b: Book): Book {
     status: b.status,
     rating: b.rating,
     dateRead: b.dateRead,
+    pastReads: b.pastReads, // buildShowcaseYear keeps only the finishes in the year
     colorIndex: b.colorIndex,
     addedAt: b.addedAt,
     coverImage: b.coverImage,

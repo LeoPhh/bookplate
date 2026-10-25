@@ -19,7 +19,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!isSafeId(id) || !isValidBook(body) || body.id !== id) {
     return Response.json({ error: "Invalid book" }, { status: 400 });
   }
-  if (body.dateRead && isFutureDate(body.dateRead)) {
+  if ([body.dateRead, ...(body.pastReads ?? []).map((r) => r.date)].some((d) => d && isFutureDate(d))) {
     return Response.json({ error: "The date can’t be in the future." }, { status: 400 });
   }
   const over = await checkBooks(auth.userId, [id]);

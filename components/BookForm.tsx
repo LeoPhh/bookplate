@@ -20,6 +20,7 @@ import ImageCropper from "./ImageCropper";
 import Spinner from "./Spinner";
 import { useFeature } from "./Features";
 import { todayIso } from "@/lib/progress";
+import { tidyReads } from "@/lib/reads";
 
 // What should happen to the stored cover file when the form is saved.
 export type CoverAction = { type: "keep" } | { type: "remove" } | { type: "upload"; blob: Blob };
@@ -49,6 +50,7 @@ interface Draft {
   copy: boolean;
   rating: number;
   dateRead: string;
+  pastReads: { key: number; date: string }[]; // earlier finishes; "" = date unknown
   colorIndex: number;
   olWorkId: string; // set when a catalogue result is picked
 }
@@ -65,6 +67,7 @@ function draftFrom(book: Book | null): Draft {
       copy: false,
       rating: 0,
       dateRead: todayIso(), // …and often just finished
+      pastReads: [],
       colorIndex: Math.floor(Math.random() * PALETTE.length),
       olWorkId: "",
     };
@@ -79,6 +82,7 @@ function draftFrom(book: Book | null): Draft {
     copy: book.copy ?? false,
     rating: book.rating,
     dateRead: book.dateRead ?? "",
+    pastReads: (book.pastReads ?? []).map((r, i) => ({ key: i, date: r.date ?? "" })),
     colorIndex: book.colorIndex,
     olWorkId: book.olWorkId ?? "",
   };
@@ -125,6 +129,14 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
   }, [onClose]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setD((prev) => ({ ...prev, [key]: value }));
+
+  // Rows of the earlier reads keep their key when one above is removed, so
+  // each date picker stays with its date.
+  const nextReadKey = useRef(book?.pastReads?.length ?? 0);
+  const addRead = () => set("pastReads", [...d.pastReads, { key: nextReadKey.current++, date: "" }]);
+  const setRead = (key: number, date: string) =>
+    set("pastReads", d.pastReads.map((r) => (r.key === key ? { ...r, date } : r)));
+  const removeRead = (key: number) => set("pastReads", d.pastReads.filter((r) => r.key !== key));
 
   const pickStatus = (status: BookStatus) => {
     let dateRead = d.dateRead;
@@ -273,6 +285,7 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
         copy: d.copy || undefined,
         rating: d.rating,
         dateRead: d.dateRead || undefined,
+        pastReads: d.pastReads.length ? tidyReads(d.pastReads.map((r) => (r.date ? { date: r.date } : {}))) : undefined,
         // Notes are deliberately absent: they live in the book's markdown
         // notes page, and omitting the key preserves any legacy short note.
         colorIndex: d.colorIndex,
@@ -498,6 +511,26 @@ export default function BookForm({ book, genres, sources, onSave, onClose }: Pro
           <div className="field">
             <span>Date {dateLabel(d.status).toLowerCase()}</span>
             <DatePicker value={d.dateRead} onChange={(v) => set("dateRead", v)} max={todayIso()} />
+          </div>
+          <div className="field field--wide" role="group" aria-labelledby="earlier-reads-label">
+            <span id="earlier-reads-label">Earlier reads</span>
+            {d.pastReads.map((r, i) => (
+              <div key={r.key} className="earlier-read">
+                <DatePicker value={r.date} onChange={(v) => setRead(r.key, v)} max={todayIso()} placeholder="Date unknown" />
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => removeRead(r.key)}
+                  aria-label={`Remove earlier read ${i + 1}`}
+                  title="Remove this read"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button type="button" className="reads-add" onClick={addRead}>
+              + {d.pastReads.length ? "Add another earlier read" : "Read it before? Add an earlier read"}
+            </button>
           </div>
           <div className="field">
             <span>Rating</span>

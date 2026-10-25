@@ -26,6 +26,7 @@ export function isValidBook(b: unknown): b is Book {
     optional(o, "format", "string") &&
     optional(o, "copy", "boolean") &&
     optional(o, "dateRead", "string") &&
+    (o.pastReads === undefined || o.pastReads === null || isValidPastReads(o.pastReads)) &&
     optional(o, "notes", "string") &&
     optional(o, "coverImage", "string") &&
     optional(o, "addedAt", "string")
@@ -33,6 +34,16 @@ export function isValidBook(b: unknown): b is Book {
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Earlier reads: a list of { date? }, a few hundred at most.
+function isValidPastReads(v: unknown): boolean {
+  if (!Array.isArray(v) || v.length > 500) return false;
+  return v.every((r) => {
+    if (typeof r !== "object" || r === null) return false;
+    const date = (r as Record<string, unknown>).date;
+    return date === undefined || (typeof date === "string" && DATE_RE.test(date));
+  });
+}
 
 // A finished date can't be in the future. Measured against the server's
 // tomorrow, so a reader whose day has already turned over isn't refused.

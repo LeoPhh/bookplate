@@ -224,7 +224,8 @@ button {
 .promo-name-label,
 .promo-stat-label,
 .promo-stars-label,
-.live-badge {
+.live-badge,
+.reread-tag {
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -282,7 +283,8 @@ button {
 .legal-back,
 .appbar-nav,
 .promo-link-btn,
-.profile-name-edit {
+.profile-name-edit,
+.reads-add {
   font-weight: 700;
   letter-spacing: 0.01em;
 }
@@ -975,6 +977,13 @@ a.btn {
   font-variant-numeric: tabular-nums;
 }
 
+/* "and 3 rereads" under a tile's number. */
+.stat-tile-note {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
 .stats-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1547,6 +1556,11 @@ a.btn {
   font-weight: 600;
 }
 
+/* A fact too long for one cell (the list of earlier reads) takes a row. */
+.detail-facts .detail-facts-wide {
+  grid-column: 1 / -1;
+}
+
 /* Yes/no facts (Copy, Notes) — the accent marks the yes, a muted cross the no. */
 
 /* Vermilion yes, ink-grey no — both heavy enough to hold the block type. */
@@ -1746,6 +1760,33 @@ input.square-radio:focus-visible {
 .genre-new input {
   flex: 1;
   min-width: 0;
+}
+
+/* The form's earlier reads: a date (or none) per row, and a link-like
+   button to add one. */
+.earlier-read {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.earlier-read > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.reads-add {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 0;
+  font-size: 12.5px;
+  color: var(--accent);
+}
+
+.reads-add:hover {
+  text-decoration: underline;
 }
 
 /* ---------- Book picker (Vocabulary's "From") ---------- */
@@ -4098,6 +4139,29 @@ select,
   display: grid;
   grid-template-columns: repeat(auto-fill, var(--book));
   gap: 22px 18px;
+}
+
+/* A book finished again: a tag across the foot of its cover. */
+.reread-tag {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--ink);
+  font-size: 9px;
+  line-height: 1;
+  padding: 3px 5px 2px;
+  white-space: nowrap;
+}
+
+.showcase-cover {
+  position: relative;
+}
+
+.showcase-cover .reread-tag {
+  position: absolute;
+  left: -4px;
+  bottom: 8px;
+  z-index: 2;
 }
 
 /* The best rated and the longest, side by side under the shelf. */

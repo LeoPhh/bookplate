@@ -6,6 +6,7 @@ interface Props {
   value: string; // ISO yyyy-mm-dd, or "" for unset
   onChange: (value: string) => void;
   max?: string; // ISO yyyy-mm-dd: the latest date that can be picked
+  placeholder?: string; // shown while no date is set
 }
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -33,7 +34,7 @@ function parseISO(value: string): { y: number; m: number; d: number } | null {
   return { y: Number(value.slice(0, 4)), m: Number(value.slice(5, 7)) - 1, d: Number(value.slice(8, 10)) };
 }
 
-export default function DatePicker({ value, onChange, max }: Props) {
+export default function DatePicker({ value, onChange, max, placeholder = "Not set" }: Props) {
   const [open, setOpen] = useState(false);
   const selected = parseISO(value);
   const now = new Date();
@@ -107,7 +108,7 @@ export default function DatePicker({ value, onChange, max }: Props) {
         month: "long",
         day: "numeric",
       })
-    : "Not set";
+    : placeholder;
 
   return (
     <div className="datepicker" ref={rootRef}>

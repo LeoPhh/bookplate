@@ -122,7 +122,7 @@ function Stage({ name, view, host }: { name: string; view: ShowcaseYear; host: s
           {/* Covers drop in one after another. */}
           <ol className="promo-shelf">
             {view.read.slice(0, SHELF_MAX).map((b, i) => (
-              <li key={b.id} className="promo-cover" style={{ "--i": i } as CSSProperties}>
+              <li key={`${b.id}-${i}`} className="promo-cover" style={{ "--i": i } as CSSProperties}>
                 <BookCover book={b} />
               </li>
             ))}

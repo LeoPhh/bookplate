@@ -1,4 +1,5 @@
 import { Book, ProgressEntry } from "./types";
+import { lastPastRead } from "./reads";
 
 // Reading-progress maths shared by the covers, the book dialog and the
 // statistics page. Dates are the reader's local calendar dates (yyyy-mm-dd).
@@ -41,8 +42,13 @@ export interface ProgressSummary {
   readInDays?: number; // for finished books: first update → date finished
 }
 
+// Only the current read counts: on a reread, updates from before the last
+// time the book was finished belong to that earlier read.
 export function summarize(book: Book, all: ProgressEntry[], today = todayIso()): ProgressSummary | null {
-  const entries = all.filter((e) => e.bookId === book.id).sort((a, b) => a.date.localeCompare(b.date));
+  const since = lastPastRead(book) ?? "";
+  const entries = all
+    .filter((e) => e.bookId === book.id && e.date > since)
+    .sort((a, b) => a.date.localeCompare(b.date));
   if (entries.length === 0) return null;
 
   const unit = progressUnit(book);

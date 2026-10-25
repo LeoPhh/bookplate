@@ -16,10 +16,17 @@ export interface Book {
   copy?: boolean; // physical copy owned at home
   rating: number; // 0–5, 0 = unrated
   dateRead?: string; // ISO yyyy-mm-dd: finished, or for "dnf" when you stopped
+  pastReads?: PastRead[]; // earlier times it was read to the end (lib/reads.ts)
   notes?: string;
   coverImage?: string; // /api/covers/<id>.jpg?v=…; absent = generated cover
   colorIndex: number; // index into PALETTE
   addedAt: string; // ISO timestamp
+}
+
+// An earlier time a book was read to the end. The date is unknown for reads
+// counted by a Goodreads export, which only says how many times.
+export interface PastRead {
+  date?: string; // ISO yyyy-mm-dd
 }
 
 export const STATUS_LABELS: Record<BookStatus, string> = {

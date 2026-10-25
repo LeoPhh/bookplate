@@ -2,7 +2,17 @@ import { readFileSync } from "fs";
 import path from "path";
 import { describe, expect, it } from "vitest";
 import { csvRecords } from "@/lib/csv";
-import { cleanDate, cleanIsbn, cleanRating, cleanTitle, detectSource, statusFrom } from "@/lib/csvImport";
+import {
+  cleanDate,
+  cleanIsbn,
+  cleanRating,
+  cleanTitle,
+  detectSource,
+  goodreadsPastReads,
+  statusFrom,
+  storygraphFinishes,
+  storygraphReads,
+} from "@/lib/csvImport";
 
 const fixture = (name: string) => readFileSync(path.join(__dirname, "../fixtures", name), "utf8");
 
@@ -77,3 +87,37 @@ describe("cleanTitle", () => {
     expect(cleanTitle("Notes (Revised Edition)")).toBe("Notes (Revised Edition)");
   });
 });
+
+describe("rereads", () => {
+  it("turns Goodreads' read count into undated earlier reads", () => {
+    expect(goodreadsPastReads("3", "read")).toEqual([{}, {}]);
+    expect(goodreadsPastReads("2", "reading")).toEqual([{}]);
+    expect(goodreadsPastReads("1", "to-read")).toEqual([{}]);
+    expect(goodreadsPastReads("1", "read")).toEqual([]);
+    expect(goodreadsPastReads("", "read")).toEqual([]);
+  });
+
+  it("reads StoryGraph's finished reads, skipping one still going", () => {
+    expect(storygraphFinishes("2021/03/02-2021/03/20, 2024/01/05-2024/01/30")).toEqual(["2021-03-20", "2024-01-30"]);
+    expect(storygraphFinishes("2021/03/02-2021/03/20, 2026/09/05-")).toEqual(["2021-03-20"]);
+    expect(storygraphFinishes("")).toEqual([]);
+  });
+
+  it("splits StoryGraph's finishes into the book's date and its earlier reads", () => {
+    expect(storygraphReads("2019/06/01-2019/07/02, 2024/02/20-2024/03/14", "2024-03-14", "2", "read")).toEqual({
+      dateRead: "2024-03-14",
+      pastReads: [{ date: "2019-07-02" }],
+    });
+    // Being read again: every finish is an earlier read.
+    expect(storygraphReads("2019/06/01-2019/07/02, 2026/09/01-", undefined, "1", "reading")).toEqual({
+      dateRead: undefined,
+      pastReads: [{ date: "2019-07-02" }],
+    });
+    // More reads counted than dated: the rest have no date.
+    expect(storygraphReads("2024/02/20-2024/03/14", "2024-03-14", "3", "read")).toEqual({
+      dateRead: "2024-03-14",
+      pastReads: [{}, {}],
+    });
+  });
+});
+

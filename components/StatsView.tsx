@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Book, BookFormat, FORMAT_LABELS, isCustomSource, ProgressEntry, sourceLabel } from "@/lib/types";
 import { fmtShortDate, plural, summarize } from "@/lib/progress";
 import { averageRating, ratedReads } from "@/lib/ratings";
+import { finishes, finishesIn, hasBeenRead, timesRead } from "@/lib/reads";
 import ProgressBar from "./ProgressBar";
 import { paletteFor } from "@/lib/palette";
 import StarRating from "./StarRating";
@@ -24,7 +25,8 @@ interface Tip {
 
 interface YearCount {
   year: number;
-  count: number;
+  count: number; // finishes, rereads included
+  rereads: number;
 }
 
 // What the user has drilled into, if anything.
@@ -35,19 +37,21 @@ type Drill =
   | { kind: "source"; source: string | null } // null = no source set
   | { kind: "rating"; rating: number };
 
+// Every dated finish counts, so a reread adds to the year it was finished in.
 function yearCounts(books: Book[]): YearCount[] {
-  const map = new Map<number, number>();
-  for (const b of books) {
-    if (b.status !== "read" || !b.dateRead) continue;
-    const y = Number(b.dateRead.slice(0, 4));
-    map.set(y, (map.get(y) ?? 0) + 1);
+  const map = new Map<number, { count: number; rereads: number }>();
+  for (const f of books.flatMap(finishes)) {
+    if (!f.date) continue;
+    const y = Number(f.date.slice(0, 4));
+    const c = map.get(y) ?? { count: 0, rereads: 0 };
+    map.set(y, { count: c.count + 1, rereads: c.rereads + Number(f.reread) });
   }
   if (map.size === 0) return [];
   const years = [...map.keys()];
   const min = Math.min(...years);
   const max = Math.max(...years, new Date().getFullYear());
   const out: YearCount[] = [];
-  for (let y = min; y <= max; y++) out.push({ year: y, count: map.get(y) ?? 0 });
+  for (let y = min; y <= max; y++) out.push({ year: y, count: 0, rereads: 0, ...map.get(y) });
   return out;
 }
 
@@ -125,7 +129,7 @@ function YearChart({ data, onPick }: { data: YearCount[]; onPick: (year: number)
                   setTip({
                     left: (cx / W) * 100,
                     top: (Math.min(y, pad.top + plotH - 8) / H) * 100,
-                    text: `${d.year}: ${d.count} ${d.count === 1 ? "book" : "books"}`,
+                    text: `${d.year}: ${d.count} ${d.count === 1 ? "book" : "books"}${d.rereads ? ` (${plural(d.rereads, "reread")})` : ""}`,
                   })
                 }
                 onMouseLeave={() => setTip(null)}
@@ -167,7 +171,7 @@ function BarList({
   const rowClass = narrowLabels ? "hbar-row hbar-row--narrow" : "hbar-row";
   return (
     <div>
-      {rows.map((r) => {
+      {rows.map((r, i) => {
         const inner = (
           <>
             <span className="hbar-label">{r.label}</span>
@@ -182,7 +186,7 @@ function BarList({
         );
         return r.action ? (
           <button
-            key={r.label}
+            key={`${r.label}-${i}`}
             type="button"
             className={`${rowClass} hbar-row--click`}
             title={`${r.label}: ${r.count}`}
@@ -191,7 +195,7 @@ function BarList({
             {inner}
           </button>
         ) : (
-          <div key={r.label} className={rowClass} title={`${r.label}: ${r.count}`}>
+          <div key={`${r.label}-${i}`} className={rowClass} title={`${r.label}: ${r.count}`}>
             {inner}
           </div>
         );
@@ -200,8 +204,19 @@ function BarList({
   );
 }
 
-// A clickable book row inside a drill-down dialog.
-function DrillBookRow({ book, onSelect }: { book: Book; onSelect: (id: string) => void }) {
+// A clickable book row inside a drill-down dialog. In a year's list each row
+// is one finish, so it carries that finish's date.
+function DrillBookRow({
+  book,
+  date = book.dateRead,
+  reread = false,
+  onSelect,
+}: {
+  book: Book;
+  date?: string;
+  reread?: boolean;
+  onSelect: (id: string) => void;
+}) {
   const c = paletteFor(book.colorIndex);
   return (
     <li>
@@ -217,8 +232,9 @@ function DrillBookRow({ book, onSelect }: { book: Book; onSelect: (id: string) =
           <span className="drill-book-meta">{book.author}</span>
         </span>
         <span className="drill-book-right">
+          {reread && <span className="reread-tag">Reread</span>}
           {book.rating > 0 && <StarRating value={book.rating} size="sm" />}
-          {book.dateRead && <span className="drill-book-date">{fmtDate(book.dateRead)}</span>}
+          {date && <span className="drill-book-date">{fmtDate(date)}</span>}
         </span>
       </button>
     </li>
@@ -333,10 +349,19 @@ export default function StatsView({ books, progress, onSelect }: Props) {
   const showSource = useFeature("source");
 
   const stats = useMemo(() => {
-    const read = books.filter((b) => b.status === "read");
+    // Books read at least once; rereads are counted on top.
+    const read = books.filter(hasBeenRead);
+    const rereads = read.reduce((n, b) => n + timesRead(b) - 1, 0);
     const thisYear = new Date().getFullYear();
-    const readThisYear = read.filter((b) => b.dateRead?.startsWith(String(thisYear))).length;
-    const pages = read.reduce((s, b) => s + (b.pages ?? 0), 0);
+    const finishedThisYear = finishesIn(books, thisYear);
+    const readThisYear = finishedThisYear.length;
+    const rereadsThisYear = finishedThisYear.filter((f) => f.reread).length;
+    // Every finish's pages: reading a book twice is reading its pages twice.
+    const pages = read.reduce((s, b) => s + (b.pages ?? 0) * timesRead(b), 0);
+    // The books read more than once, most read first.
+    const mostReread = read
+      .filter((b) => timesRead(b) > 1)
+      .sort((a, b) => timesRead(b) - timesRead(a) || a.title.localeCompare(b.title));
     const avg = averageRating(books);
 
     const rated = ratedReads(books);
@@ -373,7 +398,20 @@ export default function StatsView({ books, progress, onSelect }: Props) {
     const unsourced = books.filter((b) => !b.format).length;
     if (unsourced > 0) sources.push({ source: null, label: "Unspecified", count: unsourced });
 
-    return { read, readThisYear, pages, avg, ratings, genres, allGenres, sources, years: yearCounts(books) };
+    return {
+      read,
+      rereads,
+      readThisYear,
+      rereadsThisYear,
+      pages,
+      avg,
+      ratings,
+      genres,
+      allGenres,
+      sources,
+      mostReread,
+      years: yearCounts(books),
+    };
   }, [books]);
 
   const byRatingThenTitle = (a: Book, b: Book) => b.rating - a.rating || a.title.localeCompare(b.title);
@@ -393,10 +431,11 @@ export default function StatsView({ books, progress, onSelect }: Props) {
     if (!drill) return null;
 
     if (drill.kind === "year") {
-      const list = books
-        .filter((b) => b.status === "read" && b.dateRead?.startsWith(String(drill.year)))
-        .sort((a, b) => (a.dateRead ?? "").localeCompare(b.dateRead ?? ""));
-      const pages = list.reduce((s, b) => s + (b.pages ?? 0), 0);
+      // One row per finish; ratings once per book.
+      const finished = finishesIn(books, drill.year);
+      const list = finished.map((f) => f.book).filter((b, i, all) => all.indexOf(b) === i);
+      const rereads = finished.filter((f) => f.reread).length;
+      const pages = finished.reduce((s, f) => s + (f.book.pages ?? 0), 0);
       const rated = list.filter((b) => b.rating > 0);
       const avg = rated.length ? (rated.reduce((s, b) => s + b.rating, 0) / rated.length).toFixed(1) : "—";
       const maxRating = Math.max(...list.map((b) => b.rating), 0);
@@ -405,12 +444,12 @@ export default function StatsView({ books, progress, onSelect }: Props) {
       return (
         <DrillDialog
           title={`Read in ${drill.year}`}
-          sub={`${list.length} ${list.length === 1 ? "book" : "books"} finished`}
+          sub={`${finished.length} ${finished.length === 1 ? "book" : "books"} finished${rereads ? `, ${plural(rereads, "reread")} among them` : ""}`}
           onClose={() => setDrill(null)}
         >
           <div className="drill-tiles">
             <div className="drill-tile">
-              <b>{list.length}</b>
+              <b>{finished.length}</b>
               books
             </div>
             <div className="drill-tile">
@@ -429,7 +468,11 @@ export default function StatsView({ books, progress, onSelect }: Props) {
             </>
           )}
           <h3 className="drill-section-title">In reading order</h3>
-          {renderBookList(list)}
+          <ul className="drill-list">
+            {finished.map((f, i) => (
+              <DrillBookRow key={`${f.book.id}-${i}`} book={f.book} date={f.date} reread={f.reread} onSelect={onSelect} />
+            ))}
+          </ul>
         </DrillDialog>
       );
     }
@@ -519,10 +562,14 @@ export default function StatsView({ books, progress, onSelect }: Props) {
         <div className="stat-tile">
           <p className="stat-tile-label">Books read</p>
           <p className="stat-tile-value">{stats.read.length}</p>
+          {stats.rereads > 0 && <p className="stat-tile-note">and {plural(stats.rereads, "reread")}</p>}
         </div>
         <div className="stat-tile">
           <p className="stat-tile-label">Read in {new Date().getFullYear()}</p>
           <p className="stat-tile-value">{stats.readThisYear}</p>
+          {stats.rereadsThisYear > 0 && (
+            <p className="stat-tile-note">{plural(stats.rereadsThisYear, "reread")} among them</p>
+          )}
         </div>
         <div className="stat-tile">
           <p className="stat-tile-label">Pages read</p>
@@ -545,6 +592,20 @@ export default function StatsView({ books, progress, onSelect }: Props) {
           <p className="empty-note">Finish a book (with a date) and the chart will appear.</p>
         )}
       </div>
+
+      {stats.mostReread.length > 0 && (
+        <div className="chart-card">
+          <h2 className="chart-title">Read more than once</h2>
+          <p className="chart-sub">Times read, most first. Click one to open it</p>
+          <BarList
+            rows={stats.mostReread.slice(0, 8).map((b) => ({
+              label: b.title,
+              count: timesRead(b),
+              action: () => onSelect(b.id),
+            }))}
+          />
+        </div>
+      )}
 
       <div className="stats-row">
         <div className="chart-card">

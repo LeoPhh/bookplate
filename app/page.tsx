@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Book, isCustomSource, ProgressEntry } from "@/lib/types";
 import { summarize } from "@/lib/progress";
 import { averageRating } from "@/lib/ratings";
+import { hasBeenRead, startReread } from "@/lib/reads";
 import { apiFetch, putJson } from "@/lib/api";
 import { newId } from "@/lib/id";
 import Toolbar, { StatusFilter } from "@/components/Toolbar";
@@ -211,7 +212,7 @@ export default function Home() {
 
   const stats = useMemo(() => {
     if (!books || books.length === 0) return null;
-    const read = books.filter((b) => b.status === "read");
+    const read = books.filter(hasBeenRead);
     const avg = averageRating(books)?.toFixed(1) ?? null;
     return { total: books.length, read: read.length, avg };
   }, [books]);
@@ -322,6 +323,11 @@ export default function Home() {
           }}
           onDelete={() => handleDelete(selected.id)}
           onFinish={() => setPendingFinish(selected)}
+          onReread={() => {
+            const book = startReread(selected);
+            setBooks((prev) => prev!.map((b) => (b.id === book.id ? book : b)));
+            saveBook(book);
+          }}
           onClose={() => setSelectedId(null)}
         />
       )}

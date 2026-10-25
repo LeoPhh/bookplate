@@ -2,7 +2,8 @@ import { createHash } from "crypto";
 import { csvRecords } from "./csv";
 import { importRecords, listBooks, listNotedBookIds } from "./library";
 import { PALETTE } from "./palette";
-import { Book, BookFormat, BookStatus } from "./types";
+import { tidyReads } from "./reads";
+import { Book, BookFormat, BookStatus, PastRead } from "./types";
 
 // Imports a library exported from Goodreads ("My Books → Import and export →
 // Export Library") or StoryGraph ("Manage Account → Export StoryGraph
@@ -11,6 +12,10 @@ import { Book, BookFormat, BookStatus } from "./types";
 // Re-importing is safe: each row is matched to a book already in the library
 // — by the id an earlier import gave it, then ISBN, then title and author —
 // and updated in place, keeping its cover, colour and notes.
+//
+// Rereads come across too. Goodreads only says how many times a book was
+// read ("Read Count") and the latest date, so the earlier reads have no
+// date. StoryGraph lists every read's dates ("Dates Read").
 
 export type CsvSource = "goodreads" | "storygraph";
 
@@ -25,6 +30,7 @@ interface Row {
   status: BookStatus;
   rating: number;
   dateRead?: string;
+  pastReads: PastRead[]; // earlier finishes
   addedAt?: string;
   format?: BookFormat;
   copy?: boolean;
@@ -42,6 +48,7 @@ export interface CsvImportSummary {
   dnf: number; // didn't finish
   withIsbn: number; // books a cover can be looked up for
   notes: number; // reviews that become notes pages
+  rereads: number; // books read more than once
   skipped: number; // rows without a title or author
 }
 
@@ -123,6 +130,63 @@ function hashId(...parts: string[]): string {
   return createHash("sha1").update(parts.join("\u0000")).digest("hex").slice(0, 16);
 }
 
+// Goodreads: the count includes the latest read (the one with the date, or
+// the one under way), except on a TBR shelf, where every read is a past one.
+export function goodreadsPastReads(readCount: string, status: BookStatus): PastRead[] {
+  const count = parseInt(readCount, 10) || 0;
+  const earlier = status === "to-read" ? count : Math.max(0, count - 1);
+  return Array.from({ length: Math.min(earlier, 100) }, () => ({}));
+}
+
+// StoryGraph lists every read, oldest first, each a start and an end:
+// "2021/03/02-2021/03/20, 2024/01/05-2024/01/30". A read still going has no
+// end ("2024/01/05-"). Returns the end dates of the finished reads.
+export function storygraphFinishes(value: string): string[] {
+  const out: string[] = [];
+  for (const part of value.split(",")) {
+    const dates = part.match(/\d{4}[/-]\d{1,2}[/-]\d{1,2}/g);
+    if (!dates || /-\s*$/.test(part)) continue; // nothing, or not finished yet
+    const end = cleanDate(dates[dates.length - 1]);
+    if (end) out.push(end);
+  }
+  return out.sort();
+}
+
+// Of a StoryGraph book's finishes, the latest is the book's own date when
+// it's read (or given up, the date it stopped); the rest are earlier reads.
+// "Read Count" can be higher than the dates listed: the extra reads have none.
+export function storygraphReads(
+  datesRead: string,
+  lastDateRead: string | undefined,
+  readCount: string,
+  status: BookStatus
+): { dateRead?: string; pastReads: PastRead[] } {
+  const finished = storygraphFinishes(datesRead);
+  const ended = status === "read" || status === "dnf";
+  const dateRead = ended ? (lastDateRead ?? finished[finished.length - 1]) : finished.length ? undefined : lastDateRead;
+  const earlier = [...finished];
+  if (dateRead && ended) {
+    const i = earlier.lastIndexOf(dateRead);
+    if (i >= 0) earlier.splice(i, 1);
+  }
+  const count = parseInt(readCount, 10) || 0;
+  const undated = Math.max(0, count - earlier.length - (status === "read" ? 1 : 0));
+  return {
+    dateRead,
+    pastReads: [...Array.from({ length: Math.min(undated, 100) }, () => ({})), ...earlier.map((date) => ({ date }))],
+  };
+}
+
+// On a re-import, the export's earlier reads replace the ones already here
+// only when they say more: more reads, or as many with more of them dated.
+// Reads added in Bookplate are never lost to an export that doesn't know them.
+function pickReads(fromFile: PastRead[], existing: PastRead[] = []): PastRead[] {
+  const dated = (reads: PastRead[]) => reads.filter((r) => r.date).length;
+  const better =
+    fromFile.length > existing.length || (fromFile.length === existing.length && dated(fromFile) > dated(existing));
+  return better ? tidyReads(fromFile) : existing;
+}
+
 // ── The two formats ──────────────────────────────────────────────────────
 
 export function detectSource(headers: string[]): CsvSource | null {
@@ -140,15 +204,17 @@ function goodreadsRow(r: Record<string, string>): Row | null {
   const bookId = col(r, "Book Id").replace(/\D/g, "");
   const pages = parseInt(col(r, "Number of Pages"), 10);
   const review = [col(r, "My Review"), col(r, "Private Notes")].filter(Boolean);
+  const status = statusFrom(col(r, "Exclusive Shelf"));
   return {
     sourceId: bookId ? `gr-${bookId}` : `gr-${hashId(isbn ?? "", title, author)}`,
     title,
     author,
     isbn,
     pages: Number.isFinite(pages) && pages > 0 ? pages : undefined,
-    status: statusFrom(col(r, "Exclusive Shelf")),
+    status,
     rating: cleanRating(col(r, "My Rating")),
     dateRead: cleanDate(col(r, "Date Read")),
+    pastReads: goodreadsPastReads(col(r, "Read Count"), status),
     addedAt: cleanDate(col(r, "Date Added")),
     format: formatFrom(col(r, "Binding")),
     copy: (parseInt(col(r, "Owned Copies"), 10) || 0) > 0 || undefined,
@@ -162,25 +228,21 @@ function storygraphRow(r: Record<string, string>): Row | null {
   if (!title || !author) return null;
   const isbn = cleanIsbn(col(r, "ISBN/UID", "ISBN"));
   const review = col(r, "Review");
+  const status = statusFrom(col(r, "Read Status"));
+  const reads = storygraphReads(col(r, "Dates Read"), cleanDate(col(r, "Last Date Read")), col(r, "Read Count"), status);
   return {
     sourceId: `sg-${hashId(isbn ?? "", title.toLowerCase(), author.toLowerCase())}`,
     title,
     author,
     isbn,
-    status: statusFrom(col(r, "Read Status")),
+    status,
     rating: cleanRating(col(r, "Star Rating")),
-    dateRead: cleanDate(col(r, "Last Date Read")) ?? lastDate(col(r, "Dates Read")),
+    ...reads,
     addedAt: cleanDate(col(r, "Date Added")),
     format: formatFrom(col(r, "Format")),
     copy: /^y/i.test(col(r, "Owned?")) || undefined,
     review: review ? reviewToMarkdown(review) : undefined,
   };
-}
-
-// StoryGraph lists every read: "2021/03/02-2021/03/20, 2024/01/05-2024/01/30".
-function lastDate(value: string): string | undefined {
-  const dates = value.match(/\d{4}[/-]\d{1,2}[/-]\d{1,2}/g);
-  return dates ? cleanDate(dates[dates.length - 1]) : undefined;
 }
 
 // ── Planning and applying ────────────────────────────────────────────────
@@ -218,6 +280,7 @@ async function plan(userId: string, text: string): Promise<Plan> {
     dnf: 0,
     withIsbn: 0,
     notes: 0,
+    rereads: 0,
     skipped: 0,
   };
   const books: Book[] = [];
@@ -250,6 +313,7 @@ async function plan(userId: string, text: string): Promise<Plan> {
       status: row.status,
       rating: row.rating || match?.rating || 0,
       dateRead: row.dateRead ?? match?.dateRead,
+      pastReads: pickReads(row.pastReads, match?.pastReads),
       format: match?.format ?? row.format,
       copy: row.copy ?? match?.copy,
       colorIndex: match?.colorIndex ?? Math.floor(Math.random() * PALETTE.length),
@@ -265,6 +329,7 @@ async function plan(userId: string, text: string): Promise<Plan> {
     else if (book.status === "dnf") summary.dnf++;
     else summary.toRead++;
     if (book.isbn && !book.coverImage) summary.withIsbn++;
+    if (book.pastReads?.length) summary.rereads++;
     if (row.review && !noted.has(id)) {
       notes[id] = row.review;
       summary.notes++;

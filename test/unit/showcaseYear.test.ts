@@ -34,6 +34,7 @@ describe("buildShowcaseYear", () => {
     // 800 pages by 1 July, the year's 182nd day.
     expect(y.stats).toEqual({
       books: 3,
+      rereads: 0,
       pages: 800,
       pagesPerDay: 4,
       rating: 4,
@@ -73,6 +74,27 @@ describe("buildShowcaseYear", () => {
   it("copes with a year with nothing in it", () => {
     const y = buildShowcaseYear(library, { year: 2020, today: "2025-07-01" });
     expect(y.read).toEqual([]);
-    expect(y.stats).toEqual({ books: 0, pages: 0, pagesPerDay: undefined, rating: undefined, longest: undefined });
+    expect(y.stats).toEqual({ books: 0, rereads: 0, pages: 0, pagesPerDay: undefined, rating: undefined, longest: undefined });
   });
 });
+
+describe("rereads", () => {
+  it("puts each finish on the shelf, marks rereads, and rates each book once", () => {
+    const view = buildShowcaseYear(
+      [
+        book("again", { dateRead: "2025-09-01", pastReads: [{ date: "2025-01-10" }, { date: "2019-05-01" }], pages: 200, rating: 5 }),
+        book("once", { dateRead: "2025-04-01", rating: 3 }),
+      ],
+      { year: 2025, today: "2026-01-01" }
+    );
+    expect(view.read.map((b) => [b.id, b.dateRead, b.reread ?? false])).toEqual([
+      ["again", "2025-01-10", true],
+      ["once", "2025-04-01", false],
+      ["again", "2025-09-01", true],
+    ]);
+    expect(view.read.every((b) => b.pastReads === undefined)).toBe(true);
+    expect(view.stats).toMatchObject({ books: 3, rereads: 2, pages: 400, rating: 4 });
+    expect(view.topRated.map((b) => b.id)).toEqual(["again"]);
+  });
+});
+
