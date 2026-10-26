@@ -35,10 +35,14 @@ COPY --from=build --chown=node:node /app/drizzle ./drizzle
 COPY --from=build --chown=node:node /app/scripts/reset-password.mjs ./scripts/reset-password.mjs
 # `docker compose exec bookplate remove-showcase <link>` (a reported showcase)
 COPY --from=build --chown=node:node /app/scripts/remove-showcase.mjs ./scripts/remove-showcase.mjs
+# `docker compose exec bookplate remove-profile <link>` (a reported profile)
+COPY --from=build --chown=node:node /app/scripts/remove-profile.mjs ./scripts/remove-profile.mjs
 RUN printf '#!/bin/sh\nexec node /app/scripts/reset-password.mjs "$@"\n' > /usr/local/bin/reset-password \
  && chmod 755 /usr/local/bin/reset-password \
  && printf '#!/bin/sh\nexec node /app/scripts/remove-showcase.mjs "$@"\n' > /usr/local/bin/remove-showcase \
- && chmod 755 /usr/local/bin/remove-showcase
+ && chmod 755 /usr/local/bin/remove-showcase \
+ && printf '#!/bin/sh\nexec node /app/scripts/remove-profile.mjs "$@"\n' > /usr/local/bin/remove-profile \
+ && chmod 755 /usr/local/bin/remove-profile
 
 USER node
 EXPOSE 3000

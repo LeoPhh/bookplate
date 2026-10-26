@@ -5,7 +5,9 @@ import ErrorReporter from "@/components/ErrorReporter";
 import AppBar from "@/components/AppBar";
 import { FeaturesProvider } from "@/components/Features";
 import { getSession } from "@/lib/auth";
+import { config } from "@/lib/config";
 import { getFeatures } from "@/lib/features";
+import { unreadCount } from "@/lib/social/notifications";
 import "./globals.css";
 
 // Fraunces carries the display type, Inter everything else; globals.css
@@ -49,10 +51,12 @@ export default async function RootLayout({
   const session = await getSession().catch(() => null);
   // Which optional fields to show, known before anything renders.
   const features = session ? await getFeatures(session.user.id).catch(() => []) : [];
+  // With social features, how much is new for the Friends tab's badge.
+  const social = config.social ? { unread: session ? await unreadCount(session.user.id).catch(() => 0) : 0 } : null;
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
-        <AppBar signedIn={Boolean(session)} />
+        <AppBar signedIn={Boolean(session)} social={social} />
         <FeaturesProvider initial={features}>{children}</FeaturesProvider>
         <ErrorReporter />
       </body>

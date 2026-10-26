@@ -147,6 +147,10 @@ export const config = {
   // reader ticks it. Bookplate only records who agreed; sending is up to the
   // operator. Unset = no newsletter.
   newsletter: process.env.NEWSLETTER === "true",
+  // Social features (lib/social/): profiles with a handle, friends, invite
+  // links and recommendations, among this server's own accounts. Profile
+  // takes the Showcase tab's place. Unset = none of it, and Showcase as before.
+  social: process.env.SOCIAL === "true",
   // Shows the Email section in Settings → Security (whether email is set up,
   // and a button to send a test email). It's for whoever runs the server, so
   // a server whose readers aren't its operators turns it off with "false".

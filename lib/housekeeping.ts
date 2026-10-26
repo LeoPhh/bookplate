@@ -3,6 +3,9 @@ import { pruneThrottle } from "./authThrottle";
 import { config } from "./config";
 import { getDb } from "./db";
 import { log } from "./log";
+import { pruneRequests } from "./social/friends";
+import { pruneInvites } from "./social/invites";
+import { pruneNotifications } from "./social/notifications";
 
 // Tidying that runs at startup and then every few hours. Safe to run on
 // several app copies at once: each step is a single idempotent delete.
@@ -54,6 +57,9 @@ export async function runHousekeeping(): Promise<void> {
     await pruneThrottle(2 * DAY_MS); // the longest window: the daily email count
     const sessions = await tidySessions();
     if (sessions.expired || sessions.stripped) void log.info("housekeeping.sessions_tidied", sessions);
+    // Social features' leftovers (empty tables on servers without them).
+    const social = { requests: await pruneRequests(), invites: await pruneInvites(), notifications: await pruneNotifications() };
+    if (social.requests || social.invites || social.notifications) void log.info("housekeeping.social_tidied", social);
   } catch (e) {
     void log.error("housekeeping.failed", { error: e });
   }

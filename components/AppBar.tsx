@@ -5,7 +5,7 @@ import UserMenu from "./UserMenu";
 
 // The bar across the top of every page: the mark, and when signed in the
 // app's sections and the account menu. The mark links to the Library.
-export default function AppBar({ signedIn }: { signedIn: boolean }) {
+export default function AppBar({ signedIn, social }: { signedIn: boolean; social: { unread: number } | null }) {
   return (
     <header className="appbar">
       <div className="appbar-inner">
@@ -14,7 +14,7 @@ export default function AppBar({ signedIn }: { signedIn: boolean }) {
         </Link>
         {signedIn && (
           <>
-            <AppNav />
+            <AppNav social={social} />
             <UserMenu />
           </>
         )}

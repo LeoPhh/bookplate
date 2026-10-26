@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import ShowcaseView, { plural, showcaseHeading } from "@/components/ShowcaseView";
 import { getSession } from "@/lib/auth";
 import { config, CONTACT_EMAIL } from "@/lib/config";
 import { loadShowcase } from "@/lib/showcase";
+import { getProfile } from "@/lib/social/profile";
 import { possessive } from "@/lib/showcaseYear";
 import { todayIso } from "@/lib/progress";
 
@@ -41,6 +42,12 @@ export default async function ShowcasePage({ params }: Props) {
   const found = await load(id);
   if (!found) notFound();
   const { showcase, userId, view } = found;
+  // Where profiles have taken over, a showcase link leads to its reader's
+  // profile once that's public; until then the showcase stays as it was.
+  if (config.social) {
+    const profile = await getProfile(userId);
+    if (profile?.visibility === "public") redirect(`/u/${profile.handle}`);
+  }
   const session = await getSession().catch(() => null);
   const owner = session?.user.id === userId;
 

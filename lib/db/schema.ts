@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, jsonb, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── Auth (tables and columns as Better Auth expects them) ──────────────────
 
@@ -177,4 +177,145 @@ export const showcase = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("showcase_user_idx").on(t.userId)]
+);
+
+// ── Social (SOCIAL=true servers; lib/social/) ─────────────────────────────
+// Empty on servers without it. Every row belongs to the readers it names and
+// goes with their accounts.
+
+// A reader's public face: the handle others find them by and what they let
+// others see. No row = no profile, and nobody else can see anything.
+export const profile = pgTable(
+  "profile",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    handle: text("handle").notNull(), // lower case, [a-z0-9_]{3,24}
+    bio: text("bio"),
+    visibility: text("visibility").notNull().default("friends"), // private | friends | public
+    shareReading: boolean("share_reading").notNull().default(true), // what's being read now
+    shareRatings: boolean("share_ratings").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("profile_handle_idx").on(t.handle)]
+);
+
+// Two readers who are friends, stored once per pair with the smaller id
+// first, so "are they friends?" is one lookup.
+export const friendship = pgTable(
+  "friendship",
+  {
+    userA: text("user_a")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userB: text("user_b")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userA, t.userB] }),
+    index("friendship_user_b_idx").on(t.userB),
+    check("friendship_order", sql`${t.userA} < ${t.userB}`),
+  ]
+);
+
+// A request waiting for an answer. Answering removes it either way.
+export const friendRequest = pgTable(
+  "friend_request",
+  {
+    fromUser: text("from_user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    toUser: text("to_user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.fromUser, t.toUser] }),
+    index("friend_request_to_idx").on(t.toUser),
+    check("friend_request_not_self", sql`${t.fromUser} <> ${t.toUser}`),
+  ]
+);
+
+// An invite link, /f/<token>: whoever opens it can ask to be the reader's
+// friend. Like a showcase id, the token is the whole key and never logged.
+export const friendInvite = pgTable(
+  "friend_invite",
+  {
+    token: text("token").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    usesLeft: integer("uses_left"), // null = any number until it expires
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("friend_invite_user_idx").on(t.userId)]
+);
+
+// A reader the blocker never wants to hear from: each is hidden from the other.
+export const block = pgTable(
+  "block",
+  {
+    blocker: text("blocker")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    blocked: text("blocked")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.blocker, t.blocked] }),
+    index("block_blocked_idx").on(t.blocked),
+    check("block_not_self", sql`${t.blocker} <> ${t.blocked}`),
+  ]
+);
+
+// A book one friend suggests to another. Not in the recipient's library
+// until they add it (then added_book_id says which book it became).
+export const recommendation = pgTable(
+  "recommendation",
+  {
+    id: text("id").primaryKey(),
+    fromUser: text("from_user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    toUser: text("to_user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    author: text("author").notNull(),
+    isbn: text("isbn"),
+    olWorkId: text("ol_work_id"),
+    workKey: text("work_key").notNull(), // lib/social/workKey.ts
+    note: text("note"),
+    state: text("state").notNull().default("new"), // new | seen | added | dismissed
+    addedBookId: text("added_book_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("recommendation_to_idx").on(t.toUser, t.createdAt), index("recommendation_from_idx").on(t.fromUser)]
+);
+
+// Something for a reader to see: a friend request, a recommendation… `kind`
+// says what, `objectRef` points at it (its meaning depends on the kind).
+export const notification = pgTable(
+  "notification",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    actorId: text("actor_id").references(() => user.id, { onDelete: "cascade" }),
+    objectRef: text("object_ref"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    readAt: timestamp("read_at"),
+  },
+  (t) => [index("notification_user_idx").on(t.userId, t.createdAt)]
 );

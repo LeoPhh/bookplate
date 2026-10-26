@@ -30,6 +30,9 @@ interface Props {
   legal?: LegalLinks;
   // Offer the newsletter tick box at sign-up (NEWSLETTER=true).
   newsletter?: boolean;
+  // Where to go once signed in (a path checked by lib/nextPath.ts), e.g. back
+  // to an invite link; unset = the library.
+  next?: string | null;
 }
 
 // Fetches a sign-up puzzle and solves it in the background; resolves to the
@@ -61,6 +64,7 @@ export default function AuthForm({
   botCheck = false,
   legal,
   newsletter = false,
+  next = null,
 }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -106,7 +110,7 @@ export default function AuthForm({
             name: "", // added later in Settings, if at all
             email,
             password,
-            callbackURL: "/login",
+            callbackURL: next ? `/login?next=${encodeURIComponent(next)}` : "/login",
             ...(mode === "signup" && newsletter ? { newsletter: subscribe } : {}),
           },
           solved ? { headers: { "x-signup-challenge": solved } } : undefined
@@ -137,7 +141,7 @@ export default function AuthForm({
       setCheckInbox(true);
       return;
     }
-    window.location.href = "/";
+    window.location.href = next ?? "/";
   };
 
   if (checkInbox) {
@@ -262,13 +266,13 @@ export default function AuthForm({
       {mode === "login" && (
         <p className="auth-links">
           <Link href="/forgot-password">Forgot password?</Link>
-          {signupOpen && <Link href="/signup">Create an account</Link>}
+          {signupOpen && <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</Link>}
         </p>
       )}
       {mode === "signup" && (
         <p className="auth-links">
           <span>
-            Already have an account? <Link href="/login">Sign in</Link>
+            Already have an account? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Sign in</Link>
           </span>
         </p>
       )}

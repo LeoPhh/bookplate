@@ -12,6 +12,7 @@ const totals: Totals = {
   words: 5120,
   progressEntries: 7001,
   showcases: 12,
+  social: { profiles: 40, friendships: 55, recommendations: 9 },
   collectedAt: 1_790_000_000_000,
 };
 
@@ -32,6 +33,14 @@ describe("metrics output", () => {
       expect(text).toContain(`# TYPE ${name} gauge`);
     }
     expect(text.endsWith("\n")).toBe(true);
+  });
+
+  it("reports the social features only where they're on", () => {
+    expect(renderMetrics(totals, "9.9.9", false)).not.toContain("bookplate_profiles");
+    const text = renderMetrics(totals, "9.9.9", true);
+    expect(text).toContain("bookplate_profiles 40");
+    expect(text).toContain("bookplate_friendships 55");
+    expect(text).toContain("bookplate_recommendations 9");
   });
 
   it("still reports the server itself before the first count", () => {

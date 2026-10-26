@@ -26,6 +26,7 @@ export async function start() {
       metrics: config.metricsToken ? { refreshMinutes: config.metricsRefreshMinutes } : false,
       contactForm: Boolean(config.contactTo && config.email.enabled),
       newsletter: config.newsletter,
+      social: config.social,
     });
   } catch (e) {
     // Next.js would log this and keep running without serving anything;

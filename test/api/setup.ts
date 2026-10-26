@@ -9,13 +9,14 @@ import { MAILPIT_URL, SMTP_PORT } from "./mailpit";
 import { createBucket, removeBucket, S3_TEST } from "./s3";
 
 // Starts the real production build (.next/standalone/server.js) for the API
-// tests — three times, each with its own fresh database — and removes it all
+// tests — four times, each with its own fresh database — and removes it all
 // after:
 //
 //   baseUrl         no email, open registration: most tests
 //   emailBaseUrl    email via Mailpit, open registration, so new accounts must
 //                   confirm their address: the password-reset and verification tests
 //   limitedBaseUrl  tiny per-account limits (LIMIT_*): the limits tests
+//   socialBaseUrl   social features on (SOCIAL=true, LIMIT_BOOKS=50): the social tests
 //
 // Needs `npm run build` and `npm run db:up` (Postgres, Mailpit, RustFS), or
 // TEST_DATABASE_ADMIN_URL / MAILPIT_URL / TEST_S3_* pointing elsewhere.
@@ -30,8 +31,11 @@ declare module "vitest" {
     emailBaseUrl: string;
     emailDbUrl: string;
     limitedBaseUrl: string;
+    socialBaseUrl: string;
+    socialDbUrl: string;
     plainLog: string; // files holding each server's output, for the logging tests
     emailLog: string;
+    socialLog: string;
     s3Bucket: string; // "" unless TEST_STORAGE=s3
   }
 }
@@ -72,7 +76,7 @@ async function startServer(name: string, extraEnv: Record<string, string>): Prom
   // variables (TEST, VITEST…), which libraries use to switch off safeguards.
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL|LEGAL_DIR|PRIVACY_URL|TERMS_URL|SMTP_REPLY_TO|EMAIL_LIMIT_PER_DAY|CONTACT_FORM_TO|NEWSLETTER|EMAIL_SETTINGS)$/.test(k)
+      ([k]) => !/^(TEST|VITEST.*|NODE_ENV|MODE|DEV|PROD|SSR|BASE_URL|SMTP_.*|STORAGE|S3_.*|METRICS_TOKEN|LIMIT_.*|LOG_LEVEL|LEGAL_DIR|PRIVACY_URL|TERMS_URL|SMTP_REPLY_TO|EMAIL_LIMIT_PER_DAY|CONTACT_FORM_TO|NEWSLETTER|EMAIL_SETTINGS|SOCIAL)$/.test(k)
     )
   );
   const child: ChildProcess = spawn(process.execPath, [SERVER], {
@@ -153,7 +157,7 @@ export default async function setup(project: TestProject) {
         }
       : {};
 
-  const [plain, email, limited] = await Promise.all([
+  const [plain, email, limited, social] = await Promise.all([
     startServer("plain", {
       ...storage("plain"),
       METRICS_TOKEN,
@@ -178,6 +182,9 @@ export default async function setup(project: TestProject) {
       LIMIT_IMPORT_MB: "1",
       EMAIL_SETTINGS: "false",
     }),
+    // A book limit too, roomy enough for the social tests, for adding a
+    // recommendation over it.
+    startServer("social", { ...storage("social"), SOCIAL: "true", LIMIT_BOOKS: "50" }),
   ]);
 
   project.provide("baseUrl", plain.url);
@@ -185,12 +192,15 @@ export default async function setup(project: TestProject) {
   project.provide("emailBaseUrl", email.url);
   project.provide("emailDbUrl", email.dbUrl);
   project.provide("limitedBaseUrl", limited.url);
+  project.provide("socialBaseUrl", social.url);
+  project.provide("socialDbUrl", social.dbUrl);
   project.provide("plainLog", plain.logFile);
   project.provide("emailLog", email.logFile);
+  project.provide("socialLog", social.logFile);
   project.provide("s3Bucket", bucket ?? "");
 
   return async () => {
-    await Promise.all([plain.stop(), email.stop(), limited.stop()]);
+    await Promise.all([plain.stop(), email.stop(), limited.stop(), social.stop()]);
     if (bucket) await removeBucket(bucket);
   };
 }

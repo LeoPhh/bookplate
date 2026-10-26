@@ -54,6 +54,8 @@ describe("counting totals", () => {
       ${[book("a", "1", "read"), book("a", "2", "read"), book("a", "3", "reading"), book("b", "1", "to-read")].join(",")}`);
     await q(`INSERT INTO vocab_entry (user_id, id, word, definition, added_at) VALUES ('a', 'w', 'w', 'd', '2026-01-01')`);
     await q(`INSERT INTO showcase (id, user_id, year) VALUES ('AAAAAAAAAAAAAAAA', 'a', 2026)`);
+    await q(`INSERT INTO profile (user_id, handle) VALUES ('a', 'aaa'), ('b', 'bbb')`);
+    await q(`INSERT INTO friendship (user_a, user_b) VALUES ('a', 'b')`);
 
     const { collectTotals } = await import("@/lib/metrics");
     const t = await collectTotals();
@@ -64,5 +66,6 @@ describe("counting totals", () => {
     expect(t.books).toEqual({ read: 2, reading: 1, "to-read": 1 });
     expect(t.booksPerAccount).toEqual({ p50: 1, p90: 3, max: 3 });
     expect(t).toMatchObject({ notes: 0, words: 1, progressEntries: 0, showcases: 1 });
+    expect(t.social).toEqual({ profiles: 2, friendships: 1, recommendations: 0 });
   });
 });

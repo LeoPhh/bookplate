@@ -30,6 +30,8 @@ export default async function ShowcasePage() {
   await connection();
   const session = await getSession();
   if (!session) redirect("/login");
+  // Profiles take over from showcases where there are social features.
+  if (config.social) redirect("/profile");
   const userId = session.user.id;
   const today = todayIso();
   const [live, years] = await Promise.all([getShowcase(userId), showcaseYears(userId)]);

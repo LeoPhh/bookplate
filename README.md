@@ -120,6 +120,28 @@ Signed-out visitors are invited to try Bookplate, with a link to
 
 Finished dates can't be set in the future.
 
+### Profiles and friends (optional)
+
+With `SOCIAL=true`, readers on your server can find each other. A **Profile**
+tab takes Showcase's place: a page at `/u/<handle>` with your reading in
+numbers, what you're reading now, what you finished lately and a year in
+books. You choose who sees it (only you, your friends, or anyone with the
+link, signed in or not), and whether it shows what you're reading and your
+ratings. Notes, sources, copies, books you gave up on, vocabulary and email
+are never shown.
+
+A **Friends** tab has friend requests by handle and invite links (`/f/…`,
+working for a week) that make whoever opens them your friend, after signing up
+if they need to. Friends can recommend each other books, to add to the to-read
+shelf with one click, and see roughly how their tastes match. Blocking someone
+hides each of you from the other. It all stays on your server: there's no
+connection to other Bookplate servers.
+
+Existing showcase links lead to their reader's profile once it's public.
+Export (Settings → Import & export) adds a `social.json` with the profile,
+friends and recommendations. Mention all this in your privacy policy: other
+readers on your server become people who can see a reader's data.
+
 ## Install with Docker
 
 You need Docker with the Compose plugin. Bookplate runs as two containers:
@@ -227,11 +249,12 @@ and vocabulary all come across.
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
 | `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
+| `SOCIAL` | `false` | `true` switches on profiles, friends, invite links and recommendations among your server's readers, with Profile in Showcase's place (see "Profiles and friends"). Mention it in your privacy policy |
 | `NEWSLETTER` | `false` | `true` offers a newsletter: an unticked box at sign-up and a setting in Settings. Bookplate records who agreed and when (`newsletter_consent_at` on the `user` table) and counts them in `/api/metrics`; sending it is up to you. Mention it in your privacy policy |
 | `EMAIL_SETTINGS` | `true` | `false` hides the Email section of Settings → Security (email status and **Send a test email**) and turns off `/api/email/test`, for a server whose readers don't run it |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
 | `PRIVACY_URL`, `TERMS_URL` | — | where your privacy policy / terms are published, if on another site instead of `LEGAL_DIR`: sign-in and sign-up link there, and `/privacy` and `/terms` send visitors there |
-| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches (they allow busier servers more requests with one), and where showcases' **Report this page** links write to |
+| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches (they allow busier servers more requests with one), and where showcases' **Report this page** and profiles' **Report this profile** links write to |
 
 ### Open registration
 
@@ -337,6 +360,18 @@ docker compose exec bookplate remove-showcase https://books.example.com/s/AbCdEf
 
 The reader's library isn't touched.
 
+### Reported profiles
+
+With `SOCIAL=true`, profiles have a **Report this profile** link too. To take
+one down and free its handle, give its link (or the handle) to:
+
+```bash
+docker compose exec bookplate remove-profile https://books.example.com/u/somehandle
+```
+
+The reader's library and friendships aren't touched; they can make a new
+profile.
+
 Bookplate sends no telemetry. The only outside services it talks to are Open
 Library and iTunes (book search and covers) and Wiktionary (word lookups),
 and only when you use those features. It paces its requests to stay within
@@ -410,6 +445,7 @@ app/
   api/define/           # Wiktionary definition proxy
   api/export/, import/  # library zip out and in
   api/health/           # used by the Docker healthcheck
+  u/, f/, friends/      # profiles, invite links, the Friends tab (SOCIAL=true)
 components/             # CoverGrid, ListView, StatsView, SiteNav, BookDetail, …
 lib/
   db/                   # Drizzle schema, connection, migration runner
@@ -417,6 +453,7 @@ lib/
   auth.ts               # Better Auth setup, requireUser()
   library.ts            # all reads and writes, scoped per user
   archive.ts            # export / import format
+  social/               # profiles, friends, invites, recommendations; who may see what
 drizzle/                # SQL migrations (generated — don't edit by hand)
 proxy.ts                # sends signed-out visitors to /login
 ```

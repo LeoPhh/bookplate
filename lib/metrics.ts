@@ -23,6 +23,9 @@ export interface Totals {
   words: number;
   progressEntries: number;
   showcases: number; // public year pages that are on
+  // Social features (SOCIAL=true). Counted everywhere (the tables are
+  // empty without them) but only reported where they're on.
+  social: { profiles: number; friendships: number; recommendations: number };
   collectedAt: number; // ms since epoch
 }
 
@@ -64,7 +67,10 @@ export async function collectTotals(): Promise<Totals> {
     SELECT (SELECT count(*) FROM note) AS notes,
            (SELECT count(*) FROM vocab_entry) AS words,
            (SELECT count(*) FROM reading_progress) AS progress,
-           (SELECT count(*) FROM showcase) AS showcases`);
+           (SELECT count(*) FROM showcase) AS showcases,
+           (SELECT count(*) FROM profile) AS profiles,
+           (SELECT count(*) FROM friendship) AS friendships,
+           (SELECT count(*) FROM recommendation) AS recommendations`);
 
   return {
     accounts: { confirmed: num(accounts.confirmed), unconfirmed: num(accounts.unconfirmed) },
@@ -77,6 +83,7 @@ export async function collectTotals(): Promise<Totals> {
     words: num(rest.words),
     progressEntries: num(rest.progress),
     showcases: num(rest.showcases),
+    social: { profiles: num(rest.profiles), friendships: num(rest.friendships), recommendations: num(rest.recommendations) },
     collectedAt: Date.now(),
   };
 }
@@ -112,7 +119,7 @@ function metric(name: string, help: string, samples: Sample[], type = "gauge"): 
 
 const periods = (r: Record<string, number>): Sample[] => Object.entries(r).map(([period, v]) => [{ period }, v]);
 
-export function renderMetrics(totals: Totals | null, version = config.version): string {
+export function renderMetrics(totals: Totals | null, version = config.version, social = config.social): string {
   const mem = process.memoryUsage();
   const parts = [
     metric("bookplate_info", "The running version", [[{ version }, 1]]),
@@ -146,6 +153,13 @@ export function renderMetrics(totals: Totals | null, version = config.version): 
       metric("bookplate_progress_entries", "Reading-progress updates logged", [[{}, totals.progressEntries]]),
       metric("bookplate_showcases", "Showcases (public year pages) that are on", [[{}, totals.showcases]])
     );
+    if (social) {
+      parts.push(
+        metric("bookplate_profiles", "Readers with a profile", [[{}, totals.social.profiles]]),
+        metric("bookplate_friendships", "Pairs of friends", [[{}, totals.social.friendships]]),
+        metric("bookplate_recommendations", "Recommendations between friends", [[{}, totals.social.recommendations]])
+      );
+    }
   }
   return parts.join("\n") + "\n";
 }

@@ -7,6 +7,7 @@ import { isValidBook, isValidProgress, isValidVocab } from "./validate";
 import { Book, ProgressEntry, VocabEntry } from "./types";
 import { config } from "./config";
 import { checkBooks, checkStorage, checkWords } from "./limits";
+import { socialExport } from "./social/export";
 
 // The export format: a zip laid out like the original Bookplate data/ folder,
 // so the files stay readable without the app.
@@ -18,6 +19,8 @@ import { checkBooks, checkStorage, checkWords } from "./limits";
 //   notes/<bookId>.md                 one markdown file per book
 //   notes/images/<bookId>/<file>      images pasted into those notes
 //   covers/<bookId>.jpg               cropped covers
+//   social.json                       profile, friends, recommendations (SOCIAL=true
+//                                     servers only; for the reader to keep, never imported)
 //
 // Image URLs inside books and notes (/api/covers/…, /api/notes/images/…) are
 // relative to whoever is signed in, so they carry over unchanged.
@@ -48,6 +51,7 @@ export async function buildExport(userId: string): Promise<Uint8Array> {
     "vocabulary.json": strToU8(JSON.stringify({ words }, null, 2) + "\n"),
     "progress.json": strToU8(JSON.stringify({ progress }, null, 2) + "\n"),
   };
+  if (config.social) files["social.json"] = strToU8(JSON.stringify(await socialExport(userId), null, 2) + "\n");
 
   for (const n of notes) {
     files[`notes/${n.bookId}.md`] = strToU8(n.markdown);

@@ -9,6 +9,8 @@ import { SETTINGS_TABS, type SettingsTab } from "@/lib/settingsTabs";
 import { useFeatures } from "./Features";
 import { FEATURES, type FeatureId } from "@/lib/featureList";
 import ImageCropper from "./ImageCropper";
+import ProfileForm from "./ProfileForm";
+import type { Profile as SocialProfile } from "@/lib/social/profile";
 import Spinner from "./Spinner";
 
 interface ImportSummary {
@@ -745,6 +747,7 @@ export default function SettingsPanel({
   email,
   emailSettings,
   newsletter,
+  social,
   initialTab,
 }: {
   user: ProfileUser;
@@ -752,6 +755,8 @@ export default function SettingsPanel({
   emailSettings: boolean; // whether to show the Email section
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
+  // The reader's profile page (null: none yet); undefined without SOCIAL=true.
+  social?: { profile: SocialProfile | null };
   initialTab: SettingsTab;
 }) {
   const [tab, setTab] = useState(initialTab);
@@ -808,6 +813,20 @@ export default function SettingsPanel({
           <h2 className="form-heading">Profile</h2>
           <Profile user={user} />
         </section>
+
+        {social && (
+          <section className="settings-section">
+            <h2 className="form-heading">Profile page</h2>
+            {social.profile ? (
+              <ProfileForm initial={social.profile} />
+            ) : (
+              <p className="settings-lede">
+                You haven&rsquo;t made a profile page yet. <a href="/profile">Make one</a> to share your reading with
+                friends.
+              </p>
+            )}
+          </section>
+        )}
   
       </div>
 

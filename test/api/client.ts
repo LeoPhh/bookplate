@@ -11,6 +11,7 @@ import { inject } from "vitest";
 export const baseUrl = () => inject("baseUrl");
 export const emailBaseUrl = () => inject("emailBaseUrl");
 export const limitedBaseUrl = () => inject("limitedBaseUrl");
+export const socialBaseUrl = () => inject("socialBaseUrl");
 
 export class Visitor {
   cookie = "";
