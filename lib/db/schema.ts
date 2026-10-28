@@ -184,7 +184,7 @@ export const showcase = pgTable(
 // goes with their accounts.
 
 // A reader's public face: the handle others find them by and what they let
-// others see. No row = no profile, and nobody else can see anything.
+// others see. Every reader has one (lib/social/profile.ts ensureProfile).
 export const profile = pgTable(
   "profile",
   {
@@ -241,8 +241,8 @@ export const friendRequest = pgTable(
   ]
 );
 
-// An invite link, /f/<token>: whoever opens it can ask to be the reader's
-// friend. Like a showcase id, the token is the whole key and never logged.
+// Invite links (/f/<token>), taken out for now: nothing reads or writes this
+// table. Kept so the migrations stay additive; they may come back.
 export const friendInvite = pgTable(
   "friend_invite",
   {

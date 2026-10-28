@@ -6,7 +6,8 @@ import { config } from "@/lib/config";
 import { getDb, schema } from "@/lib/db";
 import SettingsPanel from "@/components/SettingsPanel";
 import { isSettingsTab } from "@/lib/settingsTabs";
-import { getProfile } from "@/lib/social/profile";
+import { listBlocked } from "@/lib/social/friends";
+import { ensureProfile } from "@/lib/social/profile";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;
@@ -31,7 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         email={config.email.enabled ? { from: config.email.from } : null}
         emailSettings={config.emailSettings}
         newsletter={config.newsletter ? Boolean(row?.since) : null}
-        social={config.social ? { profile: await getProfile(session.user.id) } : undefined}
+        social={config.social ? { profile: await ensureProfile(session.user.id), blocked: await listBlocked(session.user.id) } : undefined}
         initialTab={isSettingsTab(tab) ? tab : "profile"}
       />
       <p className="settings-version">Bookplate version {config.version}</p>

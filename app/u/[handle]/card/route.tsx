@@ -33,7 +33,8 @@ async function photo(userId: string, handle: string, book: Book): Promise<string
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   if (!config.social) return new Response("Not found", { status: 404 });
   const person = await findPerson(null, (await params).handle);
-  if (!person) return new Response("Not found", { status: 404 });
+  // The card is the reading in brief: only for profiles that show it to anyone.
+  if (!person?.seesReading) return new Response("Not found", { status: 404 });
   const { stats } = await loadPersonView(person, { viewerId: null });
   const { profile } = person;
   const covers = await Promise.all(

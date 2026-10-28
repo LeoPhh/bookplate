@@ -114,14 +114,14 @@ type Row = typeof recommendation.$inferSelect;
 async function withPeople(rows: Row[], other: (r: Row) => string): Promise<Recommendation[]> {
   if (rows.length === 0) return [];
   const people = await getDb()
-    .select({ id: user.id, name: user.name, image: user.image, handle: profile.handle, visibility: profile.visibility })
+    .select({ id: user.id, name: user.name, image: user.image, handle: profile.handle })
     .from(user)
     .leftJoin(profile, eq(profile.userId, user.id))
     .where(inArray(user.id, [...new Set(rows.map(other))]));
   const byId = new Map(people.map((p) => [p.id, p]));
   return rows.map((r) => {
     const p = byId.get(other(r));
-    const handle = p?.handle && p.visibility !== "private" ? p.handle : null;
+    const handle = p?.handle ?? null;
     return {
       id: r.id,
       title: r.title,

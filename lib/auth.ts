@@ -12,6 +12,7 @@ import { CLIENT_IP_HEADER, clientIp } from "./clientIp";
 import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
 import { account, log } from "./log";
 import { MIN_PASSWORD_LENGTH } from "./signupChecks";
+import { ensureProfile } from "./social/profile";
 
 const emailOf = (body: unknown) => String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase();
 const signInKey = (body: unknown) => `sign-in:${emailOf(body)}`;
@@ -216,6 +217,16 @@ function createAuth() {
               throw new APIError("FORBIDDEN", { message: "Registration is closed on this server." });
             }
             return { data: { ...user, name: cleanName(user.name) } };
+          },
+          // Every reader has a profile where there are social features
+          // (housekeeping makes any that are missed).
+          after: async (user) => {
+            if (!config.social) return;
+            try {
+              await ensureProfile(user.id);
+            } catch (e) {
+              void log.error("profile.make_failed", { user: user.id, error: e });
+            }
           },
         },
         update: {

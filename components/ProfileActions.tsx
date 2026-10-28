@@ -99,7 +99,7 @@ export default function ProfileActions({ id, handle, name, standing }: { id: str
             setConfirm(null);
             // Once blocked, this page is gone for the reader too.
             void (which === "block"
-              ? act(`/api/blocks/${id}`, "PUT", undefined, () => router.push("/friends"))
+              ? act(`/api/blocks/${id}`, "PUT", undefined, () => router.push("/profile"))
               : act(`/api/friends/${id}`, "DELETE"));
           }}
           onCancel={() => setConfirm(null)}

@@ -43,7 +43,7 @@ export default async function ShowcasePage({ params }: Props) {
   if (!found) notFound();
   const { showcase, userId, view } = found;
   // Where profiles have taken over, a showcase link leads to its reader's
-  // profile once that's public; until then the showcase stays as it was.
+  // profile once its reading is public; until then the showcase stays as it was.
   if (config.social) {
     const profile = await getProfile(userId);
     if (profile?.visibility === "public") redirect(`/u/${profile.handle}`);

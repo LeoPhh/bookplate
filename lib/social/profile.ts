@@ -1,9 +1,10 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "../db";
 
-// A reader's profile: the handle others find them by (@ada), a line about
-// themselves, and who may see their reading. Readers make one when they want
-// one; without it nobody else sees anything of theirs.
+// A reader's profile: the handle others find them by (@ada; "username" on
+// screen), a line about themselves, and who may see their reading. Every
+// reader has one, made with their account (ensureProfile); they choose who
+// sees it.
 
 export const VISIBILITIES = ["private", "friends", "public"] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
@@ -38,10 +39,39 @@ export const normaliseHandle = (raw: string) => raw.trim().replace(/^@/, "").toL
 export function checkHandle(raw: string): string {
   const handle = normaliseHandle(raw);
   if (!HANDLE.test(handle)) {
-    throw new ProfileError(`A handle is ${HANDLE_MIN}–${HANDLE_MAX} letters, digits or underscores.`);
+    throw new ProfileError(`A username is ${HANDLE_MIN}–${HANDLE_MAX} letters, digits or underscores.`);
   }
-  if (RESERVED.has(handle) || handle.startsWith("bookplate")) throw new ProfileError("That handle is taken.");
+  if (isReserved(handle)) throw new ProfileError("That username is taken.");
   return handle;
+}
+
+const isReserved = (handle: string) => RESERVED.has(handle) || handle.startsWith("bookplate");
+
+// "Ada Lovelace" → "ada_lovelace"; a name with nothing usable → "reader".
+export function handleFrom(name: string): string {
+  const h = name
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, HANDLE_MAX)
+    .replace(/_+$/, "");
+  return h.length >= HANDLE_MIN && !isReserved(h) ? h : "reader";
+}
+
+// The first free handle for a name: ada_lovelace, then ada_lovelace2, 3…
+async function freeHandle(name: string): Promise<string> {
+  const base = handleFrom(name);
+  const { rows } = await getDb().execute<{ handle: string }>(
+    sql`SELECT handle FROM profile WHERE handle LIKE ${`${base.slice(0, HANDLE_MAX - 6)}%`}`
+  );
+  const taken = new Set(rows.map((r) => r.handle));
+  for (let n = 1; ; n++) {
+    const suffix = n === 1 ? "" : String(n);
+    const h = base.slice(0, HANDLE_MAX - suffix.length).replace(/_+$/, "") + suffix;
+    if (!taken.has(h)) return h;
+  }
 }
 
 // Checks what Settings sends: any of the fields, each one valid. Returns
@@ -50,7 +80,7 @@ export function parseProfile(body: unknown): Partial<Profile> {
   const o = (body ?? {}) as Record<string, unknown>;
   const out: Partial<Profile> = {};
   if (o.handle !== undefined) {
-    if (typeof o.handle !== "string") throw new ProfileError("Invalid handle.");
+    if (typeof o.handle !== "string") throw new ProfileError("Invalid username.");
     out.handle = checkHandle(o.handle);
   }
   if (o.bio !== undefined) {
@@ -99,29 +129,55 @@ const isUniqueViolation = (e: unknown): boolean => {
   return err?.code === "23505" || err?.cause?.code === "23505";
 };
 
-// Makes the reader's profile (a handle is needed the first time) or changes
-// some of it.
-export async function saveProfile(userId: string, changes: Partial<Profile>): Promise<Profile> {
+// The reader's profile, made first if they have none yet: a handle from
+// their name, seen by their friends. Made at sign-up, for older accounts by
+// housekeeping, and again here after remove-profile took one down.
+export async function ensureProfile(userId: string): Promise<Profile> {
   const current = await getProfile(userId);
-  if (!current && !changes.handle) throw new ProfileError("Choose a handle.");
-  const next = { ...(current ?? { bio: null, visibility: "friends", shareReading: true, shareRatings: true }), ...changes } as Profile;
-  try {
-    const [row] = await getDb()
-      .insert(profile)
-      .values({ userId, ...next })
-      .onConflictDoUpdate({ target: profile.userId, set: { ...next, updatedAt: sql`now()` } })
-      .returning();
-    return toProfile(row);
-  } catch (e) {
-    if (isUniqueViolation(e)) throw new ProfileError("That handle is taken.");
-    throw e;
+  if (current) return current;
+  const [u] = await getDb().select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, userId));
+  if (!u) throw new Error("No such account");
+  // Someone else may take the same handle at the same moment: then the next.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const [row] = await getDb()
+        .insert(profile)
+        .values({ userId, handle: await freeHandle(u.name) })
+        .onConflictDoNothing({ target: profile.userId })
+        .returning();
+      return row ? toProfile(row) : (await getProfile(userId))!;
+    } catch (e) {
+      if (!isUniqueViolation(e) || attempt >= 5) throw e;
+    }
   }
 }
 
-// Removes the profile: nobody else can see anything of the reader's any
-// more, and the handle is free again. Friendships stay.
-export async function deleteProfile(userId: string): Promise<void> {
-  await getDb().delete(profile).where(eq(profile.userId, userId));
+// Housekeeping: a profile for every account without one (accounts from
+// before profiles, or before SOCIAL=true). Returns how many it made.
+export async function ensureAllProfiles(): Promise<number> {
+  const missing = await getDb()
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .leftJoin(profile, eq(profile.userId, schema.user.id))
+    .where(isNull(profile.userId));
+  for (const { id } of missing) await ensureProfile(id);
+  return missing.length;
+}
+
+// Changes some of the reader's profile.
+export async function saveProfile(userId: string, changes: Partial<Profile>): Promise<Profile> {
+  await ensureProfile(userId);
+  try {
+    const [row] = await getDb()
+      .update(profile)
+      .set({ ...changes, updatedAt: sql`now()` })
+      .where(eq(profile.userId, userId))
+      .returning();
+    return toProfile(row);
+  } catch (e) {
+    if (isUniqueViolation(e)) throw new ProfileError("That username is taken.");
+    throw e;
+  }
 }
 
 export async function countProfiles(): Promise<number> {

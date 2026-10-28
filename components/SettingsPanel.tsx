@@ -9,6 +9,7 @@ import { SETTINGS_TABS, type SettingsTab } from "@/lib/settingsTabs";
 import { useFeatures } from "./Features";
 import { FEATURES, type FeatureId } from "@/lib/featureList";
 import ImageCropper from "./ImageCropper";
+import BlockedList from "./BlockedList";
 import ProfileForm from "./ProfileForm";
 import type { Profile as SocialProfile } from "@/lib/social/profile";
 import Spinner from "./Spinner";
@@ -68,6 +69,8 @@ function ProfileName({ initial }: { initial: string }) {
       </div>
     );
   }
+  // Edited in the name's place, at the same height, with tick and cross
+  // beside it: nothing around it moves when editing starts or stops.
   return (
     <form
       className="profile-name-form"
@@ -76,22 +79,34 @@ function ProfileName({ initial }: { initial: string }) {
         void save();
       }}
     >
-      <label className="field">
-        <span>Name</span>
+      <div className="profile-name-row">
         <input
+          className="profile-name-input"
           value={draft}
           maxLength={NAME_MAX}
           autoComplete="name"
+          aria-label="Name"
+          placeholder="Your name"
           autoFocus
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setDraft(null);
+          }}
         />
-      </label>
-      <div className="settings-row">
-        <button type="submit" className="btn btn--primary" disabled={busy}>
-          {busy ? <><Spinner />Saving…</> : "Save"}
+        <button type="submit" className="profile-name-icon profile-name-icon--save" disabled={busy} aria-label="Save name">
+          {busy ? (
+            <Spinner />
+          ) : (
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M6 17 L13 24 L26 8" />
+            </svg>
+          )}
         </button>
-        <button type="button" className="btn" disabled={busy} onClick={() => setDraft(null)}>
-          Cancel
+        <button type="button" className="profile-name-icon" disabled={busy} onClick={() => setDraft(null)} aria-label="Cancel">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M8 8 L24 24" />
+            <path d="M24 8 L8 24" />
+          </svg>
         </button>
       </div>
       {error && (
@@ -755,8 +770,8 @@ export default function SettingsPanel({
   emailSettings: boolean; // whether to show the Email section
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
-  // The reader's profile page (null: none yet); undefined without SOCIAL=true.
-  social?: { profile: SocialProfile | null };
+  // The reader's profile page, and who they've blocked; undefined without SOCIAL=true.
+  social?: { profile: SocialProfile; blocked: { id: string; name: string; handle: string | null }[] };
   initialTab: SettingsTab;
 }) {
   const [tab, setTab] = useState(initialTab);
@@ -817,14 +832,14 @@ export default function SettingsPanel({
         {social && (
           <section className="settings-section">
             <h2 className="form-heading">Profile page</h2>
-            {social.profile ? (
-              <ProfileForm initial={social.profile} />
-            ) : (
-              <p className="settings-lede">
-                You haven&rsquo;t made a profile page yet. <a href="/profile">Make one</a> to share your reading with
-                friends.
-              </p>
-            )}
+            <ProfileForm initial={social.profile} />
+          </section>
+        )}
+
+        {social && social.blocked.length > 0 && (
+          <section className="settings-section">
+            <h2 className="form-heading">Blocked</h2>
+            <BlockedList initial={social.blocked} />
           </section>
         )}
   

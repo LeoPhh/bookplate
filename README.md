@@ -122,17 +122,20 @@ Finished dates can't be set in the future.
 
 ### Profiles and friends (optional)
 
-With `SOCIAL=true`, readers on your server can find each other. A **Profile**
-tab takes Showcase's place: a page at `/u/<handle>` with your reading in
-numbers, what you're reading now, what you finished lately and a year in
-books. You choose who sees it (only you, your friends, or anyone with the
-link, signed in or not), and whether it shows what you're reading and your
-ratings. Notes, sources, copies, books you gave up on, vocabulary and email
-are never shown.
+With `SOCIAL=true`, readers on your server can find each other. Every reader
+has a profile, made with their account under a username taken from their name
+(changeable in Settings), and a **Profile** tab takes Showcase's place: a page
+at `/u/<username>` with your reading in numbers, your friends, what you're
+reading now, what you finished lately and a year in books, and a Share button
+for its link. Anyone can open a profile and see the reader's name, photo,
+username, bio and friends; the reader chooses who sees their reading — the
+books, numbers and year in books: only them, their friends (the default) or
+everyone, signed in or not — and whether it shows what they're reading now and
+their ratings. Notes, sources, copies, books you gave up on, vocabulary and
+email are never shown.
 
-A **Friends** tab has friend requests by handle and invite links (`/f/…`,
-working for a week) that make whoever opens them your friend, after signing up
-if they need to. Friends can recommend each other books, to add to the to-read
+The Friends tile on a profile leads to all its friends; on your own, that page
+also has friend requests, asking someone by username, and recommendations. Friends can recommend each other books, to add to the to-read
 shelf with one click, and see roughly how their tastes match. Blocking someone
 hides each of you from the other. It all stays on your server: there's no
 connection to other Bookplate servers.
@@ -249,7 +252,7 @@ and vocabulary all come across.
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
 | `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
-| `SOCIAL` | `false` | `true` switches on profiles, friends, invite links and recommendations among your server's readers, with Profile in Showcase's place (see "Profiles and friends"). Mention it in your privacy policy |
+| `SOCIAL` | `false` | `true` switches on profiles, friends and recommendations among your server's readers, with Profile in Showcase's place (see "Profiles and friends"). Mention it in your privacy policy |
 | `NEWSLETTER` | `false` | `true` offers a newsletter: an unticked box at sign-up and a setting in Settings. Bookplate records who agreed and when (`newsletter_consent_at` on the `user` table) and counts them in `/api/metrics`; sending it is up to you. Mention it in your privacy policy |
 | `EMAIL_SETTINGS` | `true` | `false` hides the Email section of Settings → Security (email status and **Send a test email**) and turns off `/api/email/test`, for a server whose readers don't run it |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
@@ -363,14 +366,14 @@ The reader's library isn't touched.
 ### Reported profiles
 
 With `SOCIAL=true`, profiles have a **Report this profile** link too. To take
-one down and free its handle, give its link (or the handle) to:
+one down, give its link (or the username) to:
 
 ```bash
 docker compose exec bookplate remove-profile https://books.example.com/u/somehandle
 ```
 
-The reader's library and friendships aren't touched; they can make a new
-profile.
+The profile is reset: bio gone, seen by friends only, and a username made
+afresh from the reader's name. Their library and friendships aren't touched.
 
 Bookplate sends no telemetry. The only outside services it talks to are Open
 Library and iTunes (book search and covers) and Wiktionary (word lookups),
@@ -445,7 +448,7 @@ app/
   api/define/           # Wiktionary definition proxy
   api/export/, import/  # library zip out and in
   api/health/           # used by the Docker healthcheck
-  u/, f/, friends/      # profiles, invite links, the Friends tab (SOCIAL=true)
+  u/, profile/          # profiles and their friends lists (SOCIAL=true)
 components/             # CoverGrid, ListView, StatsView, SiteNav, BookDetail, …
 lib/
   db/                   # Drizzle schema, connection, migration runner
@@ -453,7 +456,7 @@ lib/
   auth.ts               # Better Auth setup, requireUser()
   library.ts            # all reads and writes, scoped per user
   archive.ts            # export / import format
-  social/               # profiles, friends, invites, recommendations; who may see what
+  social/               # profiles, friends, recommendations; who may see what
 drizzle/                # SQL migrations (generated — don't edit by hand)
 proxy.ts                # sends signed-out visitors to /login
 ```

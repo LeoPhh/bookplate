@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { canSee, pairOf, type Audience } from "@/lib/social/access";
-import { checkHandle, parseProfile, ProfileError, type Profile } from "@/lib/social/profile";
+import { canSeeReading, pairOf, type Audience } from "@/lib/social/access";
+import { checkHandle, handleFrom, parseProfile, ProfileError, type Profile } from "@/lib/social/profile";
 import { buildProfileStats } from "@/lib/social/profileStats";
 import { personBook, profileAvatar, profileCover, SHOWN_FIELDS, visibleBooks } from "@/lib/social/projection";
 import { workKey } from "@/lib/social/workKey";
@@ -38,8 +38,16 @@ describe("handles", () => {
 
   it("can't pass for the service speaking", () => {
     for (const taken of ["admin", "Support", "bookplate", "bookplate_team", "settings"]) {
-      expect(() => checkHandle(taken)).toThrow("That handle is taken.");
+      expect(() => checkHandle(taken)).toThrow("That username is taken.");
     }
+  });
+
+  it("are made from a reader's name, or \"reader\" when it has nothing usable", () => {
+    expect(handleFrom("Ada Lovelace")).toBe("ada_lovelace");
+    expect(handleFrom("  Zoë   O'Brien ")).toBe("zoe_o_brien");
+    expect(handleFrom("Maximilian Alexander Featherstonehaugh")).toBe("maximilian_alexander_fea");
+    expect(handleFrom("Jo Sixteen_ Long_____x").length).toBeLessThanOrEqual(24);
+    for (const none of ["", "Al", "สมชาย", "Admin", "Bookplate Team"]) expect(handleFrom(none)).toBe("reader");
   });
 });
 
@@ -58,7 +66,7 @@ describe("parseProfile", () => {
   });
 });
 
-describe("who sees a profile", () => {
+describe("who sees the reading on a profile", () => {
   it("follows its visibility, and never a blocked reader", () => {
     const table: Record<Audience, [boolean, boolean, boolean]> = {
       // private, friends, public
@@ -68,7 +76,7 @@ describe("who sees a profile", () => {
       blocked: [false, false, false],
     };
     for (const [audience, expected] of Object.entries(table)) {
-      expect((["private", "friends", "public"] as const).map((v) => canSee(audience as Audience, v))).toEqual(expected);
+      expect((["private", "friends", "public"] as const).map((v) => canSeeReading(audience as Audience, v))).toEqual(expected);
     }
   });
 
@@ -153,32 +161,20 @@ describe("buildProfileStats", () => {
     book("tbr", { status: "to-read" }),
   ];
 
-  it("counts every finish, rereads included, since the first", () => {
-    const s = buildProfileStats(library, [], { year: 2025, today: "2025-06-01" });
-    expect(s.totals).toEqual({ books: 4, pages: 700, rating: 3, since: 2023 });
-    expect(s.genre).toEqual({ name: "Novel", books: 2 });
-    expect(s.author).toEqual({ name: "Eliot", books: 2 });
+  it("counts every finish, rereads included", () => {
+    const s = buildProfileStats(library, [], { today: "2025-06-01" });
+    expect(s.totals).toEqual({ books: 4, pages: 700, rating: 3 });
     expect(s.toRead).toBe(1);
     expect(s.recent.map((b) => b.id)).toEqual(["b", "a", "c"]);
-    expect(s.years).toEqual([
-      { year: 2025, books: 2 },
-      { year: 2024, books: 1 },
-      { year: 2023, books: 1 },
-    ]);
-    expect(s.year.read.map((b) => b.id)).toEqual(["a", "b"]);
   });
 
   it("shows how far along a book being read is, from its progress", () => {
-    const s = buildProfileStats(library, [{ bookId: "now", date: "2025-05-30", page: 100, percent: 25 }], {
-      year: 2025,
-      today: "2025-06-01",
-    });
+    const s = buildProfileStats(library, [{ bookId: "now", date: "2025-05-30", page: 100, percent: 25 }], { today: "2025-06-01" });
     expect(s.reading).toEqual([{ book: library[3], percent: 25 }]);
   });
 
-  it("names a most-read author only with two books or more", () => {
-    const s = buildProfileStats([book("x", { dateRead: "2025-01-01" })], [], { year: 2025, today: "2025-06-01" });
-    expect(s.author).toBeUndefined();
+  it("has no average rating without a rated read", () => {
+    const s = buildProfileStats([book("x", { dateRead: "2025-01-01" })], [], { today: "2025-06-01" });
     expect(s.totals.rating).toBeUndefined();
   });
 });

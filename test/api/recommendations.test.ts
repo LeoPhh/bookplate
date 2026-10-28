@@ -78,10 +78,10 @@ describe("recommending a book", () => {
     expect((await recommend(ada.r, ben.id, { title: "middlemarch" })).status).toBe(409);
   });
 
-  it("is seen once the friend opens Friends, which the sender can tell", async () => {
+  it("is seen once the friend opens their friends page, which the sender can tell", async () => {
     const { ada, ben } = await friends();
     await sent(ada.r, ben.id);
-    const tab = await (await ben.r.fetch("/friends")).text();
+    const tab = await (await ben.r.fetch(`/u/${ben.p.handle}/friends`)).text();
     expect(tab).toContain("Recommended to you");
     expect(tab).toContain("Middlemarch");
     expect((await recs(ada.r)).sent[0].state).toBe("seen");

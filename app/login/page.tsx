@@ -9,7 +9,7 @@ import { safeNext } from "@/lib/nextPath";
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await connection();
   if ((await countUsers()) === 0) redirect("/setup");
-  // ?next= says where to go once signed in (an invite link, say); a
+  // ?next= says where to go once signed in (a profile, say); a
   // confirmation link that signs a new reader in lands here with it too.
   // One that has expired or was already used lands here with ?error=…;
   // signing in sends a fresh one.

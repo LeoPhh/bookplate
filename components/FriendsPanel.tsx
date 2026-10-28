@@ -3,28 +3,25 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Someone } from "@/lib/social/friends";
-import type { Invite } from "@/lib/social/invites";
 import type { Notification } from "@/lib/social/notifications";
 import type { Recommendation } from "@/lib/social/recs";
 import Avatar from "./Avatar";
 import ConfirmDialog from "./ConfirmDialog";
 import Spinner from "./Spinner";
 
-// The Friends tab: requests to answer, adding someone by handle or with an
-// invite link, the friends themselves, requests still waiting, the latest
-// news and who's blocked. Every change goes to the API, then the page reloads
-// its data (router.refresh).
+// The reader's own friends page (/u/<handle>/friends, from the Friends tile on
+// their profile): requests to answer, recommendations, adding someone by
+// username, the friends themselves, requests still waiting and the latest
+// news. Who's blocked is in Settings. Every change goes to the API, then the
+// page reloads its data (router.refresh).
 
 export interface FriendsData {
   friends: Someone[];
   incoming: Someone[];
   outgoing: Someone[];
-  invites: Invite[];
-  blocked: { id: string; name: string; handle: string | null }[];
   notifications: Notification[];
   inbox: Recommendation[];
   sent: Recommendation[];
-  hasProfile: boolean;
 }
 
 const nameOf = (p: { name: string; handle: string | null }) => p.name || (p.handle ? `@${p.handle}` : "A reader");
@@ -65,12 +62,11 @@ const NEWS: Record<Notification["kind"], string> = {
   recommendation: "recommended you a book",
 };
 
-export default function FriendsPanel({ data, inviteBase }: { data: FriendsData; inviteBase: string }) {
+export default function FriendsPanel({ data }: { data: FriendsData }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null); // what's being done
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [handle, setHandle] = useState("");
-  const [copied, setCopied] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; message: string; label: string; run: () => Promise<void> } | null>(null);
 
   const act = async (key: string, path: string, method: string, body?: unknown, done?: (d: Record<string, unknown>) => string) => {
@@ -102,15 +98,6 @@ export default function FriendsPanel({ data, inviteBase }: { data: FriendsData; 
     });
   };
 
-  const copy = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(url);
-    } catch {
-      setMessage({ ok: false, text: "Copying didn’t work. Select the link and copy it." });
-    }
-  };
-
   const block = (p: Someone) =>
     setConfirm({
       title: `Block ${nameOf(p)}?`,
@@ -121,12 +108,6 @@ export default function FriendsPanel({ data, inviteBase }: { data: FriendsData; 
 
   return (
     <div className="friends">
-      {!data.hasProfile && (
-        <p className="showcase-note friends-note">
-          Your friends can&rsquo;t see your reading until you <a href="/profile">make your profile</a>.
-        </p>
-      )}
-
       {message && (
         <p className={message.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
           {message.text}
@@ -222,11 +203,11 @@ export default function FriendsPanel({ data, inviteBase }: { data: FriendsData; 
         <h2 className="form-heading">Add a friend</h2>
         <form className="friends-add" onSubmit={ask}>
           <label className="field">
-            <span>Their handle</span>
+            <span>Their username</span>
             <input
               type="text"
               value={handle}
-              placeholder="@handle"
+              placeholder="@username"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -237,45 +218,12 @@ export default function FriendsPanel({ data, inviteBase }: { data: FriendsData; 
             {busy === "ask" ? <><Spinner />Asking…</> : "Ask"}
           </button>
         </form>
-        <p className="settings-lede">
-          Or send an invite link, by message or email: whoever opens it becomes your friend, signing up first if
-          they need to. A link works for a week.
-        </p>
-        {data.invites.length > 0 && (
-          <ul className="friends-invites">
-            {data.invites.map((inv) => {
-              const url = `${inviteBase}/f/${inv.token}`;
-              return (
-                <li key={inv.token} className="live-link">
-                  <input type="text" readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Invite link" />
-                  <button type="button" className="btn btn--primary" onClick={() => copy(url)}>
-                    {copied === url ? "Copied" : "Copy link"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busy !== null}
-                    onClick={() => act(`revoke-${inv.token}`, `/api/friends/invites/${inv.token}`, "DELETE")}
-                  >
-                    Take back
-                  </button>
-                  <span className="field-note">Works until {dateOf(inv.expiresAt)}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <div className="settings-row">
-          <button type="button" className="btn" disabled={busy !== null} onClick={() => act("invite", "/api/friends/invites", "POST")}>
-            {busy === "invite" ? <><Spinner />Making…</> : data.invites.length ? "Make another link" : "Make an invite link"}
-          </button>
-        </div>
       </section>
 
       <section className="settings-section">
         <h2 className="form-heading">Your friends</h2>
         {data.friends.length === 0 ? (
-          <p className="settings-lede">No friends here yet. Ask someone by their handle, or send them an invite link.</p>
+          <p className="settings-lede">No friends here yet. Ask someone by their username.</p>
         ) : (
           <ul className="friend-list">
             {data.friends.map((p) => (
@@ -370,31 +318,6 @@ export default function FriendsPanel({ data, inviteBase }: { data: FriendsData; 
                   <strong>{n.actor ? nameOf(n.actor) : "Someone"}</strong> {NEWS[n.kind]}
                 </span>
                 <span className="friends-news-date">{dateOf(n.createdAt)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {data.blocked.length > 0 && (
-        <section className="settings-section">
-          <h2 className="form-heading">Blocked</h2>
-          <ul className="friend-list">
-            {data.blocked.map((p) => (
-              <li key={p.id} className="friend">
-                <span className="friend-who">
-                  <span className="friend-name">{nameOf(p)}</span>
-                </span>
-                <span className="friend-actions">
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busy !== null}
-                    onClick={() => act(`unblock-${p.id}`, `/api/blocks/${p.id}`, "DELETE")}
-                  >
-                    Unblock
-                  </button>
-                </span>
               </li>
             ))}
           </ul>

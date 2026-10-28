@@ -66,27 +66,50 @@ describe("the Profile tab", () => {
     expect(showcase.headers.get("location")).toMatch(/\/profile$/);
   });
 
-  it("offers to make a profile, then leads to it", async () => {
+  it("leads straight to the reader's own profile", async () => {
     const r = await socialReader("Ada Lovelace");
-    const before = await page(r, "/profile");
-    expect(before.status).toBe(200);
-    expect(before.html).toContain("Make your profile");
-    expect(before.html).toContain('value="ada_lovelace"'); // a handle suggested from the name
-    const p = await makeProfile(r, { handle: uniqueHandle("ada") });
-    const after = await r.fetch("/profile");
-    expect(after.status).toBe(307);
-    expect(after.headers.get("location")).toMatch(new RegExp(`/u/${p.handle}$`));
+    const { profile } = await r.get<{ profile: Profile }>("/api/profile");
+    const res = await r.fetch("/profile");
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toMatch(new RegExp(`/u/${profile.handle}$`));
+    const own = await page(r, `/u/${profile.handle}`);
+    expect(own.html).toContain("Share");
+    expect(own.html).toContain("Edit profile");
+    expect(own.html).not.toContain("Anyone with the link can see this page");
   });
 });
 
-describe("making a profile", () => {
-  it("needs a handle the first time, then changes any part of it", async () => {
-    const r = await socialReader();
-    expect((await r.get<{ profile: Profile | null }>("/api/profile")).profile).toBeNull();
-    const first = await r.json("/api/profile", "PATCH", { bio: "Hello" });
-    expect(first.status).toBe(400);
-    expect(await first.json()).toEqual({ error: "Choose a handle." });
+describe("every reader's profile", () => {
+  it("is made with the account, under a username from their name, the next free one if it's taken", async () => {
+    const one = await socialReader("Ada Lovelace");
+    const two = await socialReader("Ada Lovelace");
+    // Made at sign-up: in the database before anything asks for it.
+    const handles = await withDb(async (c) =>
+      Promise.all(
+        [one, two].map(async (r) => (await c.query('SELECT p.handle FROM profile p JOIN "user" u ON u.id = p.user_id WHERE u.email = $1', [r.email])).rows[0]?.handle)
+      )
+    );
+    for (const h of handles) expect(h).toMatch(/^ada_lovelace\d*$/);
+    expect(handles[0]).not.toBe(handles[1]);
+    expect((await one.get<{ profile: Profile }>("/api/profile")).profile).toEqual({
+      handle: handles[0],
+      bio: null,
+      visibility: "friends",
+      shareReading: true,
+      shareRatings: true,
+    });
+  });
 
+  it("is made for accounts that had none, when they open Profile", async () => {
+    const r = await socialReader("Grace Hopper");
+    await withDb(async (c) => c.query('DELETE FROM profile p USING "user" u WHERE u.id = p.user_id AND u.email = $1', [r.email]));
+    const res = await r.fetch("/profile");
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toMatch(/\/u\/grace_hopper\d*$/);
+  });
+
+  it("changes any part of it", async () => {
+    const r = await socialReader();
     const handle = uniqueHandle("Reader");
     const p = await makeProfile(r, { handle: `@${handle.toUpperCase()}` });
     expect(p).toEqual({ handle: handle.toLowerCase(), bio: null, visibility: "friends", shareReading: true, shareRatings: true });
@@ -95,23 +118,21 @@ describe("making a profile", () => {
     expect((await r.get<{ profile: Profile }>("/api/profile")).profile).toEqual(changed);
   });
 
-  it("refuses a handle someone else has, however it's typed", async () => {
+  it("refuses a username someone else has, however it's typed", async () => {
     const { p } = await ada();
     const other = await socialReader();
     const res = await other.json("/api/profile", "PATCH", { handle: p.handle.toUpperCase() });
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "That handle is taken." });
+    expect(await res.json()).toEqual({ error: "That username is taken." });
     expect((await other.json("/api/profile", "PATCH", { handle: "admin" })).status).toBe(400);
     expect((await other.json("/api/profile", "PATCH", { handle: "no spaces" })).status).toBe(400);
   });
 
-  it("frees the handle when the profile is removed, and the page goes", async () => {
+  it("frees a username once it's changed", async () => {
     const { r, p } = await ada({ visibility: "public" });
-    expect((await r.fetch("/api/profile", { method: "DELETE" })).status).toBe(200);
+    await makeProfile(r, { handle: uniqueHandle("renamed") });
     expect((await visitor().fetch(`/u/${p.handle}`)).status).toBe(404);
-    expect((await r.fetch(`/u/${p.handle}`)).status).toBe(404);
-    const other = await socialReader();
-    await makeProfile(other, { handle: p.handle });
+    await makeProfile(await socialReader(), { handle: p.handle });
   });
 
   it("goes with the account", async () => {
@@ -123,31 +144,33 @@ describe("making a profile", () => {
 });
 
 describe("who sees a profile", () => {
-  it("follows its visibility, and a hidden profile looks like no profile at all", async () => {
+  it("is everyone; the reading on it follows its visibility", async () => {
     const { r, p } = await ada({ visibility: "private" });
     const friend = await socialReader();
     const stranger = await socialReader();
     await befriend(r, friend);
     const path = `/u/${p.handle}`;
-    const status = async () => [
-      (await r.fetch(path)).status,
-      (await friend.fetch(path)).status,
-      (await stranger.fetch(path)).status,
-      (await visitor().fetch(path)).status,
-    ];
+    // Whether each sees the books: the reader, a friend, another reader, a visitor.
+    const seen = async () =>
+      Promise.all(
+        [r, friend, stranger, visitor()].map(async (v) => {
+          const { status, html } = await page(v, path);
+          expect(status).toBe(200);
+          expect(html).toContain("Ada Lovelace");
+          expect(html).toContain("Mostly novels");
+          return html.includes("February Book");
+        })
+      );
 
-    expect(await status()).toEqual([200, 404, 404, 404]);
+    expect(await seen()).toEqual([true, false, false, false]);
+    expect((await page(friend, path)).html).toContain("keeps their books and numbers private");
     await makeProfile(r, { visibility: "friends" });
-    expect(await status()).toEqual([200, 200, 404, 404]);
+    expect(await seen()).toEqual([true, true, false, false]);
+    expect((await page(stranger, path)).html).toContain("shares their books and numbers with friends only");
     await makeProfile(r, { visibility: "public" });
-    expect(await status()).toEqual([200, 200, 200, 200]);
+    expect(await seen()).toEqual([true, true, true, true]);
 
-    const missing = await visitor().fetch(`/u/${uniqueHandle("nobody")}`);
-    const hidden = await (async () => {
-      await makeProfile(r, { visibility: "private" });
-      return visitor().fetch(path);
-    })();
-    expect([missing.status, hidden.status]).toEqual([404, 404]);
+    expect((await visitor().fetch(`/u/${uniqueHandle("nobody")}`)).status).toBe(404);
   });
 
   it("is never a reader blocked either way, public or not", async () => {
@@ -249,8 +272,8 @@ describe("profile images", () => {
     expect((await visitor().fetch(`/u/${p.handle}/covers/feb.jpg`)).status).toBe(404);
   });
 
-  it("serves the reader's current photo to whoever may see the profile", async () => {
-    const { r, p } = await ada({ visibility: "friends" });
+  it("serves the reader's current photo to anyone", async () => {
+    const { r, p } = await ada({ visibility: "private" });
     const up = await r.upload("/api/avatar", { file: cover(3) });
     expect(up.status).toBe(200);
     const { image } = (await up.json()) as { image: string };
@@ -261,12 +284,12 @@ describe("profile images", () => {
     expect(html).toContain(`/u/${p.handle}/avatar/${name}`);
     expect((await friend.fetch(`/u/${p.handle}/avatar/${name}`)).status).toBe(200);
     expect((await friend.fetch(`/u/${p.handle}/avatar/other.jpg`)).status).toBe(404);
-    expect((await visitor().fetch(`/u/${p.handle}/avatar/${name}`)).status).toBe(404);
+    expect((await visitor().fetch(`/u/${p.handle}/avatar/${name}`)).status).toBe(200);
   });
 });
 
 describe("showcase links", () => {
-  it("lead to the reader's profile once it's public", async () => {
+  it("lead to the reader's profile once its reading is public", async () => {
     const { r, p } = await ada({ visibility: "friends" });
     const res = await r.json("/api/showcases", "POST", { year: YEAR, name: "Ada" });
     const { showcase } = (await res.json()) as { showcase: { id: string } };
@@ -331,7 +354,7 @@ describe("taste", () => {
 });
 
 describe("link previews", () => {
-  it("have a picture for public profiles only", async () => {
+  it("have a picture only for profiles whose reading is public", async () => {
     const { r, p } = await ada({ visibility: "public" });
     const html = await (await visitor().fetch(`/u/${p.handle}`)).text();
     expect(html).toMatch(new RegExp(`<meta property="og:image" content="[^"]*/u/${p.handle}/card"`));
@@ -362,6 +385,10 @@ describe("taking a profile down", () => {
     expect((await r.get<{ books: unknown[] }>("/api/books")).books).toHaveLength(4); // library untouched
 
     expect(run(`@${p.handle}`).status).toBe(1); // already gone
-    expect(run("no spaces allowed").stderr).toContain("isn't a profile link or handle");
+    expect(run("no spaces allowed").stderr).toContain("isn't a profile link or username");
+
+    // The reader gets a fresh profile: no bio, friends only.
+    const fresh = (await r.get<{ profile: Profile }>("/api/profile")).profile;
+    expect(fresh).toMatchObject({ bio: null, visibility: "friends" });
   });
 });

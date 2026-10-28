@@ -31,7 +31,7 @@ interface Props {
   // Offer the newsletter tick box at sign-up (NEWSLETTER=true).
   newsletter?: boolean;
   // Where to go once signed in (a path checked by lib/nextPath.ts), e.g. back
-  // to an invite link; unset = the library.
+  // to a profile; unset = the library.
   next?: string | null;
 }
 

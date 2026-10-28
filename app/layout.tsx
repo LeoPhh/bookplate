@@ -51,7 +51,7 @@ export default async function RootLayout({
   const session = await getSession().catch(() => null);
   // Which optional fields to show, known before anything renders.
   const features = session ? await getFeatures(session.user.id).catch(() => []) : [];
-  // With social features, how much is new for the Friends tab's badge.
+  // With social features, how much is new for the Profile tab's badge.
   const social = config.social ? { unread: session ? await unreadCount(session.user.id).catch(() => 0) : 0 } : null;
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>

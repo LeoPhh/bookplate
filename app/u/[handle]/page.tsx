@@ -6,10 +6,9 @@ import ProfileActions from "@/components/ProfileActions";
 import ProfileView from "@/components/ProfileView";
 import { getSession } from "@/lib/auth";
 import { config, CONTACT_EMAIL } from "@/lib/config";
-import { todayIso } from "@/lib/progress";
-import { standing } from "@/lib/social/friends";
+import { friendsSeenBy, standing } from "@/lib/social/friends";
+import { unreadCount } from "@/lib/social/notifications";
 import { findPerson, loadPersonView } from "@/lib/social/people";
-import { FIRST_YEAR } from "@/lib/showcase";
 
 // A reader's profile (lib/social/people.ts), for whoever may see it: the
 // reader, their friends, and anyone at all when it's public. Everyone else
@@ -17,7 +16,7 @@ import { FIRST_YEAR } from "@/lib/showcase";
 
 const LANDING_URL = "https://bookplate.eu";
 
-type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ year?: string }> };
+type Props = { params: Promise<{ handle: string }> };
 
 const load = cache(async (handle: string) => {
   if (!config.social) return null;
@@ -54,18 +53,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PersonPage({ params, searchParams }: Props) {
+export default async function PersonPage({ params }: Props) {
   await connection();
   const { handle } = await params;
   const found = await load(handle);
   if (!found) notFound();
   const { person, viewerId } = found;
   const signedIn = viewerId !== null;
-  const today = todayIso();
-  const thisYear = Number(today.slice(0, 4));
-  const asked = Number((await searchParams).year);
-  const year = Number.isInteger(asked) && asked >= FIRST_YEAR && asked <= thisYear ? asked : thisYear;
-  const { stats, taste } = await loadPersonView(person, { year, viewerId });
+  const self = person.audience === "self";
+  const [{ stats, taste }, friends, news] = await Promise.all([
+    loadPersonView(person, { viewerId }),
+    friendsSeenBy(viewerId, person.userId),
+    self ? unreadCount(person.userId) : 0,
+  ]);
   const base = `/u/${person.profile.handle}`;
 
   const reportHref =
@@ -81,8 +81,8 @@ export default async function PersonPage({ params, searchParams }: Props) {
         person={person}
         stats={stats}
         taste={taste}
-        today={today}
-        yearHref={(y) => (y === thisYear ? base : `${base}?year=${y}`)}
+        friends={{ all: friends, href: `${base}/friends`, news }}
+        shareUrl={self ? `${config.publicUrl}${base}` : undefined}
         actions={
           viewerId && person.audience !== "self" ? (
             <ProfileActions

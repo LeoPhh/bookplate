@@ -8,8 +8,7 @@ import { findHandle } from "./profile";
 import { profileAvatar } from "./projection";
 import { dropWaiting } from "./recs";
 
-// Friendships: both readers agreed, by answering a request or through an
-// invite link (lib/social/invites.ts). Blocking ends a friendship and any
+// Friendships: both readers agreed, by answering a request. Blocking ends a friendship and any
 // request between the two, and stops new ones either way.
 //
 // Other readers are named by their account id here. It's no secret, but it's
@@ -36,7 +35,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 async function people(rows: { id: string; since: Date }[]): Promise<Someone[]> {
   if (rows.length === 0) return [];
   const found = await getDb()
-    .select({ id: user.id, name: user.name, image: user.image, handle: profile.handle, visibility: profile.visibility })
+    .select({ id: user.id, name: user.name, image: user.image, handle: profile.handle })
     .from(user)
     .leftJoin(profile, eq(profile.userId, user.id))
     .where(
@@ -50,8 +49,7 @@ async function people(rows: { id: string; since: Date }[]): Promise<Someone[]> {
     .filter((r) => byId.has(r.id))
     .map((r) => {
       const f = byId.get(r.id)!;
-      // A private profile has no page to link to, even for friends.
-      const handle = f.handle && f.visibility !== "private" ? f.handle : null;
+      const handle = f.handle;
       return { id: r.id, name: f.name, handle, image: handle ? profileAvatar(handle, f.image) : null, since: r.since.toISOString() };
     })
     .sort((a, b) => (a.name || a.handle || "").localeCompare(b.name || b.handle || ""));
@@ -66,6 +64,22 @@ export async function listFriends(userId: string): Promise<Someone[]> {
     .from(friendship)
     .where(or(eq(friendship.userA, userId), eq(friendship.userB, userId)));
   return people(rows);
+}
+
+// A reader's friends as someone else sees them on their profile: all of them,
+// as profiles are open to everyone, except anyone blocked either way with the
+// viewer (lib/social/access.ts).
+export async function friendsSeenBy(viewerId: string | null, ownerId: string): Promise<Someone[]> {
+  if (viewerId === ownerId) return listFriends(ownerId);
+  const { rows } = await getDb().execute<{ id: string; since: Date | string }>(sql`
+    SELECT u.id, f.created_at AS since
+    FROM friendship f
+    JOIN "user" u ON u.id = CASE WHEN f.user_a = ${ownerId} THEN f.user_b ELSE f.user_a END
+    WHERE (f.user_a = ${ownerId} OR f.user_b = ${ownerId})
+      AND NOT EXISTS (
+        SELECT 1 FROM block b
+        WHERE (b.blocker = ${viewerId} AND b.blocked = u.id) OR (b.blocker = u.id AND b.blocked = ${viewerId}))`);
+  return people(rows.map((r) => ({ id: r.id, since: new Date(r.since) })));
 }
 
 export async function listRequests(userId: string): Promise<{ incoming: Someone[]; outgoing: Someone[] }> {
@@ -119,12 +133,11 @@ export type RequestResult = "sent" | "friends" | "already";
 
 // Asks the reader behind a handle to be friends. A request the other way
 // already waiting makes them friends at once. Anyone who can't be found
-// (no such handle, a private profile, a block either way) gets the same
-// answer.
+// (no such username, a block either way) gets the same answer.
 export async function sendRequest(fromId: string, handle: string): Promise<{ result: RequestResult; to: string }> {
   const found = await findHandle(handle);
-  const notFound = new FriendError("Nobody has that handle.", 404);
-  if (!found || found.profile.visibility === "private") throw notFound;
+  const notFound = new FriendError("Nobody has that username.", 404);
+  if (!found) throw notFound;
   const toId = found.userId;
   if (toId === fromId) throw new FriendError("That’s you.");
   const audience = await audienceFor(fromId, toId);

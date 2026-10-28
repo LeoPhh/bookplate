@@ -1,41 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Profile, Visibility } from "@/lib/social/profile";
-import ConfirmDialog from "./ConfirmDialog";
 import Spinner from "./Spinner";
 
-// Making or changing a profile: the handle, a line about yourself, who sees
-// the page and what's on it. On the Profile tab before there's a profile,
-// and in Settings → Profile after.
+// Settings → Profile → Profile page: the username (a handle in the code),
+// a line about yourself, who sees the page and what's on it.
 
 const HANDLE_MAX = 24;
 const BIO_MAX = 160;
 
 const VISIBILITY: { id: Visibility; label: string; text: string }[] = [
-  { id: "private", label: "Only me", text: "Nobody else can see it, or find you by your handle." },
-  { id: "friends", label: "Friends", text: "Your friends see it; nobody else does." },
-  { id: "public", label: "Anyone with the link", text: "Like a showcase: anyone you send the link to, signed in or not. Search engines aren’t told about it." },
+  { id: "private", label: "Only me", text: "Nobody else sees your books or numbers." },
+  { id: "friends", label: "Friends", text: "Your friends see them; nobody else does." },
+  { id: "public", label: "Everyone", text: "Anyone who opens your profile, signed in or not. Search engines aren’t told about it." },
 ];
 
-export default function ProfileForm({
-  initial,
-  suggested,
-}: {
-  initial: Profile | null;
-  // For a new profile: a handle and visibility to start from.
-  suggested?: { handle: string; visibility: Visibility };
-}) {
-  const router = useRouter();
+export default function ProfileForm({ initial }: { initial: Profile }) {
   const [saved, setSaved] = useState(initial);
-  const [handle, setHandle] = useState(initial?.handle ?? suggested?.handle ?? "");
-  const [bio, setBio] = useState(initial?.bio ?? "");
-  const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? suggested?.visibility ?? "friends");
-  const [shareReading, setShareReading] = useState(initial?.shareReading ?? true);
-  const [shareRatings, setShareRatings] = useState(initial?.shareRatings ?? true);
+  const [handle, setHandle] = useState(initial.handle);
+  const [bio, setBio] = useState(initial.bio ?? "");
+  const [visibility, setVisibility] = useState<Visibility>(initial.visibility);
+  const [shareReading, setShareReading] = useState(initial.shareReading);
+  const [shareRatings, setShareRatings] = useState(initial.shareRatings);
   const [busy, setBusy] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
   const save = async (e: React.FormEvent) => {
@@ -50,10 +38,6 @@ export default function ProfileForm({
       });
       const data: { profile?: Profile; error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || !data.profile) throw new Error(data.error ?? "Your profile could not be saved.");
-      if (!saved) {
-        router.push(`/u/${data.profile.handle}`);
-        return;
-      }
       setSaved(data.profile);
       setHandle(data.profile.handle);
       setResult({ ok: true, text: "Saved." });
@@ -64,26 +48,10 @@ export default function ProfileForm({
     }
   };
 
-  const remove = async () => {
-    setConfirming(false);
-    setBusy(true);
-    setResult(null);
-    try {
-      const res = await fetch("/api/profile", { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      setSaved(null);
-      router.refresh();
-    } catch {
-      setResult({ ok: false, text: "That didn’t work. Try again." });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <form className="profile-form" onSubmit={save}>
       <label className="field">
-        <span>Handle</span>
+        <span>Username</span>
         <input
           type="text"
           value={handle}
@@ -102,8 +70,12 @@ export default function ProfileForm({
         <span>About you</span>
         <textarea rows={2} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} />
       </label>
+      <p className="settings-lede">
+        Anyone can open your profile and see your name, photo, username, bio and friends. Your reading — the books
+        you&rsquo;ve read, your numbers and your year in books — is up to you.
+      </p>
       <fieldset className="profile-visibility">
-        <legend>Who sees your profile</legend>
+        <legend>Who sees your reading</legend>
         {VISIBILITY.map((v) => (
           <label key={v.id} className="checkline checkline--wrap">
             <input
@@ -146,33 +118,16 @@ export default function ProfileForm({
       <p className="settings-lede">Your notes, words, sources, copies and email are never shown to anyone.</p>
       <div className="settings-row">
         <button type="submit" className="btn btn--primary" disabled={busy}>
-          {busy ? <><Spinner />Saving…</> : saved ? "Save" : "Make my profile"}
+          {busy ? <><Spinner />Saving…</> : "Save"}
         </button>
-        {saved && (
-          <>
-            <a className="btn" href={`/u/${saved.handle}`}>
-              View
-            </a>
-            <button type="button" className="btn btn--danger" disabled={busy} onClick={() => setConfirming(true)}>
-              Remove profile
-            </button>
-          </>
-        )}
+        <a className="btn" href={`/u/${saved.handle}`}>
+          View
+        </a>
       </div>
       {result && (
         <p className={result.ok ? "settings-note" : "settings-note settings-note--error"} role="status">
           {result.text}
         </p>
-      )}
-      {confirming && (
-        <ConfirmDialog
-          title="Remove your profile?"
-          message="Nobody else will see anything of yours, and your handle becomes free for someone else. Your friends stay your friends."
-          confirmLabel="Remove it"
-          danger
-          onConfirm={remove}
-          onCancel={() => setConfirming(false)}
-        />
       )}
     </form>
   );

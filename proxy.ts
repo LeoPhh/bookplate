@@ -20,7 +20,6 @@ const PUBLIC = [
   "/api/metrics", // checks its own token
   "/s", // showcases: public pages, by their unguessable address
   "/u", // profiles (SOCIAL=true): the page decides who may see each one
-  "/f", // invite links (SOCIAL=true): a teaser for visitors, then sign-up
   "/privacy",
   "/terms",
 ];

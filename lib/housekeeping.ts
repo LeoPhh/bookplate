@@ -4,8 +4,8 @@ import { config } from "./config";
 import { getDb } from "./db";
 import { log } from "./log";
 import { pruneRequests } from "./social/friends";
-import { pruneInvites } from "./social/invites";
 import { pruneNotifications } from "./social/notifications";
+import { ensureAllProfiles } from "./social/profile";
 
 // Tidying that runs at startup and then every few hours. Safe to run on
 // several app copies at once: each step is a single idempotent delete.
@@ -58,8 +58,13 @@ export async function runHousekeeping(): Promise<void> {
     const sessions = await tidySessions();
     if (sessions.expired || sessions.stripped) void log.info("housekeeping.sessions_tidied", sessions);
     // Social features' leftovers (empty tables on servers without them).
-    const social = { requests: await pruneRequests(), invites: await pruneInvites(), notifications: await pruneNotifications() };
-    if (social.requests || social.invites || social.notifications) void log.info("housekeeping.social_tidied", social);
+    const social = { requests: await pruneRequests(), notifications: await pruneNotifications() };
+    if (social.requests || social.notifications) void log.info("housekeeping.social_tidied", social);
+    // Every reader has a profile where there are social features.
+    if (config.social) {
+      const made = await ensureAllProfiles();
+      if (made) void log.info("housekeeping.profiles_made", { profiles: made });
+    }
   } catch (e) {
     void log.error("housekeeping.failed", { error: e });
   }
