@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { avatarColorIndex, initials } from "@/lib/avatar";
+import { checkGoal } from "@/lib/social/goals";
 import { canSeeReading, pairOf, type Audience } from "@/lib/social/access";
 import { checkHandle, handleFrom, parseProfile, ProfileError, type Profile } from "@/lib/social/profile";
 import { buildProfileStats } from "@/lib/social/profileStats";
@@ -26,6 +28,30 @@ const profile = (over: Partial<Profile> = {}): Profile => ({
   shareReading: true,
   shareRatings: true,
   ...over,
+});
+
+describe("the picture without a photo", () => {
+  it("shows one letter for one word, and first and last initials for more", () => {
+    expect(initials("Madonna")).toBe("M");
+    expect(initials("Sam Carter")).toBe("SC");
+    expect(initials("Mary Ann Evans")).toBe("ME");
+    expect(initials("  zoë   o'brien ")).toBe("ZO");
+    expect(initials("@sam_carter")).toBe("S");
+    expect(initials("")).toBe("");
+  });
+
+  it("keeps the colour chosen, or the one the account always gets", () => {
+    expect(avatarColorIndex("abc", 7)).toBe(7);
+    expect(avatarColorIndex("abc", null)).toBe(avatarColorIndex("abc", undefined));
+    expect(avatarColorIndex("abc", 99)).toBe(avatarColorIndex("abc", null));
+  });
+});
+
+describe("the goal for the year", () => {
+  it("is a whole number of books, within reason", () => {
+    expect(checkGoal(30)).toBe(30);
+    for (const bad of [0, -1, 501, 2.5, "30", null]) expect(() => checkGoal(bad)).toThrow();
+  });
 });
 
 describe("handles", () => {
@@ -164,13 +190,19 @@ describe("buildProfileStats", () => {
   it("counts every finish, rereads included", () => {
     const s = buildProfileStats(library, [], { today: "2025-06-01" });
     expect(s.totals).toEqual({ books: 4, pages: 700, rating: 3 });
-    expect(s.toRead).toBe(1);
     expect(s.recent.map((b) => b.id)).toEqual(["b", "a", "c"]);
+    expect(s.last?.book.id).toBe("b");
+    expect(s.finishedThisYear).toBe(2);
+    expect(s.best.map((b) => b.id)).toEqual(["a", "b"]);
+    expect(s.shelves).toEqual([
+      { genre: "Novel", books: 2 },
+      { genre: "Poetry", books: 1 },
+    ]);
   });
 
   it("shows how far along a book being read is, from its progress", () => {
     const s = buildProfileStats(library, [{ bookId: "now", date: "2025-05-30", page: 100, percent: 25 }], { today: "2025-06-01" });
-    expect(s.reading).toEqual([{ book: library[3], percent: 25 }]);
+    expect(s.reading).toEqual([{ book: library[3], percent: 25, page: 100 }]);
   });
 
   it("has no average rating without a rated read", () => {

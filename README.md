@@ -110,9 +110,11 @@ With `SOCIAL=true`, readers on your server can find each other. Every reader
 has a profile, made with their account under a username taken from their name
 (changeable in Settings), and a **Profile** tab leads to it: a page
 at `/u/<username>` with your reading in numbers, your friends, what you're
-reading now and what you finished lately, and a button to copy its link.
-Anyone can open a profile and see the reader's name, photo, username, bio and
-friends; the reader chooses who sees their reading — the books and numbers:
+reading now, your goal for the year and your highest-rated books, and a button
+to copy its link. Without a photo, your picture is your initials on a colour you
+can change. Anyone can open a profile and see the reader's name, photo, username,
+bio and friends, when they joined and how many books they've finished; the reader
+chooses who sees the rest of their reading — the books, numbers and goal:
 only them, their friends (the default) or everyone, signed in or not — and
 whether it shows what they're reading now and their ratings. Notes, sources, copies, books you gave up on, vocabulary and
 email are never shown.

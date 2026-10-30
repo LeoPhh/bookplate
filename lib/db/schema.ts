@@ -22,6 +22,9 @@ export const user = pgTable("user", {
   // migration that filled it in, and only if their Goodreads or StoryGraph
   // books still show it (0015). For the operator's usage counts.
   firstImportAt: timestamp("first_import_at"),
+  // Which colour (lib/palette.ts) sits behind the reader's initials when they
+  // have no photo. Null = the one their account id picks (lib/avatar.ts).
+  avatarColor: integer("avatar_color"),
   // Info boxes the reader chose not to see again (ids from lib/hints.ts).
   dismissedHints: text("dismissed_hints").array().notNull().default(sql`'{}'::text[]`),
   // Optional features the reader has switched on (ids from lib/features.ts).
@@ -205,6 +208,21 @@ export const profile = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("profile_handle_idx").on(t.handle)]
+);
+
+// How many books a reader means to finish in a year. A row per year, so last
+// year's stays when this year's is set.
+export const readingGoal = pgTable(
+  "reading_goal",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    books: integer("books").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.year] })]
 );
 
 // Two readers who are friends, stored once per pair with the smaller id

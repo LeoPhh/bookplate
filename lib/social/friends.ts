@@ -1,6 +1,7 @@
 import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { countUp } from "../authThrottle";
 import { getDb, schema } from "../db";
+import { avatarColorIndex } from "../avatar";
 import { audienceFor, pairOf } from "./access";
 import { FriendError } from "./errors";
 import { notify, unnotify } from "./notifications";
@@ -25,6 +26,7 @@ export interface Someone {
   name: string;
   handle: string | null; // null: no profile, so nothing to link to
   image: string | null; // at their profile's address
+  color: number; // behind their initials, without a photo
   since: string; // when the friendship or request began
 }
 
@@ -35,7 +37,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 async function people(rows: { id: string; since: Date }[]): Promise<Someone[]> {
   if (rows.length === 0) return [];
   const found = await getDb()
-    .select({ id: user.id, name: user.name, image: user.image, handle: profile.handle })
+    .select({ id: user.id, name: user.name, image: user.image, avatarColor: user.avatarColor, handle: profile.handle })
     .from(user)
     .leftJoin(profile, eq(profile.userId, user.id))
     .where(
@@ -50,7 +52,7 @@ async function people(rows: { id: string; since: Date }[]): Promise<Someone[]> {
     .map((r) => {
       const f = byId.get(r.id)!;
       const handle = f.handle;
-      return { id: r.id, name: f.name, handle, image: handle ? profileAvatar(handle, f.image) : null, since: r.since.toISOString() };
+      return { id: r.id, name: f.name, handle, image: handle ? profileAvatar(handle, f.image) : null, color: avatarColorIndex(r.id, f.avatarColor), since: r.since.toISOString() };
     })
     .sort((a, b) => (a.name || a.handle || "").localeCompare(b.name || b.handle || ""));
 }

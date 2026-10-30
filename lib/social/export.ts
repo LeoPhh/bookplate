@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb, schema } from "../db";
 import { listBlocked, listFriends } from "./friends";
+import { listGoals } from "./goals";
 import { getProfile } from "./profile";
 
 // The reader's social data, for their export (lib/archive.ts, social.json):
@@ -38,15 +39,17 @@ async function recommendations(userId: string, way: "sent" | "received") {
 }
 
 export async function socialExport(userId: string) {
-  const [p, friends, blocked, sent, received] = await Promise.all([
+  const [p, friends, blocked, sent, received, goals] = await Promise.all([
     getProfile(userId),
     listFriends(userId),
     listBlocked(userId),
     recommendations(userId, "sent"),
     recommendations(userId, "received"),
+    listGoals(userId),
   ]);
   return {
     profile: p,
+    goals,
     friends: friends.map((f) => ({ ...someone(f), since: f.since })),
     blocked: blocked.map(someone),
     recommendationsSent: sent,

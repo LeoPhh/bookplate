@@ -3,8 +3,9 @@ import { getDb } from "../db";
 import type { Visibility } from "./profile";
 
 // Who may see what of another reader's. A profile itself (name, photo,
-// username, bio, friends) is open to anyone but a reader blocked either way;
-// the reading on it (books, numbers) follows the profile's visibility. Every
+// username, bio, friends, when they joined, how many books they've finished) is
+// open to anyone but a reader blocked either way; the reading on it (books, the
+// other numbers, their goal) follows the profile's visibility. Every
 // cross-reader read goes through audienceFor and canSeeReading, and anything
 // hidden is "not found", never "forbidden".
 

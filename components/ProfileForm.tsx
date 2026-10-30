@@ -71,8 +71,8 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         <textarea rows={2} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} />
       </label>
       <p className="settings-lede">
-        Anyone can open your profile and see your name, photo, username, bio and friends. Your reading — the books
-        you&rsquo;ve read and your numbers — is up to you.
+        Anyone can open your profile and see your name, photo, username, bio and friends, when you joined and how many
+        books you&rsquo;ve read. The rest of your reading — which books, your other numbers and your goal — is up to you.
       </p>
       <fieldset className="profile-visibility">
         <legend>Who sees your reading</legend>

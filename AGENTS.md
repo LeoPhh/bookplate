@@ -34,8 +34,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
   friends under each profile at `/u/<handle>/friends`) and the account menu. On phones the sections become
   the bottom tab bar. It never links out of the app.
 - Social features (`SOCIAL=true`, `lib/social/`) read across readers. A
-  profile (name, photo, username, bio, friends) is open to anyone not blocked
-  either way; its reading (books, numbers) follows its visibility. Every such
+  profile (name, photo, username, bio, friends, join date, number of books
+  finished) is open to anyone not blocked either way; its reading (books, other
+  numbers, goal) follows its visibility. Every such
   read goes through `audienceFor`/`canSeeReading` (`lib/social/access.ts`) and
   answers "not found", never "forbidden"; books pass through the allow-list in
   `lib/social/projection.ts`; another reader's images are served only from

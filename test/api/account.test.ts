@@ -11,8 +11,9 @@ describe("the account's name", () => {
 
     expect((await r.json("/api/auth/update-user", "POST", { name: "  Ada\u202e   Lovelace\n" })).status).toBe(200);
     expect((await session()).name).toBe("Ada Lovelace");
-    expect((await r.json("/api/auth/update-user", "POST", { name: "x".repeat(61) })).status).toBe(400);
+    expect((await r.json("/api/auth/update-user", "POST", { name: "x".repeat(26) })).status).toBe(400);
     expect((await session()).name).toBe("Ada Lovelace");
+    expect((await r.json("/api/auth/update-user", "POST", { name: "x".repeat(25) })).status).toBe(200);
   });
 });
 

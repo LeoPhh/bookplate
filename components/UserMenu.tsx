@@ -3,11 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { avatarColorIndex } from "@/lib/avatar";
 import Avatar from "./Avatar";
 
-// The profile photo in the top-right corner of every page; it opens a small
-// menu with the account's name, Settings, and Sign out.
-export default function UserMenu() {
+export interface AccountPicture {
+  image: string | null;
+  label: string; // their name, or else their username, or else their email
+  username: string | null;
+  color: number;
+}
+
+// The profile picture in the top-right corner of every page; it opens a small
+// menu with the account's name, Settings, and Sign out. It starts from what the
+// server knew and follows the session, so changes in Settings show at once.
+export default function UserMenu({ initial }: { initial: AccountPicture | null }) {
   const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -28,7 +37,14 @@ export default function UserMenu() {
     };
   }, [open]);
 
-  const user = session?.user;
+  const user = session?.user as (NonNullable<typeof session>["user"] & { avatarColor?: number | null }) | undefined;
+  const picture = user
+    ? {
+        image: user.image ?? null,
+        label: user.name || initial?.username || user.email,
+        color: avatarColorIndex(user.id, user.avatarColor),
+      }
+    : initial;
 
   const signOut = async () => {
     await authClient.signOut();
@@ -45,7 +61,7 @@ export default function UserMenu() {
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        <Avatar image={user?.image} size={40} />
+        <Avatar image={picture?.image} label={picture?.label} color={picture?.color} size={40} />
       </button>
       {open && (
         <div className="user-menu-panel" role="menu">

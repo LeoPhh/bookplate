@@ -40,7 +40,7 @@ async function call(path: string, method: string, body?: unknown): Promise<{ ok:
 function Person({ p, children }: { p: Someone; children?: React.ReactNode }) {
   return (
     <li className="friend">
-      <Avatar image={p.image} size={44} />
+      <Avatar image={p.image} label={p.name || p.handle} color={p.color} size={44} />
       <span className="friend-who">
         {p.handle ? (
           <a className="friend-name" href={`/u/${p.handle}`}>

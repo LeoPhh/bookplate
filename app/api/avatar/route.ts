@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { checkStorage, overLimit } from "@/lib/limits";
+import { PALETTE } from "@/lib/palette";
 import { detectImageType, getStorage, keys, urls } from "@/lib/storage";
 
 // The browser crops and compresses the photo to a small JPEG first.
@@ -39,7 +40,20 @@ export async function POST(request: Request) {
   return Response.json({ image: urls.avatar(name) });
 }
 
-// DELETE removes the photo; the default bookshelf picture shows instead.
+// PATCH { color } chooses the colour behind the reader's initials.
+export async function PATCH(request: Request) {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
+  const body = (await request.json().catch(() => null)) as { color?: unknown } | null;
+  const color = body?.color;
+  if (typeof color !== "number" || !Number.isInteger(color) || color < 0 || color >= PALETTE.length) {
+    return Response.json({ error: "Invalid colour" }, { status: 400 });
+  }
+  await getDb().update(schema.user).set({ avatarColor: color, updatedAt: new Date() }).where(eq(schema.user.id, auth.userId));
+  return Response.json({ color });
+}
+
+// DELETE removes the photo; the reader's initials show instead.
 export async function DELETE() {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;

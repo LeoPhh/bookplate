@@ -1,8 +1,11 @@
 import { eq } from "drizzle-orm";
+import { avatarColorIndex } from "../avatar";
 import { getDb, schema } from "../db";
 import { listBooks, listProgress } from "../library";
 import { todayIso } from "../progress";
+import { finishes } from "../reads";
 import { audienceFor, canSeeReading, type Audience } from "./access";
+import { getGoal } from "./goals";
 import { findHandle, type Profile } from "./profile";
 import { buildProfileStats, type ProfileStats } from "./profileStats";
 import { personBook, profileAvatar, visibleBooks } from "./projection";
@@ -10,13 +13,16 @@ import { compareTaste, type Taste } from "./taste";
 
 // A reader's profile page as one viewer may see it, or null when there's no
 // such handle or a block either way: the caller answers 404 either way.
-// Everyone else sees the profile; `seesReading` says whether they also see
-// the books and numbers on it.
+// Everyone else sees the profile, with how many books the reader has finished
+// and when they joined; `seesReading` says whether they also see the books and
+// numbers on it.
 
 export interface Person {
   userId: string;
   name: string;
   image: string | null; // at an address this viewer may load
+  color: number; // behind their initials, without a photo
+  joined: string; // when the account was made
   profile: Profile;
   audience: Audience;
   seesReading: boolean;
@@ -28,7 +34,7 @@ export async function findPerson(viewerId: string | null, handle: string): Promi
   const audience = await audienceFor(viewerId, found.userId);
   if (audience === "blocked") return null;
   const [u] = await getDb()
-    .select({ name: schema.user.name, image: schema.user.image })
+    .select({ name: schema.user.name, image: schema.user.image, avatarColor: schema.user.avatarColor, createdAt: schema.user.createdAt })
     .from(schema.user)
     .where(eq(schema.user.id, found.userId));
   if (!u) return null;
@@ -36,6 +42,8 @@ export async function findPerson(viewerId: string | null, handle: string): Promi
     userId: found.userId,
     name: u.name,
     image: audience === "self" ? (u.image ?? null) : profileAvatar(found.profile.handle, u.image),
+    color: avatarColorIndex(found.userId, u.avatarColor),
+    joined: u.createdAt.toISOString(),
     profile: found.profile,
     audience,
     seesReading: canSeeReading(audience, found.profile.visibility),
@@ -53,20 +61,27 @@ export async function personBooks(p: Person) {
 
 // The profile page's numbers, and for another signed-in reader how their
 // reading compares (taste is null on the owner's own page and for visitors).
+// `finished` counts every finish whoever's looking, so it's the one number that
+// doesn't follow the profile's visibility: it comes straight from the library,
+// and nothing else of it is passed on.
 export async function loadPersonView(
   p: Person,
   { viewerId }: { viewerId: string | null }
-): Promise<{ stats: ProfileStats; taste: Taste | null }> {
+): Promise<{ stats: ProfileStats; taste: Taste | null; finished: number; goal: number | null }> {
   const today = todayIso();
   const showProgress = p.seesReading && (p.audience === "self" || p.profile.shareReading);
   const compare = viewerId !== null && p.audience !== "self" && p.seesReading;
-  const [books, progress, mine] = await Promise.all([
+  const [books, progress, mine, library, goal] = await Promise.all([
     personBooks(p),
     showProgress ? listProgress(p.userId) : [],
     compare ? listBooks(viewerId) : null,
+    listBooks(p.userId),
+    p.seesReading ? getGoal(p.userId, Number(today.slice(0, 4))) : null,
   ]);
   return {
     stats: buildProfileStats(books, progress, { today }),
     taste: mine ? compareTaste(mine, books) : null,
+    finished: library.flatMap(finishes).length,
+    goal,
   };
 }

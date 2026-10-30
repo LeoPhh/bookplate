@@ -76,7 +76,7 @@ export default async function FriendsPage({ params }: Props) {
               <ul className="friend-list">
                 {friends.map((f) => (
                   <li key={f.id} className="friend">
-                    <Avatar image={f.image} size={44} />
+                    <Avatar image={f.image} label={f.name || f.handle} color={f.color} size={44} />
                     <span className="friend-who">
                       {f.handle ? (
                         <a className="friend-name" href={`/u/${f.handle}`}>

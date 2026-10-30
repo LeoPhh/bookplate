@@ -218,7 +218,7 @@ describe("friends", () => {
       return [open, pal, shy].filter((f) => html.includes(`href="/u/${f.p.handle}"`)).map((f) => f.p.handle);
     };
     const all = [open.p.handle, pal.p.handle, shy.p.handle];
-    // On someone else's profile the tile opens them in a dialog; on your own
+    // On someone else's profile the card opens them in a dialog; on your own
     // it leads to your friends page.
     expect(await (await visitor().fetch(`/u/${ada.p.handle}`)).text()).toMatch(
       new RegExp(`href="/u/${ada.p.handle}/friends" aria-haspopup="dialog"`)
@@ -227,7 +227,7 @@ describe("friends", () => {
     expect(await listed(ada.r)).toEqual(all);
     expect(await listed(visitor())).toEqual(all);
     const counts = await (await visitor().fetch(`/u/${ada.p.handle}`)).text();
-    expect(counts).toMatch(/Friends<\/p><\/div><div class="profile-friends-body"><p class="stat-tile-value">3</);
+    expect(counts).toMatch(/Friends<\/h2><\/div><p class="profile-big profile-friend-count">3</);
 
     // Someone Shy blocked doesn't see Shy in Ada's list, nor Shy them.
     const cal = await withProfile("Cal");
@@ -241,13 +241,13 @@ describe("profile buttons", () => {
     const ada = await withProfile("Ada", { visibility: "public" });
     const ben = await withProfile("Ben");
     const page = async () => (await ben.r.fetch(`/u/${ada.p.handle}`)).text();
-    expect(await page()).toContain("Ask to be friends");
+    expect(await page()).toContain("Add as a friend");
     await ask(ben.r, ada.p.handle);
     expect(await page()).toContain("Request sent");
     await ask(ada.r, ben.p.handle);
     expect(await page()).toContain(`class="badge">Friends<`);
     // Signed out: no buttons.
-    expect(await (await visitor().fetch(`/u/${ada.p.handle}`)).text()).not.toContain("Ask to be friends");
+    expect(await (await visitor().fetch(`/u/${ada.p.handle}`)).text()).not.toContain("Add as a friend");
   });
 });
 

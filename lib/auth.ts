@@ -112,6 +112,9 @@ function createAuth() {
         }
       : undefined,
     session: { expiresIn: SESSION_DAYS * DAY_S, updateAge: DAY_S },
+    // Sessions carry the colour behind the reader's initials; it's only set
+    // through /api/avatar, which checks it.
+    user: { additionalFields: { avatarColor: { type: "number", required: false, input: false } } },
     telemetry: { enabled: false },
     // Better Auth's own warnings and errors, as JSON lines like ours. Only
     // messages and errors: its extra arguments can hold user records.
@@ -241,7 +244,7 @@ function createAuth() {
 // An account's name, as given at sign-up or in Settings: plain text on one
 // line (control characters go, runs of spaces become one), at most
 // NAME_MAX characters. Empty means no name.
-export const NAME_MAX = 60;
+export const NAME_MAX = 25;
 
 function cleanName(raw: unknown): string {
   const name = String(raw ?? "")

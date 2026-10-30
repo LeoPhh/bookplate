@@ -6,6 +6,7 @@ import ProfileActions from "@/components/ProfileActions";
 import ProfileView from "@/components/ProfileView";
 import { getSession } from "@/lib/auth";
 import { config, CONTACT_EMAIL } from "@/lib/config";
+import { todayIso } from "@/lib/progress";
 import { friendsSeenBy, standing } from "@/lib/social/friends";
 import { unreadCount } from "@/lib/social/notifications";
 import { findPerson, loadPersonView } from "@/lib/social/people";
@@ -61,7 +62,7 @@ export default async function PersonPage({ params }: Props) {
   const { person, viewerId } = found;
   const signedIn = viewerId !== null;
   const self = person.audience === "self";
-  const [{ stats, taste }, friends, news] = await Promise.all([
+  const [{ stats, taste, finished, goal }, friends, news] = await Promise.all([
     loadPersonView(person, { viewerId }),
     friendsSeenBy(viewerId, person.userId),
     self ? unreadCount(person.userId) : 0,
@@ -69,22 +70,25 @@ export default async function PersonPage({ params }: Props) {
   const base = `/u/${person.profile.handle}`;
 
   const reportHref =
-    CONTACT_EMAIL && person.audience !== "self"
+    CONTACT_EMAIL && !self
       ? `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Report a profile")}&body=${encodeURIComponent(
           `${config.publicUrl}${base}\n\nWhat's wrong with it:\n`,
         )}`
       : null;
 
   return (
-    <main className="page showcase profile-page">
+    <main className="page profile-page">
       <ProfileView
         person={person}
         stats={stats}
         taste={taste}
+        finished={finished}
+        goal={goal}
+        today={todayIso()}
         friends={{ all: friends, href: `${base}/friends`, news }}
         shareUrl={self ? `${config.publicUrl}${base}` : undefined}
         actions={
-          viewerId && person.audience !== "self" ? (
+          viewerId && !self ? (
             <ProfileActions
               id={person.userId}
               handle={person.profile.handle}
@@ -96,21 +100,27 @@ export default async function PersonPage({ params }: Props) {
       />
 
       {!signedIn && (
-        <section className="showcase-cta">
-          <p className="showcase-cta-title">Keep a library like this one.</p>
-          <p className="showcase-cta-text">
-            Bookplate is a free home for your books, your notes on them and the words you learn along the way.
-          </p>
-          <a className="btn btn--accent showcase-cta-button" href={LANDING_URL}>
-            Try it out
-          </a>
+        <section className="profile-closer">
+          <h2>Made with Bookplate</h2>
+          <p>Your books, your notes and your reading life, all on one shelf.</p>
+          <div className="profile-closer-cta">
+            {config.registration === "open" && (
+              <a className="btn btn--accent" href={`/signup?next=${encodeURIComponent(base)}`}>
+                Create a free account
+              </a>
+            )}
+            <a className="btn" href={LANDING_URL}>
+              Learn more
+            </a>
+          </div>
         </section>
       )}
 
-      <footer className="showcase-footer">
-        <span>Made with Bookplate</span>
-        {reportHref && <a href={reportHref}>Report this profile</a>}
-      </footer>
+      {reportHref && (
+        <footer className="profile-footer">
+          <a href={reportHref}>Report this profile</a>
+        </footer>
+      )}
     </main>
   );
 }

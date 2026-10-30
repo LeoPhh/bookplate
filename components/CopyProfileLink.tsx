@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-// Beside the name on the reader's own profile: copies the page's address, to
-// send to anyone. The icon turns to a tick for a moment once it's copied.
+// On the reader's own profile: copies the page's address, to send to anyone.
+// The icon turns to a tick for a moment once it's copied.
 export default function CopyProfileLink({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -24,10 +24,9 @@ export default function CopyProfileLink({ url }: { url: string }) {
     }
   };
 
-  const label = copied ? "Copied" : "Copy link to your profile";
   return (
     <>
-      <button type="button" className="btn profile-copy" aria-label={label} title={label} onClick={copy}>
+      <button type="button" className="btn btn--accent profile-copy" onClick={copy}>
         <svg viewBox="0 0 32 32" aria-hidden="true">
           {copied ? (
             <path d="M6 17 L13 24 L26 8" />
@@ -38,6 +37,7 @@ export default function CopyProfileLink({ url }: { url: string }) {
             </>
           )}
         </svg>
+        {copied ? "Copied" : "Copy profile link"}
       </button>
       {failed && (
         <p className="settings-note settings-note--error" role="alert">

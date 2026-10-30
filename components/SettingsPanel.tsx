@@ -7,6 +7,7 @@ import Avatar from "./Avatar";
 import SettingsTabs from "./SettingsTabs";
 import { SETTINGS_TABS, type SettingsTab } from "@/lib/settingsTabs";
 import { useFeatures } from "./Features";
+import { PALETTE } from "@/lib/palette";
 import { FEATURES, type FeatureId } from "@/lib/featureList";
 import ImageCropper from "./ImageCropper";
 import BlockedList from "./BlockedList";
@@ -26,6 +27,8 @@ interface ProfileUser {
   name: string;
   email: string;
   image: string | null;
+  username: string | null;
+  color: number; // behind their initials, without a photo
 }
 
 // Tells every useSession() on the page (the avatar in the masthead) to
@@ -34,11 +37,11 @@ function refreshSession() {
   authClient.$store.notify("$sessionSignal");
 }
 
-const NAME_MAX = 60;
+const NAME_MAX = 25;
 
 // The account's name: shown in the account menu and on the reader's profile.
 // New accounts start without one.
-function ProfileName({ initial }: { initial: string }) {
+function ProfileName({ initial, onSaved }: { initial: string; onSaved: (name: string) => void }) {
   const [name, setName] = useState(initial);
   const [draft, setDraft] = useState<string | null>(null); // null = not editing
   const [busy, setBusy] = useState(false);
@@ -54,7 +57,9 @@ function ProfileName({ initial }: { initial: string }) {
       setError(error?.message ?? "Your name could not be saved.");
       return;
     }
-    setName(draft.trim().replace(/\s+/g, " "));
+    const saved = draft.trim().replace(/\s+/g, " ");
+    setName(saved);
+    onSaved(saved);
     setDraft(null);
     refreshSession();
   };
@@ -121,6 +126,8 @@ function ProfileName({ initial }: { initial: string }) {
 function Profile({ user }: { user: ProfileUser }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState(user.image);
+  const [name, setName] = useState(user.name);
+  const [color, setColor] = useState(user.color);
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -168,11 +175,30 @@ function Profile({ user }: { user: ProfileUser }) {
     }
   };
 
+  // Flips at once and saves in the background; a failure flips it back.
+  const chooseColor = async (next: number) => {
+    const before = color;
+    setColor(next);
+    setError(null);
+    try {
+      const res = await fetch("/api/avatar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: next }),
+      });
+      if (!res.ok) throw new Error();
+      refreshSession();
+    } catch {
+      setColor(before);
+      setError("The colour could not be saved.");
+    }
+  };
+
   return (
     <div className="profile">
-      <Avatar image={image} size={112} />
+      <Avatar image={image} label={name || user.username || user.email} color={color} size={112} />
       <div className="profile-body">
-        <ProfileName initial={user.name} />
+        <ProfileName initial={user.name} onSaved={setName} />
         <p className="profile-email">{user.email}</p>
         <div className="settings-row">
           <input
@@ -195,6 +221,16 @@ function Profile({ user }: { user: ProfileUser }) {
             </button>
           )}
         </div>
+        {!image && (
+          <fieldset className="avatar-colors">
+            <legend>Colour behind your initials</legend>
+            {PALETTE.map((p, i) => (
+              <label key={p.name} className="avatar-color" title={p.name} style={{ background: p.bg }}>
+                <input type="radio" name="avatar-color" aria-label={p.name} checked={color === i} onChange={() => chooseColor(i)} />
+              </label>
+            ))}
+          </fieldset>
+        )}
         {error && (
           <p className="settings-note settings-note--error" role="alert">
             {error}

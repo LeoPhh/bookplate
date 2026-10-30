@@ -73,7 +73,7 @@ describe("the Profile tab", () => {
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toMatch(new RegExp(`/u/${profile.handle}$`));
     const own = await page(r, `/u/${profile.handle}`);
-    expect(own.html).toContain(`aria-label="Copy link to your profile"`);
+    expect(own.html).toContain("Copy profile link");
     expect(own.html).toContain("Edit profile");
     expect(own.html).not.toContain("Anyone with the link can see this page");
   });
@@ -203,12 +203,10 @@ describe("what a profile shows", () => {
     expect(pub).toContain("Mostly novels");
     expect(pub).toContain("February Book");
     expect(pub).not.toContain("Current Book");
-    expect(pub).not.toContain("to read next");
 
     const fr = (await page(friend, `/u/${p.handle}`)).html;
     expect(fr).toContain("February Book");
     expect(fr).toContain("Current Book");
-    expect(fr).toContain("1 book to read next");
   });
 
   it("never shows notes, sources, books given up on or the reader's email", async () => {
@@ -231,7 +229,9 @@ describe("what a profile shows", () => {
     const { html } = await page(friend, `/u/${p.handle}`);
     expect(html).not.toContain("Current Book");
     expect(html).not.toContain("Average rating");
-    expect(html).toContain("1 book to read next"); // the to-read shelf is still counted
+    // Without ratings, the covers are what was finished lately.
+    expect(html).toContain("Recently finished");
+    expect(html).not.toContain("Highest rated");
   });
 });
 
@@ -239,6 +239,89 @@ describe("what a profile shows", () => {
 // which are only unique per reader), so a profile's covers have their own
 // addresses that look in the right library.
 const cover = (byte: number) => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(2000).fill(byte)])], { type: "image/jpeg" });
+
+describe("the page's hero", () => {
+  it("shows anyone the name, when they joined and how many books, even with reading private", async () => {
+    const { p } = await ada({ visibility: "private" });
+    const { html } = await page(visitor(), `/u/${p.handle}`);
+    expect(html).toContain("1 book deep.");
+    expect(html).toContain("from the library of");
+    expect(html).toMatch(new RegExp(`>${new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}<`));
+    expect(html).not.toContain("February Book");
+    expect(html).not.toContain("Pages</h2>");
+  });
+
+  it("falls back to the username without a name, and has no count without books", async () => {
+    const r = await socialReader("");
+    const { profile } = await r.get<{ profile: Profile }>("/api/profile");
+    const { html } = await page(r, `/u/${profile.handle}`);
+    expect(html).toContain(`>@${profile.handle}<`);
+    expect(html).not.toContain(" deep.");
+    expect(html).toContain("Your first book");
+  });
+
+  it("invites only signed-out visitors, and offers signed-in ones the friend button", async () => {
+    const { p } = await ada({ visibility: "public" });
+    const out = await page(visitor(), `/u/${p.handle}`);
+    expect(out.html).toContain("Made with Bookplate");
+    expect(out.html).toContain("https://bookplate.eu");
+    expect(out.html).not.toContain("Add as a friend");
+    const inn = await page(await socialReader(), `/u/${p.handle}`);
+    expect(inn.html).not.toContain("Made with Bookplate");
+    expect(inn.html).toContain("Add as a friend");
+  });
+
+  it("shows the same example achievements on every profile", async () => {
+    const { p } = await ada({ visibility: "private" });
+    const { html } = await page(visitor(), `/u/${p.handle}`);
+    for (const text of ["Coming soon", "Century", "Read every day for one month", "Read 50,000 pages"]) expect(html).toContain(text);
+  });
+});
+
+describe("the year's goal", () => {
+  it("is offered to the owner, shown with the reading, and can go again", async () => {
+    const { r, p } = await ada({ visibility: "friends" });
+    const friend = await socialReader();
+    await befriend(r, friend);
+    const path = `/u/${p.handle}`;
+    expect((await page(r, path)).html).toContain("Set a goal");
+    expect((await page(friend, path)).html).not.toContain("Set a goal");
+
+    expect((await r.json("/api/goal", "PUT", { books: 0 })).status).toBe(400);
+    expect((await r.json("/api/goal", "PUT", { books: 501 })).status).toBe(400);
+    expect((await r.json("/api/goal", "PUT", { books: 30 })).status).toBe(200);
+
+    expect((await page(r, path)).html).toContain(`${YEAR} goal`);
+    expect((await page(friend, path)).html).toContain(`${YEAR} goal`);
+    expect((await page(friend, path)).html).toContain("29 to go");
+    expect((await page(friend, path)).html).not.toContain(">Change<");
+    expect((await page(visitor(), path)).html).not.toContain(`${YEAR} goal`);
+
+    const zip = await (await r.fetch("/api/export")).arrayBuffer();
+    expect(zip.byteLength).toBeGreaterThan(0);
+
+    expect((await r.fetch("/api/goal", { method: "DELETE" })).status).toBe(200);
+    expect((await page(friend, path)).html).not.toContain(`${YEAR} goal`);
+  });
+
+  it("isn't there without SOCIAL, or signed out", async () => {
+    expect((await (await reader()).json("/api/goal", "PUT", { books: 3 })).status).toBe(404);
+    expect((await visitor().json("/api/goal", "PUT", { books: 3 })).status).toBe(401);
+  });
+});
+
+describe("the colour behind the initials", () => {
+  it("can be changed, within the palette, and shows on the page", async () => {
+    const r = await socialReader("Ada Lovelace");
+    const { profile } = await r.get<{ profile: Profile }>("/api/profile");
+    expect((await r.json("/api/avatar", "PATCH", { color: 99 })).status).toBe(400);
+    expect((await r.json("/api/avatar", "PATCH", { color: "red" })).status).toBe(400);
+    expect((await r.json("/api/avatar", "PATCH", { color: 5 })).status).toBe(200);
+    const { html } = await page(visitor(), `/u/${profile.handle}`);
+    expect(html).toMatch(/background:#5b6670[^>]*>AL</);
+    expect(await withDb(async (c) => (await c.query('SELECT avatar_color FROM "user" WHERE email = $1', [r.email])).rows[0].avatar_color)).toBe(5);
+  });
+});
 
 describe("profile images", () => {
   it("serves the covers of the books this viewer may see, from the profile's own library", async () => {
@@ -336,7 +419,7 @@ describe("taste", () => {
     }
     html = await view();
     expect(html).toContain("Taste match");
-    expect(html).toMatch(/>\d+%</);
+    expect(html).toMatch(/Taste match: \d+%/);
 
     // Never on your own page, nor for visitors.
     expect(await (await r.fetch(`/u/${p.handle}`)).text()).not.toContain("You’ve both read");

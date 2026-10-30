@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getSession } from "@/lib/auth";
+import { avatarColorIndex } from "@/lib/avatar";
 import { config } from "@/lib/config";
 import { getDb, schema } from "@/lib/db";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -28,7 +29,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <h1 className="masthead-title">Settings</h1>
       </header>
       <SettingsPanel
-        user={{ name: session.user.name, email: session.user.email, image: session.user.image ?? null }}
+        user={{
+          name: session.user.name,
+          email: session.user.email,
+          image: session.user.image ?? null,
+          username: config.social ? ((await ensureProfile(session.user.id)).handle) : null,
+          color: avatarColorIndex(session.user.id, session.user.avatarColor),
+        }}
         email={config.email.enabled ? { from: config.email.from } : null}
         emailSettings={config.emailSettings}
         newsletter={config.newsletter ? Boolean(row?.since) : null}

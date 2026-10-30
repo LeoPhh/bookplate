@@ -6,9 +6,9 @@ import ConfirmDialog from "./ConfirmDialog";
 import RecommendDialog from "./RecommendDialog";
 import Spinner from "./Spinner";
 
-// Under someone else's profile, for a signed-in reader: ask to be friends
-// (or answer their request, or take one back, or unfriend), recommend a
-// friend a book, and block.
+// On someone else's profile, for a signed-in reader: add them as a friend (or
+// answer their request, or take one back, or unfriend), recommend a friend a
+// book, and block.
 
 type Standing = "friends" | "sent" | "received" | "none";
 
@@ -40,16 +40,16 @@ export default function ProfileActions({ id, handle, name, standing }: { id: str
   };
 
   return (
-    <div className="profile-actions">
+    <div className="profile-cta">
       {standing === "none" && (
-        <button type="button" className="btn btn--primary" disabled={busy} onClick={() => act("/api/friends/requests", "POST", { handle })}>
-          {busy ? <><Spinner />Asking…</> : "Ask to be friends"}
+        <button type="button" className="btn btn--accent" disabled={busy} onClick={() => act("/api/friends/requests", "POST", { handle })}>
+          {busy ? <><Spinner />Sending…</> : "Add as a friend"}
         </button>
       )}
       {standing === "received" && (
         <button
           type="button"
-          className="btn btn--primary"
+          className="btn btn--accent"
           disabled={busy}
           onClick={() => act(`/api/friends/requests/${id}`, "POST", { accept: true })}
         >
@@ -75,7 +75,7 @@ export default function ProfileActions({ id, handle, name, standing }: { id: str
           </button>
         </>
       )}
-      <button type="button" className="btn btn--danger" disabled={busy} onClick={() => setConfirm("block")}>
+      <button type="button" className="profile-block" disabled={busy} onClick={() => setConfirm("block")}>
         Block
       </button>
       {error && (
