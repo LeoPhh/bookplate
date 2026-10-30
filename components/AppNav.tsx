@@ -7,11 +7,10 @@ const LINKS = [
   { href: "/", label: "Library" },
   { href: "/vocabulary", label: "Vocabulary" },
   { href: "/statistics", label: "Statistics" },
-  { href: "/showcase", label: "Showcase" },
 ];
 
-// With social features (SOCIAL=true), Profile takes Showcase's place.
-const SOCIAL_LINKS = LINKS.map((l) => (l.href === "/showcase" ? { href: "/profile", label: "Profile" } : l));
+// With social features (SOCIAL=true), Profile follows them.
+const SOCIAL_LINKS = [...LINKS, { href: "/profile", label: "Profile" }];
 
 // The app's sections, in the bar along the top (a tab bar at the bottom of
 // the screen on phones). A book's notes page counts as the library; any

@@ -148,8 +148,8 @@ export const config = {
   // operator. Unset = no newsletter.
   newsletter: process.env.NEWSLETTER === "true",
   // Social features (lib/social/): a profile for every reader, friends and
-  // recommendations, among this server's own accounts. Profile takes the
-  // Showcase tab's place. Unset = none of it, and Showcase as before.
+  // recommendations, among this server's own accounts, with a Profile tab.
+  // Unset = none of it.
   social: process.env.SOCIAL === "true",
   // Shows the Email section in Settings → Security (whether email is set up,
   // and a button to send a test email). It's for whoever runs the server, so

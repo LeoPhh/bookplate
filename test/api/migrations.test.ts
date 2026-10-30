@@ -154,3 +154,59 @@ describe("one showcase per reader (0010)", () => {
     }
   });
 });
+
+// Upgrading a database where readers named their showcases.
+describe("forgetting showcase names (0014)", () => {
+  const UP = `bookplate_showcase_names_${process.pid}`;
+  afterAll(() => dropDatabase(UP));
+
+  it("blanks the names and keeps the links", async () => {
+    const { Client } = await import("pg");
+    const c = new Client({ connectionString: await createDatabase(UP) });
+    await c.connect();
+    const run = async (file: string) => {
+      const text = readFileSync(path.join(__dirname, "../../drizzle", `${file}.sql`), "utf8");
+      for (const statement of text.split("--> statement-breakpoint")) await c.query(statement);
+    };
+    try {
+      const tags = (journal.entries as { tag: string }[]).map((e) => e.tag);
+      for (const tag of tags.slice(0, tags.indexOf("0014_forget_showcase_names"))) await run(tag);
+      await c.query(`INSERT INTO "user" (id, name, email) VALUES ('a', 'A', 'a@example.com')`);
+      await c.query(`INSERT INTO showcase (id, user_id, year, name) VALUES ('link', 'a', 2025, 'A pen name')`);
+      await run("0014_forget_showcase_names");
+      expect((await c.query(`SELECT id, name FROM showcase`)).rows).toEqual([{ id: "link", name: null }]);
+    } finally {
+      await c.end();
+    }
+  });
+});
+
+// Upgrading a database where readers imported before imports were noted.
+describe("noting who has imported (0015)", () => {
+  const UP = `bookplate_first_import_${process.pid}`;
+  afterAll(() => dropDatabase(UP));
+
+  it("fills in readers whose Goodreads or StoryGraph books show it", async () => {
+    const { Client } = await import("pg");
+    const c = new Client({ connectionString: await createDatabase(UP) });
+    await c.connect();
+    const run = async (file: string) => {
+      const text = readFileSync(path.join(__dirname, "../../drizzle", `${file}.sql`), "utf8");
+      for (const statement of text.split("--> statement-breakpoint")) await c.query(statement);
+    };
+    try {
+      const tags = (journal.entries as { tag: string }[]).map((e) => e.tag);
+      for (const tag of tags.slice(0, tags.indexOf("0015_first_import"))) await run(tag);
+      await c.query(`INSERT INTO "user" (id, name, email) VALUES
+        ('gr', 'G', 'g@example.com'), ('sg', 'S', 's@example.com'), ('none', 'N', 'n@example.com')`);
+      await c.query(`INSERT INTO book (user_id, id, title, author, status, added_at) VALUES
+        ('gr', 'gr-123', 'T', 'A', 'read', '2026-01-01'), ('sg', 'sg-abc', 'T', 'A', 'read', '2026-01-01'),
+        ('none', 'e1b2c3d4', 'T', 'A', 'read', '2026-01-01')`);
+      await run("0015_first_import");
+      const { rows } = await c.query(`SELECT id FROM "user" WHERE first_import_at IS NOT NULL ORDER BY id`);
+      expect(rows).toEqual([{ id: "gr" }, { id: "sg" }]);
+    } finally {
+      await c.end();
+    }
+  });
+});

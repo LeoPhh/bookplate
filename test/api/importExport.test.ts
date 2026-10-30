@@ -1,7 +1,8 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { describe, expect, it } from "vitest";
-import { book, jpeg, reader } from "./client";
+import { book, jpeg, reader, type Reader } from "./client";
+import { socialReader, withDb } from "./socialHelpers";
 import type { Book } from "@/lib/types";
 
 const fixture = (name: string) =>
@@ -90,5 +91,27 @@ describe("Goodreads and StoryGraph import", () => {
     const res = await r.upload("/api/import/csv", { file: new Blob(["a,b\n1,2\n"], { type: "text/csv" }), mode: "preview" });
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toMatch(/Goodreads or StoryGraph/);
+  });
+});
+
+describe("noting who has imported", () => {
+  const imported = (r: Reader) =>
+    withDb(async (c) => (await c.query('SELECT first_import_at FROM "user" WHERE email = $1', [r.email])).rows[0].first_import_at !== null);
+
+  it("happens on a CSV import, not its preview, and on a Bookplate export", async () => {
+    const csv = await socialReader();
+    const send = (mode: string) => csv.upload("/api/import/csv", { file: fixture("goodreads_library_export.csv"), mode });
+    expect(await imported(csv)).toBe(false);
+    await send("preview");
+    expect(await imported(csv)).toBe(false);
+    await send("apply");
+    expect(await imported(csv)).toBe(true);
+
+    const zip = await (await csv.fetch("/api/export")).blob();
+    const other = await socialReader();
+    expect((await other.upload("/api/import", { file: new Blob(["hello"]) })).status).toBe(400);
+    expect(await imported(other)).toBe(false);
+    expect((await other.upload("/api/import", { file: zip })).status).toBe(200);
+    expect(await imported(other)).toBe(true);
   });
 });

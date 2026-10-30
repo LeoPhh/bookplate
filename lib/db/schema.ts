@@ -17,6 +17,11 @@ export const user = pgTable("user", {
   // When the account last signed in or used Bookplate, to the day (see
   // markSeen in lib/auth.ts) — for finding long-unused accounts.
   lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+  // When the reader first imported a library or CSV; null = never, as far as
+  // anyone can tell. Accounts from before this was kept hold the time of the
+  // migration that filled it in, and only if their Goodreads or StoryGraph
+  // books still show it (0015). For the operator's usage counts.
+  firstImportAt: timestamp("first_import_at"),
   // Info boxes the reader chose not to see again (ids from lib/hints.ts).
   dismissedHints: text("dismissed_hints").array().notNull().default(sql`'{}'::text[]`),
   // Optional features the reader has switched on (ids from lib/features.ts).
@@ -160,10 +165,10 @@ export const vocabEntry = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.id] })]
 );
 
-// A public page of one year's reading (lib/showcase.ts), at /s/<id>. One per
-// reader. It holds only the reader's choices; the books are read live each
-// time it's opened. The id is the whole address, so it's long and random, and
-// never logged.
+// Showcases, public pages of one year's reading at /s/<id>, were replaced by
+// profiles. The rows remain only so old links can lead to the reader's profile
+// (lib/showcase.ts); nothing adds to them. The id is the whole address, so it's
+// long and random, and never logged.
 export const showcase = pgTable(
   "showcase",
   {
@@ -172,7 +177,7 @@ export const showcase = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     year: integer("year").notNull(),
-    name: text("name"), // shown on the page; null = no name
+    name: text("name"), // no longer used: blanked by migration 0014
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

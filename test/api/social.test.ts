@@ -5,8 +5,7 @@ import { describe, expect, inject, it } from "vitest";
 import { book, reader, Visitor, type Reader } from "./client";
 import { makeProfile, socialReader, uniqueHandle, userId, visitor, withDb, type Profile } from "./socialHelpers";
 
-// Social features (lib/social/, SOCIAL=true): profiles at /u/<handle>, in
-// Showcase's place. These run against the social test server, except where
+// Social features (lib/social/, SOCIAL=true): profiles at /u/<handle>. These run against the social test server, except where
 // they check that a server without SOCIAL has none of it.
 
 const YEAR = new Date().getFullYear();
@@ -41,7 +40,7 @@ const page = async (v: Visitor, path: string) => {
 };
 
 describe("without SOCIAL", () => {
-  it("has none of it: no profiles, no Profile tab, Showcase as before", async () => {
+  it("has none of it: no profiles, no Profile tab, and showcases are gone too", async () => {
     const r = await reader(); // the plain server
     expect((await r.fetch("/api/profile")).status).toBe(404);
     expect((await r.json("/api/profile", "PATCH", { handle: "someone" })).status).toBe(404);
@@ -49,21 +48,22 @@ describe("without SOCIAL", () => {
     expect((await r.fetch("/u/someone")).status).toBe(404);
     expect((await new Visitor().fetch("/u/someone")).status).toBe(404);
     const html = await (await r.fetch("/settings")).text();
-    expect(html).toContain('href="/showcase"');
+    expect(html).not.toContain('href="/showcase"');
+    expect((await r.fetch("/showcase")).status).toBe(404);
+    expect((await r.json("/api/showcases", "POST", { year: YEAR })).status).toBe(404);
+    expect((await new Visitor().fetch("/s/AAAAAAAAAAAAAAAA")).status).toBe(404);
     expect(html).not.toContain('href="/profile"');
     expect(html).not.toContain("Profile page");
   });
 });
 
 describe("the Profile tab", () => {
-  it("takes Showcase's place", async () => {
+  it("is there, and Showcase isn't", async () => {
     const r = await socialReader();
     const html = await (await r.fetch("/settings")).text();
     expect(html).toContain('href="/profile"');
     expect(html).not.toContain('href="/showcase"');
-    const showcase = await r.fetch("/showcase");
-    expect(showcase.status).toBe(307);
-    expect(showcase.headers.get("location")).toMatch(/\/profile$/);
+    expect((await r.fetch("/showcase")).status).toBe(404);
   });
 
   it("leads straight to the reader's own profile", async () => {
@@ -73,7 +73,7 @@ describe("the Profile tab", () => {
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toMatch(new RegExp(`/u/${profile.handle}$`));
     const own = await page(r, `/u/${profile.handle}`);
-    expect(own.html).toContain("Share");
+    expect(own.html).toContain(`aria-label="Copy link to your profile"`);
     expect(own.html).toContain("Edit profile");
     expect(own.html).not.toContain("Anyone with the link can see this page");
   });
@@ -288,16 +288,19 @@ describe("profile images", () => {
   });
 });
 
-describe("showcase links", () => {
-  it("lead to the reader's profile once its reading is public", async () => {
+describe("old showcase links", () => {
+  it("lead to the reader's profile only while their reading is public", async () => {
     const { r, p } = await ada({ visibility: "friends" });
-    const res = await r.json("/api/showcases", "POST", { year: YEAR, name: "Ada" });
-    const { showcase } = (await res.json()) as { showcase: { id: string } };
-    expect((await visitor().fetch(`/s/${showcase.id}`)).status).toBe(200); // not public yet: the showcase as it was
+    const id = "AbCdEfGhIjKlMnOp";
+    const owner = await userId(r);
+    await withDb((c) => c.query("INSERT INTO showcase (id, user_id, year, name) VALUES ($1, $2, $3, 'A pen name')", [id, owner, YEAR]));
+    expect((await visitor().fetch(`/s/${id}`)).status).toBe(404);
     await makeProfile(r, { visibility: "public" });
-    const moved = await visitor().fetch(`/s/${showcase.id}`);
+    const moved = await visitor().fetch(`/s/${id}`);
     expect(moved.status).toBe(307);
     expect(moved.headers.get("location")).toMatch(new RegExp(`/u/${p.handle}$`));
+    expect((await visitor().fetch("/s/NobodyHasThisOne")).status).toBe(404);
+    await withDb((c) => c.query("DELETE FROM showcase WHERE id = $1", [id]));
   });
 });
 

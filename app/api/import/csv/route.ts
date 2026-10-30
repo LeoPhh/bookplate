@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { applyCsvImport, CsvImportError, previewCsvImport } from "@/lib/csvImport";
+import { markImported } from "@/lib/library";
 import { checkNewBooks, overLimit, tooLarge } from "@/lib/limits";
 import { log } from "@/lib/log";
 
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     if (over) return overLimit(over);
     if (mode === "preview") return Response.json({ summary });
     const result = await applyCsvImport(auth.userId, text);
+    await markImported(auth.userId);
     void log.info("import.csv", {
       user: auth.userId,
       source: summary.source,

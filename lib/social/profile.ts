@@ -179,8 +179,3 @@ export async function saveProfile(userId: string, changes: Partial<Profile>): Pr
     throw e;
   }
 }
-
-export async function countProfiles(): Promise<number> {
-  const [row] = await getDb().select({ n: sql<number>`count(*)` }).from(profile);
-  return Number(row.n);
-}

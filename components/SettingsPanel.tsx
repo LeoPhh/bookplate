@@ -36,7 +36,7 @@ function refreshSession() {
 
 const NAME_MAX = 60;
 
-// The account's name: shown in the account menu and offered for a showcase.
+// The account's name: shown in the account menu and on the reader's profile.
 // New accounts start without one.
 function ProfileName({ initial }: { initial: string }) {
   const [name, setName] = useState(initial);
@@ -205,10 +205,9 @@ function Profile({ user }: { user: ProfileUser }) {
         <ImageCropper
           imageSrc={rawImage}
           aspect={1}
-          round
           maxWidth={256}
           title="Crop your photo"
-          hint="Drag to position the photo and zoom to fit; the circle is what shows."
+          hint="Drag to position the photo and zoom to fit; the square is what shows."
           confirmLabel="Use this photo"
           onConfirm={upload}
           onCancel={() => setRawImage(null)}

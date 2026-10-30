@@ -8,9 +8,8 @@ interface Props {
   imageSrc: string;
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
-  // Defaults crop a book cover; the profile photo passes a round 1:1 crop.
+  // Defaults crop a book cover; the profile photo passes a 1:1 crop.
   aspect?: number;
-  round?: boolean;
   maxWidth?: number;
   title?: string;
   hint?: string;
@@ -22,7 +21,6 @@ export default function ImageCropper({
   onConfirm,
   onCancel,
   aspect = 2 / 3,
-  round = false,
   maxWidth = 600,
   title = "Crop the cover",
   hint = "Drag to position the image; the frame keeps the 2 : 3 cover proportions.",
@@ -73,7 +71,6 @@ export default function ImageCropper({
             crop={crop}
             zoom={zoom}
             aspect={aspect}
-            cropShape={round ? "round" : "rect"}
             showGrid={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}

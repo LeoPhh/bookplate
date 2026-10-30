@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { getStorage, keys } from "./storage";
 import { Book, BookStatus, ProgressEntry, VocabEntry } from "./types";
@@ -8,6 +8,14 @@ import { tidyReads } from "./reads";
 // user's rows and files.
 
 const { book, note, vocabEntry, readingProgress } = schema;
+
+// Notes that the reader has used an import, the first time they do.
+export async function markImported(userId: string): Promise<void> {
+  await getDb()
+    .update(schema.user)
+    .set({ firstImportAt: sql`now()` })
+    .where(and(eq(schema.user.id, userId), isNull(schema.user.firstImportAt)));
+}
 
 // ── Books ──────────────────────────────────────────────────────────────────
 

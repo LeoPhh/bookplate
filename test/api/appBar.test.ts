@@ -8,7 +8,7 @@ describe("the app bar", () => {
     const r = await reader();
     const html = await (await r.fetch("/settings")).text();
     expect(html).toContain('class="appbar"');
-    for (const href of ['href="/"', 'href="/vocabulary"', 'href="/statistics"', 'href="/showcase"']) expect(html).toContain(href);
+    for (const href of ['href="/"', 'href="/vocabulary"', 'href="/statistics"']) expect(html).toContain(href);
     expect(html).toContain('aria-label="Account menu"');
 
     const out = await (await new Visitor().fetch("/login")).text();

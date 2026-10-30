@@ -30,9 +30,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
   (`PRIVACY_URL`, `TERMS_URL`): links and `/privacy`, `/terms` then lead there.
 - Every page has the app bar (`components/AppBar.tsx`, from `app/layout.tsx`):
   the mark (a link to the Library), and when signed in the sections
-  (Library, Vocabulary, Statistics, Showcase; with `SOCIAL=true`, Profile in
-  Showcase's place, with friends under each profile at `/u/<handle>/friends`)
-  and the account menu. On phones the sections become
+  (Library, Vocabulary, Statistics; with `SOCIAL=true`, then Profile, with
+  friends under each profile at `/u/<handle>/friends`) and the account menu. On phones the sections become
   the bottom tab bar. It never links out of the app.
 - Social features (`SOCIAL=true`, `lib/social/`) read across readers. A
   profile (name, photo, username, bio, friends) is open to anyone not blocked

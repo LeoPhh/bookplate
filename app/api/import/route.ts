@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { importArchive, ImportError } from "@/lib/archive";
 import { config } from "@/lib/config";
+import { markImported } from "@/lib/library";
 import { tooLarge } from "@/lib/limits";
 import { log } from "@/lib/log";
 
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   const started = Date.now();
   try {
     const summary = await importArchive(auth.userId, new Uint8Array(await file.arrayBuffer()));
+    await markImported(auth.userId);
     void log.info("import.archive", { user: auth.userId, bytes: file.size, ms: Date.now() - started, ...summary });
     return Response.json({ ok: true, summary });
   } catch (e) {

@@ -18,7 +18,7 @@ const PUBLIC = [
   "/api/client-errors",
   "/api/contact",
   "/api/metrics", // checks its own token
-  "/s", // showcases: public pages, by their unguessable address
+  "/s", // old showcase links: they lead to a profile
   "/u", // profiles (SOCIAL=true): the page decides who may see each one
   "/privacy",
   "/terms",

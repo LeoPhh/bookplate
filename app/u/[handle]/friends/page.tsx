@@ -3,17 +3,18 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import Avatar from "@/components/Avatar";
 import FriendsPanel from "@/components/FriendsPanel";
-import { plural } from "@/components/ShowcaseView";
 import { getSession } from "@/lib/auth";
 import { config } from "@/lib/config";
+import { plural } from "@/lib/progress";
 import { friendsSeenBy, listFriends, listRequests } from "@/lib/social/friends";
 import { listNotifications, markAllRead } from "@/lib/social/notifications";
 import { findPerson } from "@/lib/social/people";
 import { listInbox, listSent, markRecsSeen } from "@/lib/social/recs";
 
-// A reader's friends, from the Friends tile on their profile, for whoever may
-// see the profile. Others see only the friends whose own profile they may see
-// (lib/social/friends.ts friendsSeenBy). The reader's own page is where they
+// A reader's friends, for whoever may see the profile: all of them, less anyone
+// blocked with the viewer (lib/social/friends.ts friendsSeenBy). The Friends
+// tile on someone else's profile shows the same list in a dialog; this page is
+// for opening it in its own tab. The reader's own page is where they
 // manage it all (components/FriendsPanel.tsx); opening it counts as having
 // seen the news, which clears the badge on Profile.
 

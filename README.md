@@ -102,36 +102,19 @@ Free-text search across titles, authors, genres, and notes; status filter
 chips; a **Show notes** toggle marking every book with notes; sorting by
 title, author, rating, date finished, or recently added.
 
-### Showcase your year
-
-The **Showcase** tab makes a public page of one year's reading, for anyone
-you send the link to: a bookplate with your name, the year's numbers, every
-book you finished that year, then your highest-rated reads and your longest
-read, plus a picture for link previews. It shows the covers, titles,
-authors, ratings and page counts of the books you finished, never what
-you're reading now, notes or vocabulary, and it keeps up as you read. Until you have one, the tab shows
-what yours would look like; at its foot you pick this year or any earlier
-year you finished books in, and the name on it. You have one showcase at a
-time: switching it to another year keeps the same link, and turning it off
-stops the link working at once.
-Showcases live at `/s/<random id>` and ask search engines not to list them.
-Signed-out visitors are invited to try Bookplate, with a link to
-[bookplate.eu](https://bookplate.eu).
-
 Finished dates can't be set in the future.
 
 ### Profiles and friends (optional)
 
 With `SOCIAL=true`, readers on your server can find each other. Every reader
 has a profile, made with their account under a username taken from their name
-(changeable in Settings), and a **Profile** tab takes Showcase's place: a page
+(changeable in Settings), and a **Profile** tab leads to it: a page
 at `/u/<username>` with your reading in numbers, your friends, what you're
-reading now, what you finished lately and a year in books, and a Share button
-for its link. Anyone can open a profile and see the reader's name, photo,
-username, bio and friends; the reader chooses who sees their reading — the
-books, numbers and year in books: only them, their friends (the default) or
-everyone, signed in or not — and whether it shows what they're reading now and
-their ratings. Notes, sources, copies, books you gave up on, vocabulary and
+reading now and what you finished lately, and a button to copy its link.
+Anyone can open a profile and see the reader's name, photo, username, bio and
+friends; the reader chooses who sees their reading — the books and numbers:
+only them, their friends (the default) or everyone, signed in or not — and
+whether it shows what they're reading now and their ratings. Notes, sources, copies, books you gave up on, vocabulary and
 email are never shown.
 
 The Friends tile on a profile leads to all its friends; on your own, that page
@@ -140,7 +123,8 @@ shelf with one click, and see roughly how their tastes match. Blocking someone
 hides each of you from the other. It all stays on your server: there's no
 connection to other Bookplate servers.
 
-Existing showcase links lead to their reader's profile once it's public.
+Old showcase links (`/s/…`, a feature profiles replaced) lead to their reader's
+profile if they show their reading to everyone, and are "not found" otherwise.
 Export (Settings → Import & export) adds a `social.json` with the profile,
 friends and recommendations. Mention all this in your privacy policy: other
 readers on your server become people who can see a reader's data.
@@ -252,12 +236,12 @@ and vocabulary all come across.
 | `METRICS_TOKEN` | — | switches on `/api/metrics`, read with this token (see below) |
 | `METRICS_REFRESH_MINUTES` | `480` | how often those totals are recounted from the database |
 | `CONTACT_FORM_TO` | — | switches on a contact form's back end at `/api/contact` (see below); messages are emailed here, with the sender as Reply-To. Needs `SMTP_HOST` |
-| `SOCIAL` | `false` | `true` switches on profiles, friends and recommendations among your server's readers, with Profile in Showcase's place (see "Profiles and friends"). Mention it in your privacy policy |
+| `SOCIAL` | `false` | `true` switches on profiles, friends and recommendations among your server's readers, with a Profile tab (see "Profiles and friends"). Mention it in your privacy policy |
 | `NEWSLETTER` | `false` | `true` offers a newsletter: an unticked box at sign-up and a setting in Settings. Bookplate records who agreed and when (`newsletter_consent_at` on the `user` table) and counts them in `/api/metrics`; sending it is up to you. Mention it in your privacy policy |
 | `EMAIL_SETTINGS` | `true` | `false` hides the Email section of Settings → Security (email status and **Send a test email**) and turns off `/api/email/test`, for a server whose readers don't run it |
 | `LEGAL_DIR` | — | a folder holding your `privacy.md` and/or `terms.md` (Markdown); each one becomes a page (`/privacy`, `/terms`) that anyone can read, linked from sign-in and sign-up. With Docker, mount the folder too (see `docker-compose.yml`) |
 | `PRIVACY_URL`, `TERMS_URL` | — | where your privacy policy / terms are published, if on another site instead of `LEGAL_DIR`: sign-in and sign-up link there, and `/privacy` and `/terms` send visitors there |
-| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches (they allow busier servers more requests with one), and where showcases' **Report this page** and profiles' **Report this profile** links write to |
+| `CONTACT_EMAIL` | — | your address, sent to Open Library with searches (they allow busier servers more requests with one), and where profiles' **Report this profile** links write to |
 
 ### Open registration
 
@@ -352,21 +336,10 @@ docker compose exec bookplate reset-password you@example.com
 It asks for the new password twice and signs out every device. Settings →
 Security → **Send a test email** checks that your email settings work.
 
-### Reported showcases
-
-Each showcase has a **Report this page** link, emailed to `CONTACT_EMAIL` (it's
-hidden without one). To take a showcase down, give its link to:
-
-```bash
-docker compose exec bookplate remove-showcase https://books.example.com/s/AbCdEfGhIjKlMnOp
-```
-
-The reader's library isn't touched.
-
 ### Reported profiles
 
-With `SOCIAL=true`, profiles have a **Report this profile** link too. To take
-one down, give its link (or the username) to:
+With `SOCIAL=true`, profiles have a **Report this profile** link, emailed to
+`CONTACT_EMAIL` (it's hidden without one). To take one down, give its link (or the username) to:
 
 ```bash
 docker compose exec bookplate remove-profile https://books.example.com/u/somehandle

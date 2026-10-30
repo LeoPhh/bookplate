@@ -1,10 +1,10 @@
 import Avatar from "@/components/Avatar";
 import BookCover from "@/components/BookCover";
+import CopyProfileLink from "@/components/CopyProfileLink";
 import FriendsTile from "@/components/FriendsTile";
 import ProgressBar from "@/components/ProgressBar";
-import ShareProfile from "@/components/ShareProfile";
-import { plural } from "@/components/ShowcaseView";
 import StarRating from "@/components/StarRating";
+import { plural } from "@/lib/progress";
 import type { Someone } from "@/lib/social/friends";
 import type { Person } from "@/lib/social/people";
 import type { ProfileStats } from "@/lib/social/profileStats";
@@ -111,7 +111,7 @@ export default function ProfileView({
   // full list is; `news` is
   // how much is waiting there for the owner (requests, recommendations).
   friends: { all: Someone[]; href: string; news?: number };
-  shareUrl?: string; // the owner's own page: the Share button's link
+  shareUrl?: string; // the owner's own page: the address the copy button copies
 }) {
   const { profile, name } = person;
   const { totals } = stats;
@@ -138,7 +138,7 @@ export default function ProfileView({
             <h1 className="profile-head-name">{name || `@${profile.handle}`}</h1>
             {shareUrl && (
               <div className="profile-head-tools">
-                <ShareProfile url={shareUrl} name={name} visibility={profile.visibility} />
+                <CopyProfileLink url={shareUrl} />
                 <a className="btn" href="/settings">
                   Edit profile
                 </a>

@@ -22,10 +22,11 @@ export interface Totals {
   notes: number;
   words: number;
   progressEntries: number;
-  showcases: number; // public year pages that are on
+  accountsWithPhoto: number; // readers who uploaded a profile photo
+  accountsImported: number; // readers who've used an import (see user.firstImportAt)
   // Social features (SOCIAL=true). Counted everywhere (the tables are
   // empty without them) but only reported where they're on.
-  social: { profiles: number; friendships: number; recommendations: number };
+  social: { friendships: number; recommendations: number };
   collectedAt: number; // ms since epoch
 }
 
@@ -67,8 +68,8 @@ export async function collectTotals(): Promise<Totals> {
     SELECT (SELECT count(*) FROM note) AS notes,
            (SELECT count(*) FROM vocab_entry) AS words,
            (SELECT count(*) FROM reading_progress) AS progress,
-           (SELECT count(*) FROM showcase) AS showcases,
-           (SELECT count(*) FROM profile) AS profiles,
+           (SELECT count(*) FROM "user" WHERE image IS NOT NULL) AS with_photo,
+           (SELECT count(*) FROM "user" WHERE first_import_at IS NOT NULL) AS imported,
            (SELECT count(*) FROM friendship) AS friendships,
            (SELECT count(*) FROM recommendation) AS recommendations`);
 
@@ -82,8 +83,9 @@ export async function collectTotals(): Promise<Totals> {
     notes: num(rest.notes),
     words: num(rest.words),
     progressEntries: num(rest.progress),
-    showcases: num(rest.showcases),
-    social: { profiles: num(rest.profiles), friendships: num(rest.friendships), recommendations: num(rest.recommendations) },
+    accountsWithPhoto: num(rest.with_photo),
+    accountsImported: num(rest.imported),
+    social: { friendships: num(rest.friendships), recommendations: num(rest.recommendations) },
     collectedAt: Date.now(),
   };
 }
@@ -151,11 +153,11 @@ export function renderMetrics(totals: Totals | null, version = config.version, s
       metric("bookplate_notes", "Books with notes", [[{}, totals.notes]]),
       metric("bookplate_words", "Vocabulary words saved", [[{}, totals.words]]),
       metric("bookplate_progress_entries", "Reading-progress updates logged", [[{}, totals.progressEntries]]),
-      metric("bookplate_showcases", "Showcases (public year pages) that are on", [[{}, totals.showcases]])
+      metric("bookplate_accounts_with_photo", "Accounts with an uploaded profile photo", [[{}, totals.accountsWithPhoto]]),
+      metric("bookplate_accounts_imported", "Accounts that have used an import", [[{}, totals.accountsImported]])
     );
     if (social) {
       parts.push(
-        metric("bookplate_profiles", "Readers with a profile", [[{}, totals.social.profiles]]),
         metric("bookplate_friendships", "Pairs of friends", [[{}, totals.social.friendships]]),
         metric("bookplate_recommendations", "Recommendations between friends", [[{}, totals.social.recommendations]])
       );

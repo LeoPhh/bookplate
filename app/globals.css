@@ -233,14 +233,7 @@ button {
 .legal-body th,
 .fmt-btn,
 .notes-prose .callout::before,
-.showcase-plate-eyebrow,
-.promo-eyebrow,
-.promo-plate-eyebrow,
-.promo-name-label,
-.promo-stat-label,
 .profile-friends-news,
-.promo-stars-label,
-.live-badge,
 .reread-tag,
 .profile-visibility legend {
   text-transform: uppercase;
@@ -299,7 +292,6 @@ button {
 .auth-legal,
 .legal-back,
 .appbar-nav,
-.promo-link-btn,
 .profile-name-edit,
 .reads-add,
 .profile-head-handle,
@@ -3247,10 +3239,6 @@ input.square-radio:focus-visible {
   }
 }
 
-@media (max-width: 720px) {
-
-}
-
 .search::placeholder {
   color: #9a968e;
 }
@@ -3309,7 +3297,7 @@ select,
   display: inline-block;
   flex: none;
   border: 2px solid var(--ink);
-  border-radius: 50%;
+  border-radius: 0;
   overflow: hidden;
   background: var(--paper);
 }
@@ -3334,7 +3322,7 @@ select,
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 50%;
+  border-radius: 0;
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -4128,58 +4116,15 @@ select,
   text-underline-offset: 3px;
 }
 
-/* ---------- Showcase ----------
-   The public page of a year's reading (app/s/[id]): a bookplate with the
-   reader's name, the year's numbers, every book finished that year, then the
-   best rated and the longest again, larger. Most
-   visitors open it on a phone, so below 700px everything gets smaller. */
+/* ---------- Profile page: its sections and shelves ----------
+   Most visitors open a shared profile on a phone, so below 700px everything
+   gets smaller. (Named after showcases, which profiles replaced.) */
 
 .showcase {
   max-width: 1120px;
   display: flex;
   flex-direction: column;
   gap: 56px;
-}
-
-.showcase-note,
-.showcase-plate {
-  align-self: center;
-  width: 100%;
-  max-width: 640px;
-  padding: 40px 48px;
-  text-align: center;
-  background: #fff;
-  border: 3px solid var(--ink);
-  outline: 2px solid var(--ink);
-  outline-offset: -14px;
-  box-shadow: 10px 10px 0 var(--ink);
-}
-
-.showcase-plate-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.3em;
-  color: var(--accent);
-}
-
-.showcase-plate-name {
-  margin: 14px 0 6px;
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 400;
-  font-size: clamp(44px, 7vw, 64px);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  overflow-wrap: anywhere;
-}
-
-.showcase-plate-edition {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-
-/* The Statistics tab's tiles (.stat-tile), with a line under each number. */
-.showcase-stats .stat-tile {
-  min-width: 0;
 }
 
 .showcase-stat-note {
@@ -4279,13 +4224,6 @@ select,
   z-index: 2;
 }
 
-/* The best rated and the longest, side by side under the shelf. */
-.showcase-highlights {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 40px;
-}
-
 /* Picked-out books, larger, with their titles. */
 .showcase-best {
   list-style: none;
@@ -4305,12 +4243,6 @@ select,
 .showcase-best-author {
   margin-top: 2px;
   font-size: 13px;
-  color: var(--ink-soft);
-}
-
-.showcase-empty {
-  text-align: center;
-  font-size: 17px;
   color: var(--ink-soft);
 }
 
@@ -4364,12 +4296,6 @@ select,
     padding: 24px 16px 64px;
   }
 
-  .showcase-plate {
-    padding: 26px 20px;
-    outline-offset: -10px;
-    box-shadow: 6px 6px 0 var(--ink);
-  }
-
   .showcase-heading {
     font-size: 28px;
   }
@@ -4377,11 +4303,6 @@ select,
   .showcase-shelf {
     --book: 58px;
     gap: 16px 12px;
-  }
-
-  .showcase-highlights {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
   }
 
   .showcase-best {
@@ -4402,807 +4323,9 @@ select,
   }
 }
 
-/* ---------- The Showcase tab (app/showcase) ----------
-   Without a showcase: the pitch (components/ShowcasePromo.tsx), a demo of the
-   reader's year as a showcase that builds itself in a browser window, three
-   steps, and the way in. With one: its link and what visitors see. Motion
-   only plays for readers who haven't asked for less; they get the finished
-   picture. */
-
-.promo {
-  display: flex;
-  flex-direction: column;
-  gap: 88px;
-  margin-top: 16px;
-}
-
-.promo-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  align-items: center;
-  gap: 56px;
-}
-
-.promo-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.3em;
-  color: var(--accent);
-}
-
-.promo-title {
-  margin: 14px 0 20px;
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 400;
-  font-size: clamp(46px, 6.4vw, 84px);
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-}
-
-.promo-title em {
-  display: inline-block;
-  font-style: italic;
-  font-weight: 400;
-  color: var(--accent);
-}
-
-.promo-lede {
-  max-width: 44ch;
-  font-size: 17px;
-  line-height: 1.55;
-}
-
-.promo-figure {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
-
-.promo-caption {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  text-align: right;
-}
-
-/* The demo window */
-
-.promo-window {
-  background: #fff;
-  border: 3px solid var(--ink);
-  box-shadow: 12px 12px 0 var(--ink);
-}
-
-.promo-window-bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 9px 12px;
-  border-bottom: 3px solid var(--ink);
-  background: var(--paper-deep);
-}
-
-.promo-window-dots {
-  display: flex;
-  gap: 5px;
-  flex: none;
-}
-
-.promo-window-dots i {
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--ink);
-  background: #fff;
-}
-
-.promo-window-dots i:first-child {
-  background: var(--accent);
-}
-
-.promo-address {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  padding: 3px 10px;
-  overflow: hidden;
-  white-space: nowrap;
-  background: #fff;
-  border: 2px solid var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-}
-
-.promo-address-host {
-  color: var(--ink-soft);
-}
-
-.promo-address-path {
-  display: inline-block;
-  overflow: hidden;
-  width: 19ch;
-}
-
-.promo-window-body {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  padding: 26px 24px 24px;
-}
-
-.promo-plate {
-  align-self: center;
-  padding: 18px 30px;
-  text-align: center;
-  background: #fff;
-  border: 3px solid var(--ink);
-  outline: 2px solid var(--ink);
-  outline-offset: -9px;
-  box-shadow: 6px 6px 0 var(--ink);
-}
-
-.promo-plate-eyebrow {
-  font-size: 9px;
-  letter-spacing: 0.3em;
-  color: var(--accent);
-}
-
-.promo-plate-name {
-  margin: 6px 0 2px;
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 400;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1;
-  letter-spacing: -0.025em;
-  overflow-wrap: anywhere;
-}
-
-.promo-plate-edition {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 14px;
-}
-
-/* The showcase's stat tiles (.stat-tile), in miniature. */
-.promo-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.promo-stat {
-  min-width: 0;
-  padding: 8px 10px 7px;
-  background: #fff;
-  border: 2px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
-}
-
-.promo-stat-label {
-  font-size: 9px;
-  color: var(--accent);
-}
-
-.promo-stat-value {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* The showcase's books (.showcase-shelf), in miniature. */
-.promo-shelf {
-  --book: 34px;
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, var(--book));
-  align-content: start;
-  gap: 10px 8px;
-  min-height: calc(var(--book) * 3 + 10px);
-}
-
-.promo-shelf .promo-cover {
-  position: relative;
-}
-
-
-/* Covers this small keep their colour and lose most of their lettering. */
-.promo-cover .cover {
-  container-type: inline-size;
-  padding: 10% 6%;
-  box-shadow: 2px 2px 0 var(--ink);
-  border-width: 1.5px;
-}
-
-.promo-cover .cover-topline,
-.promo-cover .cover-author {
-  display: none;
-}
-
-.promo-cover .cover-title {
-  margin: auto 0;
-  font-size: 16cqw;
-  line-height: 1.05;
-  overflow: hidden;
-}
-
-.promo-stars {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-top: 14px;
-  border-top: 3px solid var(--ink);
-}
-
-.promo-stars-label {
-  flex: none;
-  font-size: 9.5px;
-  color: var(--accent);
-}
-
-.promo-stars-row {
-  flex: 0 1 auto;
-  min-width: 0;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 52px);
-  gap: 10px;
-}
-
-.promo-cover--longest {
-  flex: none;
-  width: 44px;
-  margin-right: 6px;
-}
-
-.promo-cover--star .cover {
-  box-shadow: 3px 3px 0 var(--ink);
-}
-
-/* How it goes */
-
-.promo-heading {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.025em;
-  line-height: 1;
-}
-
-.promo-heading {
-  margin-bottom: 28px;
-  font-size: clamp(30px, 4vw, 44px);
-}
-
-.promo-steps {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
-}
-
-.promo-step {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 22px;
-  background: #fff;
-  border: 3px solid var(--ink);
-  box-shadow: var(--hard-lg);
-  min-width: 0;
-}
-
-.promo-step-num {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  background: var(--accent);
-  color: #fff;
-  border: 2px solid var(--ink);
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 900;
-  font-size: 19px;
-}
-
-.promo-step-title {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 26px;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-}
-
-.promo-step-text {
-  font-size: 14.5px;
-  color: var(--ink-soft);
-}
-
-.promo-demo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  min-height: 104px;
-  padding: 14px;
-  background: var(--paper);
-  border: 2px solid var(--ink);
-}
-
-/* The year picker in miniature (.setup-year, scaled down). */
-.promo-years {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-}
-
-.promo-years .setup-year-pick {
-  align-items: center;
-  gap: 4px 12px;
-  padding: 8px 12px;
-  cursor: default;
-}
-
-.promo-years .setup-year-num {
-  font-size: 22px;
-}
-
-.promo-years .setup-year-count {
-  font-size: 12.5px;
-}
-
-.promo-radio {
-  flex: none;
-  width: 15px;
-  height: 15px;
-  border: 1.5px solid var(--ink-soft);
-  border-radius: 50%;
-  background: #fff;
-}
-
-.promo-radio--on {
-  border-color: var(--accent);
-  background: radial-gradient(circle, var(--accent) 0 3.5px, #fff 4px);
-}
-
-.promo-choices {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-}
-
-.promo-name {
-  display: block;
-  padding: 4px 9px;
-  background: #fff;
-  border: 2px solid var(--ink);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 18px;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.promo-link {
-  flex-wrap: nowrap;
-}
-
-.promo-link-url {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 9px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  background: #fff;
-  border: 2px solid var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-}
-
-.promo-link-btn {
-  flex: none;
-  padding: 6px 12px;
-  background: #fff;
-  border: 2px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
-  font-size: 13px;
-}
-
-/* The motion. Before a part scrolls into view it waits, hidden; then it
-   plays once (the demo window replays every so often). */
-
-@media (prefers-reduced-motion: no-preference) {
-  .promo-copy > * {
-    animation: promo-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-
-  .promo-copy > :nth-child(2) {
-    animation-delay: 0.08s;
-  }
-
-  .promo-copy > :nth-child(3) {
-    animation-delay: 0.16s;
-  }
-
-  .promo-title em {
-    animation: promo-stamp 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s both;
-  }
-
-  .promo-stage:not(.promo-stage--on) .promo-window {
-    opacity: 0;
-  }
-
-  .promo-stage--on .promo-window {
-    animation: promo-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-
-  .promo-stage--on .promo-address-path {
-    animation: promo-type 1.1s steps(19) 0.35s both;
-  }
-
-  .promo-stage--on .promo-plate {
-    animation: promo-stamp 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) 0.6s both;
-  }
-
-  .promo-stage--on .promo-stat {
-    animation: promo-rise 0.5s ease 0.9s both;
-  }
-
-  .promo-stage--on .promo-stat:nth-child(2) {
-    animation-delay: 1.05s;
-  }
-
-  .promo-stage--on .promo-stat:nth-child(3) {
-    animation-delay: 1.2s;
-  }
-
-  .promo-stage--on .promo-cover {
-    animation: promo-drop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) calc(1.5s + var(--i) * 70ms) both;
-  }
-
-  .promo-stage--on .promo-stars {
-    animation: promo-rise 0.5s ease 2.6s both;
-  }
-
-  .promo-stage--on .promo-cover--star {
-    animation: promo-pop 0.45s cubic-bezier(0.3, 1.8, 0.5, 1) calc(2.9s + var(--i) * 120ms) both;
-  }
-}
-
-@keyframes promo-rise {
-  from {
-    opacity: 0;
-    transform: translateY(26px);
-  }
-}
-
-@keyframes promo-stamp {
-  from {
-    opacity: 0;
-    transform: scale(1.7) rotate(-7deg);
-  }
-}
-
-@keyframes promo-type {
-  from {
-    width: 0;
-  }
-}
-
-@keyframes promo-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-34px) rotate(-8deg);
-  }
-}
-
-@keyframes promo-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.2) rotate(10deg);
-  }
-}
-
-
-/* With a showcase on */
-
-.live {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 32px;
-  padding: 30px 32px;
-  background: #fff;
-  border: 3px solid var(--ink);
-  box-shadow: var(--hard-lg);
-}
-
-.live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  color: var(--accent);
-}
-
-.live-dot {
-  width: 10px;
-  height: 10px;
-  background: var(--accent);
-  border: 2px solid var(--ink);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .live-dot {
-    animation: live-pulse 1.8s ease-out infinite;
-  }
-}
-
-@keyframes live-pulse {
-  0% {
-    box-shadow: 0 0 0 0 var(--accent);
-  }
-  70%,
-  100% {
-    box-shadow: 0 0 0 9px transparent;
-  }
-}
-
-.live-title {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 400;
-  font-size: clamp(34px, 5vw, 54px);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-}
-
-.live-text {
-  max-width: 60ch;
-  font-size: 16px;
-}
-
-.live-link {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 14px;
-  background: var(--paper);
-  border: 2px solid var(--ink);
-}
-
-.live-link input {
-  flex: 1 1 240px;
-  min-width: 0;
-  padding: 8px 11px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 14px;
-  color: var(--ink);
-}
-
-.live-link .btn {
-  text-decoration: none;
-}
-
-.live-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.live-actions .btn {
-  text-decoration: none;
-}
-
-.live-setup {
-  margin-top: 56px;
-}
-
-/* Choosing the year (components/ShowcaseSetup, foot of the Showcase tab) */
-
-.setup {
-  max-width: 760px;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.setup-step {
-  border: 0;
-  min-width: 0;
-}
-
-.setup-legend {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 28px;
-  letter-spacing: -0.03em;
-}
-
-.setup-legend-num {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  background: var(--accent);
-  color: #fff;
-  border: 2px solid var(--ink);
-  font-weight: 900;
-  font-size: 18px;
-}
-
-.setup-years {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.setup-year {
-  display: flex;
-  align-items: stretch;
-  background: #fff;
-  border: 2px solid var(--ink);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-.setup-year--chosen {
-  transform: translate(-3px, -3px);
-  box-shadow: 5px 5px 0 var(--accent);
-  border-width: 3px;
-}
-
-.setup-year-pick {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 16px;
-  padding: 14px 18px;
-  cursor: pointer;
-}
-
-.setup-year-pick input {
-  align-self: center;
-  width: 17px;
-  height: 17px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.setup-year-num {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 32px;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.setup-year-count {
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-
-.setup-year-badge {
-  align-self: center;
-  background: var(--accent);
-  color: #fff;
-}
-
-.setup-hint {
-  font-size: 13.5px;
-  color: var(--ink-soft);
-}
-
-.setup-name {
-  max-width: 420px;
-}
-
-.setup-name input {
-  padding: 9px 12px;
-  font: inherit;
-  font-size: 16px;
-  color: var(--ink);
-}
-
-.setup-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
-}
-
-.setup-actions .btn {
-  text-decoration: none;
-}
-
-.setup-save {
-  font-size: 15px;
-  padding: 14px 24px;
-}
-
-/* Nothing to save yet. */
-.setup-save:disabled {
-  opacity: 0.45;
-  cursor: default;
-  transform: none;
-}
-
-@media (max-width: 960px) {
-  .promo-hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 40px;
-  }
-
-  .promo-steps {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .promo {
-    gap: 64px;
-  }
-
-  .promo-window {
-    box-shadow: 7px 7px 0 var(--ink);
-  }
-
-  .promo-window-body {
-    padding: 18px 14px 16px;
-    gap: 16px;
-  }
-
-  .promo-plate {
-    padding: 12px 18px;
-  }
-
-  .promo-shelf {
-    --book: 26px;
-    gap: 8px 6px;
-  }
-
-  .promo-stars {
-    flex-wrap: wrap;
-    gap: 10px 12px;
-  }
-
-  .promo-stars-row {
-    grid-auto-columns: 34px;
-    gap: 6px;
-  }
-
-  .promo-cover--longest {
-    width: 34px;
-  }
-
-  .promo-stat {
-    padding: 8px 8px;
-  }
-
-  .promo-caption {
-    text-align: left;
-  }
-
-  .live {
-    padding: 22px 18px;
-  }
-
-  .setup-year-pick {
-    padding: 12px 14px;
-  }
-
-  .setup-year-num {
-    font-size: 26px;
-  }
-}
-
 /* ---------- Profiles (components/ProfileView.tsx, app/u/[handle]) ----------
-   A showcase page with a reader at the top: photo, name, handle and bio,
-   then their numbers, their reading now, and a year in books. */
+   A reader at the top: photo, name, username and bio, then their numbers,
+   their friends and their reading. */
 
 .profile-page {
   gap: 48px;
@@ -5235,7 +4358,7 @@ select,
   overflow-wrap: anywhere;
 }
 
-/* The name, and on the reader's own page Share and Edit profile beside it. */
+/* The name, and on the reader's own page the copy button and Edit profile beside it. */
 .profile-head-row {
   display: flex;
   flex-wrap: wrap;
@@ -5249,18 +4372,14 @@ select,
   gap: 8px;
 }
 
-.share {
-  position: relative;
-  z-index: 40;
-}
-
-.share-button {
+.profile-copy {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 0 12px;
 }
 
-.share-icon {
+.profile-copy svg {
   width: 18px;
   height: 18px;
   fill: none;
@@ -5268,37 +4387,6 @@ select,
   stroke-width: 3;
   stroke-linecap: square;
   stroke-linejoin: miter;
-}
-
-.share-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  width: 250px;
-  background: #fff;
-  border: 3px solid var(--ink);
-  box-shadow: var(--hard);
-  display: flex;
-  flex-direction: column;
-}
-
-.share-note {
-  padding: 12px 16px;
-  border-bottom: 2px solid var(--hair);
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-
-.share-copy {
-  border-top: 2px solid var(--hair);
-}
-
-.share-url {
-  margin: 0 12px 12px;
-  padding: 6px 9px;
-  border: 2px solid var(--ink);
-  font: inherit;
-  font-size: 13px;
 }
 
 .profile-head-handle {

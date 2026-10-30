@@ -1,7 +1,7 @@
 import type { Book, PastRead } from "./types";
 
 // Rereads. A book's `dateRead` is its latest finish; `pastReads` are the
-// times it was read to the end before that. Statistics and showcases count
+// times it was read to the end before that. Statistics and profiles count
 // finishes, not books: a book read twice in a year counts twice there, and
 // its pages twice.
 

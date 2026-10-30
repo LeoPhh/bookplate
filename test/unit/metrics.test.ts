@@ -11,8 +11,9 @@ const totals: Totals = {
   notes: 2210,
   words: 5120,
   progressEntries: 7001,
-  showcases: 12,
-  social: { profiles: 40, friendships: 55, recommendations: 9 },
+  accountsWithPhoto: 31,
+  accountsImported: 12,
+  social: { friendships: 55, recommendations: 9 },
   collectedAt: 1_790_000_000_000,
 };
 
@@ -25,8 +26,9 @@ describe("metrics output", () => {
     expect(text).toContain('bookplate_active_accounts{period="7d"} 168');
     expect(text).toContain('bookplate_books{status="to-read"} 9402');
     expect(text).toContain('bookplate_books_per_account{quantile="0.9"} 210');
+    expect(text).toContain("bookplate_accounts_with_photo 31");
+    expect(text).toContain("bookplate_accounts_imported 12");
     expect(text).toContain("bookplate_totals_collected_timestamp_seconds 1790000000");
-    expect(text).toContain("bookplate_showcases 12");
     const names = [...text.matchAll(/^(bookplate_\w+)[{ ]/gm)].map((m) => m[1]);
     for (const name of new Set(names)) {
       expect(text).toContain(`# HELP ${name} `);
@@ -36,9 +38,9 @@ describe("metrics output", () => {
   });
 
   it("reports the social features only where they're on", () => {
-    expect(renderMetrics(totals, "9.9.9", false)).not.toContain("bookplate_profiles");
+    expect(renderMetrics(totals, "9.9.9", false)).not.toContain("bookplate_friendships");
     const text = renderMetrics(totals, "9.9.9", true);
-    expect(text).toContain("bookplate_profiles 40");
+    expect(text).not.toContain("bookplate_profiles");
     expect(text).toContain("bookplate_friendships 55");
     expect(text).toContain("bookplate_recommendations 9");
   });

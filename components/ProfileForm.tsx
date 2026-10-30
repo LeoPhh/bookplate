@@ -72,7 +72,7 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
       </label>
       <p className="settings-lede">
         Anyone can open your profile and see your name, photo, username, bio and friends. Your reading — the books
-        you&rsquo;ve read, your numbers and your year in books — is up to you.
+        you&rsquo;ve read and your numbers — is up to you.
       </p>
       <fieldset className="profile-visibility">
         <legend>Who sees your reading</legend>
