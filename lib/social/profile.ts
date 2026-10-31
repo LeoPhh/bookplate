@@ -71,6 +71,29 @@ async function freeHandle(name: string): Promise<string> {
   }
 }
 
+// A reader who has just set their name swaps a default username (@reader2)
+// for one from that name. A username they chose stays, and so does the default
+// when the name has nothing usable in it.
+const DEFAULT_HANDLE = /^reader\d*$/;
+
+export async function handleFromNewName(userId: string, name: string): Promise<void> {
+  if (handleFrom(name) === "reader") return;
+  const current = await getProfile(userId);
+  if (!current || !DEFAULT_HANDLE.test(current.handle)) return;
+  // Someone else may take the same handle at the same moment: then the next.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await getDb()
+        .update(profile)
+        .set({ handle: await freeHandle(name), updatedAt: sql`now()` })
+        .where(eq(profile.userId, userId));
+      return;
+    } catch (e) {
+      if (!isUniqueViolation(e) || attempt >= 5) throw e;
+    }
+  }
+}
+
 // Checks what Settings sends: any of the fields, each one valid. Returns
 // only the fields that were sent.
 export function parseProfile(body: unknown): Partial<Profile> {

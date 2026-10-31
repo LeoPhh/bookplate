@@ -2394,6 +2394,26 @@ input.square-radio:focus-visible {
 
 /* ---------- Finished-reading prompt ---------- */
 
+/* Name prompt: a short form, so it reads from the left. */
+
+.name-prompt {
+  text-align: left;
+}
+
+.name-prompt .confirm-title {
+  font-weight: 400;
+}
+
+.name-prompt .profile-form {
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.name-prompt .dialog-actions {
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
 .dialog--finish {
   max-width: 460px;
   text-align: left;
@@ -4296,6 +4316,10 @@ a.notify-item-text:hover {
     padding: 30px 20px calc(24px + env(safe-area-inset-bottom));
     overscroll-behavior: contain;
     animation: sheet-up 0.22s ease-out;
+  }
+
+  .name-prompt .dialog-actions .btn {
+    flex: 1;
   }
 
   .dialog-close,

@@ -12,7 +12,8 @@ import { CLIENT_IP_HEADER, clientIp } from "./clientIp";
 import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
 import { account, log } from "./log";
 import { MIN_PASSWORD_LENGTH } from "./signupChecks";
-import { ensureProfile } from "./social/profile";
+import { NAME_MAX } from "./names";
+import { ensureProfile, handleFromNewName } from "./social/profile";
 
 const emailOf = (body: unknown) => String((body as { email?: unknown } | undefined)?.email ?? "").trim().toLowerCase();
 const signInKey = (body: unknown) => `sign-in:${emailOf(body)}`;
@@ -234,6 +235,15 @@ function createAuth() {
         },
         update: {
           before: async (user) => (typeof user.name === "string" ? { data: { ...user, name: cleanName(user.name) } } : undefined),
+          // Only when the reader sets their name, not whenever the row changes.
+          after: async (user, ctx) => {
+            if (!config.social || ctx?.path !== "/update-user" || typeof ctx.body?.name !== "string" || !user.name) return;
+            try {
+              await handleFromNewName(user.id, user.name);
+            } catch (e) {
+              void log.error("profile.username_change_failed", { user: user.id, error: e });
+            }
+          },
         },
       },
     },
@@ -244,8 +254,6 @@ function createAuth() {
 // An account's name, as given at sign-up or in Settings: plain text on one
 // line (control characters go, runs of spaces become one), at most
 // NAME_MAX characters. Empty means no name.
-export const NAME_MAX = 25;
-
 function cleanName(raw: unknown): string {
   const name = String(raw ?? "")
     .replace(/[\p{Cc}\p{Cf}]/gu, "")

@@ -1,9 +1,10 @@
 import { eq, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 
-// Info boxes (components/Hint.tsx) a reader can turn off for good. The
-// choice is kept on the account, so it holds on every device.
-export const HINTS = ["vocabulary"] as const;
+// Info boxes (components/Hint.tsx) and prompts (components/NamePrompt.tsx) a
+// reader can turn off for good. The choice is kept on the account, so it holds
+// on every device.
+export const HINTS = ["vocabulary", "name-prompt"] as const;
 export type HintId = (typeof HINTS)[number];
 
 export const isHint = (id: unknown): id is HintId => typeof id === "string" && (HINTS as readonly string[]).includes(id);

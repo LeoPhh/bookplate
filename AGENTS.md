@@ -44,7 +44,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
   `lib/social/projection.ts`; another reader's images are served only from
   `/u/<handle>/covers|avatar`. Other readers are named by account id or
   handle, never email. Every reader has a profile (`ensureProfile`); on
-  screen a handle is a "username".
+  screen a handle is a "username". A reader with no name is asked for one once
+  (`components/NamePrompt.tsx`), and setting a name replaces a default
+  `@reader…` username, but not one they chose.
 - Email is optional (`SMTP_*`, `lib/email.ts`). Code must work without it:
   check `config.email.enabled`. Emails that reveal whether an account exists
   (reset, verification) never report send errors to the visitor.

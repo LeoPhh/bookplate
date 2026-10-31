@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { NAME_MAX } from "@/lib/names";
 import { fileToDataUrl } from "@/lib/image";
 import Avatar from "./Avatar";
 import SettingsTabs from "./SettingsTabs";
@@ -37,11 +39,10 @@ function refreshSession() {
   authClient.$store.notify("$sessionSignal");
 }
 
-const NAME_MAX = 25;
-
 // The account's name: shown in the account menu and on the reader's profile.
 // New accounts start without one.
 function ProfileName({ initial, onSaved }: { initial: string; onSaved: (name: string) => void }) {
+  const router = useRouter();
   const [name, setName] = useState(initial);
   const [draft, setDraft] = useState<string | null>(null); // null = not editing
   const [busy, setBusy] = useState(false);
@@ -62,6 +63,7 @@ function ProfileName({ initial, onSaved }: { initial: string; onSaved: (name: st
     onSaved(saved);
     setDraft(null);
     refreshSession();
+    router.refresh(); // a default username may have changed with it
   };
 
   if (draft === null) {
@@ -867,7 +869,7 @@ export default function SettingsPanel({
         {social && (
           <section className="settings-section">
             <h2 className="form-heading">Profile page</h2>
-            <ProfileForm initial={social.profile} goal={social.goal} />
+            <ProfileForm key={social.profile.handle} initial={social.profile} goal={social.goal} />
           </section>
         )}
 

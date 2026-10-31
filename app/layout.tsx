@@ -3,10 +3,13 @@ import { Fraunces, Inter } from "next/font/google";
 import { connection } from "next/server";
 import ErrorReporter from "@/components/ErrorReporter";
 import AppBar from "@/components/AppBar";
+import NamePrompt from "@/components/NamePrompt";
 import { FeaturesProvider } from "@/components/Features";
 import { getSession } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { getFeatures } from "@/lib/features";
+import { dismissedHints } from "@/lib/hints";
+import { suggestName } from "@/lib/names";
 import { unreadCount } from "@/lib/social/notifications";
 import { getProfile } from "@/lib/social/profile";
 import { avatarColorIndex } from "@/lib/avatar";
@@ -56,6 +59,9 @@ export default async function RootLayout({
   // With social features, how much is new for the badge on the bell.
   const social = config.social ? { unread: session ? await unreadCount(session.user.id).catch(() => 0) : 0 } : null;
   const username = session && config.social ? ((await getProfile(session.user.id).catch(() => null))?.handle ?? null) : null;
+  // A reader with no name is asked for one, once.
+  const askName =
+    session && config.social && !session.user.name && !(await dismissedHints(session.user.id).catch(() => ["name-prompt"])).includes("name-prompt");
   const me = session
     ? {
         image: session.user.image ?? null,
@@ -69,6 +75,7 @@ export default async function RootLayout({
       <body>
         <AppBar signedIn={Boolean(session)} social={social} me={me} />
         <FeaturesProvider initial={features}>{children}</FeaturesProvider>
+        {askName && <NamePrompt suggestion={suggestName(session.user.email)} username={username} />}
         <ErrorReporter />
       </body>
     </html>
