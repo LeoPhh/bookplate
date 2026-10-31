@@ -186,7 +186,7 @@ button {
   color: var(--accent);
 }
 
-/* How much is new on Profile (SOCIAL=true). */
+/* How much is new, on the bell (SOCIAL=true). */
 .appbar-badge {
   display: inline-block;
   min-width: 18px;
@@ -223,6 +223,7 @@ button {
 .cover-topline,
 .cover-author,
 .badge,
+.notify-heading,
 .stat-tile-label,
 .profile-plate-eyebrow,
 .profile-plate-label,
@@ -297,6 +298,7 @@ button {
 .notes-back,
 .notes-vocab-link,
 .user-menu-item,
+.notify-all,
 .colophon,
 .auth-legal,
 .legal-back,
@@ -306,7 +308,6 @@ button {
 .profile-handle,
 .profile-more,
 .profile-card-link,
-.profile-block,
 .profile-faces-rest,
 .profile-back,
 .recommend-switch {
@@ -3336,6 +3337,164 @@ select,
 
 /* In the app bar, after the sections. */
 
+.appbar-account {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* The notification bell (components/NotificationBell.tsx). */
+
+.notify {
+  position: relative;
+  z-index: 45;
+}
+
+.notify-button {
+  position: relative;
+  display: block;
+  padding: 6px;
+  border: 0;
+  background: none;
+  border-radius: 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.notify-button:hover {
+  color: var(--accent);
+}
+
+.notify-button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.notify-icon {
+  display: block;
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notify-button .appbar-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  margin: 0;
+}
+
+.notify-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 380px;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  background: #fff;
+  border: 3px solid var(--ink);
+  box-shadow: var(--hard);
+}
+
+.notify-section {
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--hair);
+}
+
+.notify-heading {
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.notify-list {
+  list-style: none;
+}
+
+.notify-request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 0;
+}
+
+.notify-request .avatar {
+  flex: none;
+  border: 2px solid var(--ink);
+}
+
+.notify-request .search-result-text {
+  flex: 1 1 calc(100% - 48px);
+}
+
+a.search-result-title {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.search-result-title:hover {
+  color: var(--accent);
+}
+
+/* Under the name, so a long one is never cut short. */
+.notify-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 48px;
+}
+
+.notify-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.notify-item--new {
+  box-shadow: inset 4px 0 0 var(--accent);
+  padding-left: 10px;
+}
+
+.notify-item-text {
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.notify-item-text:hover {
+  color: var(--accent);
+}
+
+.notify-note,
+.notify-empty {
+  padding: 12px 16px;
+  font-size: 14px;
+  border-bottom: 2px solid var(--hair);
+}
+
+.notify-note--error {
+  color: var(--danger);
+}
+
+.notify-all {
+  display: block;
+  padding: 11px 16px;
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.notify-all:hover {
+  color: var(--accent);
+}
+
 .user-menu {
   position: relative;
   z-index: 45;
@@ -3833,9 +3992,21 @@ select,
     padding: 10px max(18px, env(safe-area-inset-right)) 10px max(18px, env(safe-area-inset-left));
   }
 
-  /* The sections leave the bar; the account menu takes the right edge. */
-  .user-menu {
+  /* The sections leave the bar; the bell and account menu take the right edge. */
+  .appbar-account {
     margin-left: auto;
+  }
+
+  /* The whole width of the window, whatever the bell's place in the bar. */
+  .notify {
+    position: static;
+  }
+
+  .notify-panel {
+    top: 68px;
+    left: max(18px, env(safe-area-inset-left));
+    right: max(18px, env(safe-area-inset-right));
+    width: auto;
   }
 
   .reading-row {
@@ -4208,9 +4379,42 @@ select,
   margin-bottom: 0.1em;
 }
 
-.profile-title strong {
-  display: block;
+/* Back to the profile, from its friends page: the arrow and name are one link. */
+.profile-back {
+  display: inline-block;
+  align-self: flex-start;
+  width: fit-content;
+  padding: 6px 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.profile-back:hover {
+  color: var(--accent);
+}
+
+/* How many books: a big number, with its label stacked beside it. */
+.profile-title-count {
+  display: flex;
+  align-items: center;
+  gap: 0.16em;
+  margin-top: 0.14em;
+  font-size: 0.72em;
+}
+
+.profile-title-count b {
+  font-weight: 400;
+  color: var(--accent);
+  line-height: 0.95;
+}
+
+.profile-title-count span {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 .profile-handle {
@@ -4250,19 +4454,44 @@ select,
   stroke-linejoin: miter;
 }
 
-.profile-block {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink-soft);
-  font-size: 13px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
+/* Blocking and reporting, out of the way of the friend buttons. */
+.profile-menu {
+  position: relative;
+  z-index: 5;
 }
 
-.profile-block:hover {
-  color: var(--accent);
+.profile-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* As tall as a line of text, so the button matches the ones beside it. */
+.profile-menu-button svg {
+  width: 12px;
+  height: 1lh;
+  fill: currentColor;
+}
+
+.profile-menu-panel {
+  right: auto;
+  left: 0;
+  min-width: 200px;
+}
+
+.profile-menu-danger {
+  color: var(--danger);
+}
+
+/* Under the row, wherever the row put the button. */
+@media (max-width: 640px) {
+  .profile-cta {
+    position: relative;
+  }
+
+  .profile-menu {
+    position: static;
+  }
 }
 
 /* The bookplate: a printed label with a double border, set a little crooked.
@@ -5109,6 +5338,30 @@ a.friend-name:hover {
   color: var(--ink);
 }
 
+.friends-find {
+  max-width: 460px;
+}
+
+.people-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.people-result .avatar {
+  flex: none;
+  border: 2px solid var(--ink);
+}
+
+.people-result .search-result-text {
+  flex: 1 1 0;
+}
+
+.people-result-action {
+  flex: none;
+}
+
 .friends-news {
   list-style: none;
 }
@@ -5167,6 +5420,12 @@ a.friend-name:hover {
 
 .recommend-form textarea {
   resize: vertical;
+}
+
+/* .search grows along a row; down this column that would make it tall. */
+.recommend-form .search {
+  flex: none;
+  margin-top: 0;
 }
 
 .recommend-chosen {

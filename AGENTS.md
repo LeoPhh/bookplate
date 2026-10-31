@@ -31,7 +31,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Every page has the app bar (`components/AppBar.tsx`, from `app/layout.tsx`):
   the mark (a link to the Library), and when signed in the sections
   (Library, Vocabulary, Statistics; with `SOCIAL=true`, then Profile, with
-  friends under each profile at `/u/<handle>/friends`) and the account menu. On phones the sections become
+  friends under each profile at `/u/<handle>/friends`), the notification bell
+  (with `SOCIAL=true`) and the account menu. On phones the sections become
   the bottom tab bar. It never links out of the app.
 - Social features (`SOCIAL=true`, `lib/social/`) read across readers. A
   profile (name, photo, username, bio, friends, join date, number of books

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import AppNav from "./AppNav";
 import LogoMark from "./LogoMark";
+import NotificationBell from "./NotificationBell";
 import UserMenu, { type AccountPicture } from "./UserMenu";
 
 // The bar across the top of every page: the mark, and when signed in the
-// app's sections and the account menu. The mark links to the Library.
+// app's sections, the notification bell (with social features) and the account
+// menu. The mark links to the Library.
 export default function AppBar({
   signedIn,
   social,
@@ -22,8 +24,11 @@ export default function AppBar({
         </Link>
         {signedIn && (
           <>
-            <AppNav social={social} />
-            <UserMenu initial={me} />
+            <AppNav social={social !== null} />
+            <div className="appbar-account">
+              {social && <NotificationBell initial={social.unread} />}
+              <UserMenu initial={me} />
+            </div>
           </>
         )}
       </div>

@@ -293,7 +293,7 @@ export default function BookNotesPage() {
         <div className="notes-head-body">
           <p className="detail-kicker">{STATUS_LABELS[book.status]}</p>
           <h1 className="notes-title">{book.title}</h1>
-          <p className="detail-author">by {book.author}</p>
+          {book.author && <p className="detail-author">by {book.author}</p>}
           <div className="notes-head-meta">
             {book.rating > 0 && <StarRating value={book.rating} />}
             {book.genre && <span className="notes-meta-item">{book.genre}</span>}

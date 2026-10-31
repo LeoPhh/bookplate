@@ -93,9 +93,11 @@ export async function listRequests(userId: string): Promise<{ incoming: Someone[
   return { incoming: await people(incoming), outgoing: await people(outgoing) };
 }
 
+export type Standing = "friends" | "sent" | "received" | "none";
+
 // Where two readers stand, for the buttons on a profile: friends, a request
 // one way or the other, or nothing yet.
-export async function standing(viewerId: string, otherId: string): Promise<"friends" | "sent" | "received" | "none"> {
+export async function standing(viewerId: string, otherId: string): Promise<Standing> {
   const [a, b] = pairOf(viewerId, otherId);
   const { rows } = await getDb().execute<{ friends: boolean; sent: boolean; received: boolean }>(sql`
     SELECT
@@ -104,6 +106,49 @@ export async function standing(viewerId: string, otherId: string): Promise<"frie
       EXISTS (SELECT 1 FROM friend_request WHERE from_user = ${otherId} AND to_user = ${viewerId}) AS received`);
   const r = rows[0];
   return r?.friends ? "friends" : r?.sent ? "sent" : r?.received ? "received" : "none";
+}
+
+export interface Found extends Someone {
+  standing: Standing;
+}
+
+export const SEARCH_MIN = 2;
+export const SEARCH_RESULTS = 8;
+export const SEARCHES_PER_MINUTE = 60; // plenty for typing, too few to walk through everyone
+
+// Readers whose name or username contains what was typed, closest first: for
+// finding someone to add. Never by email, and never anyone blocked either way.
+export async function searchPeople(viewerId: string, typed: string): Promise<Found[]> {
+  const term = typed.trim().replace(/^@/, "").slice(0, 64).toLowerCase();
+  if (term.length < SEARCH_MIN) return [];
+  if ((await countUp(`people-search:${viewerId}`, 60_000)) > SEARCHES_PER_MINUTE) {
+    throw new FriendError("That’s a lot of searching. Try again in a minute.", 429);
+  }
+  const literal = term.replace(/[\\%_]/g, "\\$&"); // % and _ are ordinary characters here
+  const { rows } = await getDb().execute<{ id: string; since: Date | string; friends: boolean; sent: boolean; received: boolean }>(sql`
+    SELECT u.id, u.created_at AS since,
+      EXISTS (
+        SELECT 1 FROM friendship f
+        WHERE (f.user_a = ${viewerId} AND f.user_b = u.id) OR (f.user_a = u.id AND f.user_b = ${viewerId})) AS friends,
+      EXISTS (SELECT 1 FROM friend_request WHERE from_user = ${viewerId} AND to_user = u.id) AS sent,
+      EXISTS (SELECT 1 FROM friend_request WHERE from_user = u.id AND to_user = ${viewerId}) AS received
+    FROM profile p
+    JOIN "user" u ON u.id = p.user_id
+    WHERE u.id <> ${viewerId}
+      AND (p.handle LIKE ${`%${literal}%`} OR u.name ILIKE ${`%${literal}%`})
+      AND NOT EXISTS (
+        SELECT 1 FROM block b
+        WHERE (b.blocker = ${viewerId} AND b.blocked = u.id) OR (b.blocker = u.id AND b.blocked = ${viewerId}))
+    ORDER BY
+      CASE WHEN p.handle = ${term} THEN 0 WHEN p.handle LIKE ${`${literal}%`} THEN 1 WHEN u.name ILIKE ${`${literal}%`} THEN 2 ELSE 3 END,
+      lower(u.name), p.handle
+    LIMIT ${SEARCH_RESULTS}`);
+  const found = new Map((await people(rows.map((r) => ({ id: r.id, since: new Date(r.since) })))).map((p) => [p.id, p]));
+  return rows.flatMap((r) => {
+    const p = found.get(r.id);
+    if (!p) return [];
+    return [{ ...p, standing: r.friends ? ("friends" as const) : r.sent ? ("sent" as const) : r.received ? ("received" as const) : ("none" as const) }];
+  });
 }
 
 export async function countFriends(): Promise<number> {

@@ -5,7 +5,8 @@ import { getDb, schema } from "../db";
 // Things for a reader to see: a friend request, a request accepted, and later
 // recommendations, club invites, replies… `kind` says which; `objectRef`
 // points at what it's about, its meaning depending on the kind. The badge on
-// the Friends tab counts the unread ones.
+// the bell in the app bar (components/NotificationBell.tsx) counts the unread
+// ones.
 
 export type NotificationKind = "friend_request" | "friend_accepted" | "recommendation";
 

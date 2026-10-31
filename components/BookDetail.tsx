@@ -105,7 +105,7 @@ export default function BookDetail({
               {book.status === "reading" && pastReads.length > 0 ? "Rereading" : STATUS_LABELS[book.status]}
             </p>
             <h2 className="detail-title">{book.title}</h2>
-            <p className="detail-author">by {book.author}</p>
+            {book.author && <p className="detail-author">by {book.author}</p>}
             <div className="detail-rating">
               {book.rating > 0 ? <StarRating value={book.rating} size="lg" /> : <span className="muted">Not yet rated</span>}
             </div>

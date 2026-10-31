@@ -52,7 +52,7 @@ export function parseRecommendation(body: Record<string, unknown>): RecBook & { 
   const { to, title, author, isbn, olWorkId, note } = body;
   if (typeof to !== "string" || !to) throw new FriendError("Who to?");
   if (typeof title !== "string" || !oneLine(title)) throw new FriendError("Which book?");
-  if (typeof author !== "string") throw new FriendError("Who wrote it?");
+  if (typeof author !== "string") throw new FriendError("Invalid author."); // empty when typed in without one
   const t = oneLine(title);
   const a = oneLine(author);
   if (t.length > TITLE_MAX || a.length > AUTHOR_MAX) throw new FriendError("That title or author is too long.");

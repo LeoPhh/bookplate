@@ -44,6 +44,17 @@ async function sent(from: Reader, to: string, body: Record<string, unknown> = {}
 }
 
 describe("without SOCIAL", () => {
+  it("can leave out the author, and still lands on the shelf", async () => {
+    const { ada, ben } = await friends();
+    const id = await sent(ada.r, ben.id, { title: "Beowulf", author: "" });
+    expect((await ben.r.get<{ inbox: { id: string; title: string; author: string }[] }>("/api/recommendations")).inbox).toMatchObject([
+      { id, title: "Beowulf", author: "" },
+    ]);
+    expect((await ben.r.json(`/api/recommendations/${id}`, "PATCH", { action: "add" })).status).toBe(200);
+    const { books } = await ben.r.get<{ books: { title: string; author: string; status: string }[] }>("/api/books");
+    expect(books).toMatchObject([{ title: "Beowulf", author: "", status: "to-read" }]);
+  });
+
   it("has no recommendations", async () => {
     const r = await reader(); // the plain server
     expect((await r.fetch("/api/recommendations")).status).toBe(404);

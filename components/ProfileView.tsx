@@ -71,7 +71,7 @@ function Covers({ books, rated }: { books: Book[]; rated: boolean }) {
   return (
     <ol className="profile-covers">
       {books.map((b) => (
-        <li key={b.id} title={`${b.title} by ${b.author}`}>
+        <li key={b.id} title={b.author ? `${b.title} by ${b.author}` : b.title}>
           <div className="profile-cover">
             <BookCover book={b} />
           </div>
@@ -212,7 +212,15 @@ export default function ProfileView({
           <div className="profile-who-body">
             <h1 className="profile-title">
               <span className={name.length > LONG_NAME ? "profile-title-name profile-title-name--long" : "profile-title-name"}>{shown}</span>
-              {finished > 0 && <strong>{`${num(finished)} ${bookWord} deep.`}</strong>}
+              {finished > 0 && (
+                <span className="profile-title-count">
+                  <b>{num(finished)}</b>{" "}
+                  <span>
+                    {bookWord} <br />
+                    read
+                  </span>
+                </span>
+              )}
             </h1>
             {name && <p className="profile-handle">{`@${profile.handle}`}</p>}
             {profile.bio && <p className="profile-bio">{profile.bio}</p>}
@@ -290,7 +298,7 @@ export default function ProfileView({
                 </div>
                 <div className="profile-now-body">
                   <p className="profile-now-title">{last.book.title}</p>
-                  <p className="profile-note profile-now-note">{`${last.book.author} · finished ${dayMonth(last.date)}`}</p>
+                  <p className="profile-note profile-now-note">{`${last.book.author ? `${last.book.author} · ` : ""}finished ${dayMonth(last.date)}`}</p>
                   {last.book.rating > 0 && <StarRating value={last.book.rating} size="sm" />}
                 </div>
               </div>

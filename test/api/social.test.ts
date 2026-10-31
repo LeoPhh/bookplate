@@ -244,7 +244,7 @@ describe("the page's hero", () => {
   it("shows anyone the name, when they joined and how many books, even with reading private", async () => {
     const { p } = await ada({ visibility: "private" });
     const { html } = await page(visitor(), `/u/${p.handle}`);
-    expect(html).toContain("1 book deep.");
+    expect(html.replace(/<!-- -->/g, "")).toMatch(/<b>1<\/b> ?<span>book ?<br\/>read<\/span>/);
     expect(html).toContain("from the library of");
     expect(html).toMatch(new RegExp(`>${new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}<`));
     expect(html).not.toContain("February Book");
@@ -256,7 +256,7 @@ describe("the page's hero", () => {
     const { profile } = await r.get<{ profile: Profile }>("/api/profile");
     const { html } = await page(r, `/u/${profile.handle}`);
     expect(html).toContain(`>@${profile.handle}<`);
-    expect(html).not.toContain(" deep.");
+    expect(html).not.toContain("profile-title-count");
     expect(html).toContain("Your first book");
   });
 
@@ -265,10 +265,10 @@ describe("the page's hero", () => {
     const out = await page(visitor(), `/u/${p.handle}`);
     expect(out.html).toContain("Made with Bookplate");
     expect(out.html).toContain("https://bookplate.eu");
-    expect(out.html).not.toContain("Add as a friend");
+    expect(out.html).not.toContain("Add friend");
     const inn = await page(await socialReader(), `/u/${p.handle}`);
     expect(inn.html).not.toContain("Made with Bookplate");
-    expect(inn.html).toContain("Add as a friend");
+    expect(inn.html).toContain("Add friend");
   });
 
   it("shows the same example achievements on every profile", async () => {

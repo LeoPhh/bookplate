@@ -94,6 +94,7 @@ export default async function PersonPage({ params }: Props) {
               handle={person.profile.handle}
               name={person.name || `@${person.profile.handle}`}
               standing={await standing(viewerId, person.userId)}
+              reportHref={reportHref}
             />
           ) : null
         }
@@ -116,7 +117,8 @@ export default async function PersonPage({ params }: Props) {
         </section>
       )}
 
-      {reportHref && (
+      {/* Signed-in readers have it in the menu beside the friend buttons. */}
+      {reportHref && !signedIn && (
         <footer className="profile-footer">
           <a href={reportHref}>Report this profile</a>
         </footer>

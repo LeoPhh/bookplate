@@ -6,7 +6,7 @@ import type { Book } from "@/lib/types";
 import Spinner from "./Spinner";
 
 // Recommending a book to a friend, from their profile: pick one from your
-// library (or type a title and author in), add a note if you like, send.
+// library (or type one in), add a note if you like, send.
 
 const NOTE_MAX = 280;
 
@@ -67,7 +67,7 @@ export default function RecommendDialog({ to, name, onClose }: { to: string; nam
     }
   };
 
-  const ready = chosen !== null || (typing && title.trim() && author.trim());
+  const ready = chosen !== null || (typing && title.trim());
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -85,7 +85,7 @@ export default function RecommendDialog({ to, name, onClose }: { to: string; nam
 
         {sent ? (
           <>
-            <p className="settings-lede">Sent. {name} will see it on their Friends tab.</p>
+            <p className="settings-lede">Sent. {name} will see it in their notifications.</p>
             <div className="settings-row">
               <button type="button" className="btn btn--primary" onClick={onClose}>
                 Done
@@ -97,7 +97,8 @@ export default function RecommendDialog({ to, name, onClose }: { to: string; nam
             {chosen ? (
               <div className="recommend-chosen">
                 <span>
-                  <strong>{chosen.title}</strong> · {chosen.author}
+                  <strong>{chosen.title}</strong>
+                  {chosen.author && ` · ${chosen.author}`}
                 </span>
                 <button type="button" className="btn" onClick={() => setChosen(null)}>
                   Change
@@ -110,11 +111,11 @@ export default function RecommendDialog({ to, name, onClose }: { to: string; nam
                   <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
                 </label>
                 <label className="field">
-                  <span>Author</span>
+                  <span>Author (optional)</span>
                   <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} />
                 </label>
                 <button type="button" className="recommend-switch" onClick={() => setTyping(false)}>
-                  Pick from my library instead
+                  Pick from your library instead
                 </button>
               </>
             ) : (
@@ -133,7 +134,7 @@ export default function RecommendDialog({ to, name, onClose }: { to: string; nam
                     <Spinner />
                     Opening your library…
                   </p>
-                ) : (
+                ) : matches.length > 0 && (
                   <ul className="search-results picker-results">
                     {matches.map((b) => (
                       <li key={b.id}>
@@ -155,7 +156,7 @@ export default function RecommendDialog({ to, name, onClose }: { to: string; nam
                 )}
                 {books !== null && matches.length === 0 && <p className="search-note">No book in your library matches.</p>}
                 <button type="button" className="recommend-switch" onClick={() => setTyping(true)}>
-                  It&rsquo;s not in my library: type it in
+                  Not in your library? Type it in instead.
                 </button>
               </>
             )}

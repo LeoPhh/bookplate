@@ -7,11 +7,12 @@ import type { Notification } from "@/lib/social/notifications";
 import type { Recommendation } from "@/lib/social/recs";
 import Avatar from "./Avatar";
 import ConfirmDialog from "./ConfirmDialog";
+import FriendSearch from "./FriendSearch";
 import Spinner from "./Spinner";
 
 // The reader's own friends page (/u/<handle>/friends, from the Friends tile on
-// their profile): requests to answer, recommendations, adding someone by
-// username, the friends themselves, requests still waiting and the latest
+// their profile): requests to answer, recommendations, finding someone to add,
+// the friends themselves, requests still waiting and the latest
 // news. Who's blocked is in Settings. Every change goes to the API, then the
 // page reloads its data (router.refresh).
 
@@ -66,7 +67,6 @@ export default function FriendsPanel({ data }: { data: FriendsData }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null); // what's being done
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const [handle, setHandle] = useState("");
   const [confirm, setConfirm] = useState<{ title: string; message: string; label: string; run: () => Promise<void> } | null>(null);
 
   const act = async (key: string, path: string, method: string, body?: unknown, done?: (d: Record<string, unknown>) => string) => {
@@ -82,20 +82,6 @@ export default function FriendsPanel({ data }: { data: FriendsData }) {
     } finally {
       setBusy(null);
     }
-  };
-
-  const ask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const h = handle.trim().replace(/^@/, "");
-    if (!h) return;
-    await act("ask", "/api/friends/requests", "POST", { handle: h }, (d) => {
-      setHandle("");
-      return d.result === "friends"
-        ? `@${h} had asked you too: you’re friends now.`
-        : d.result === "already"
-          ? `You and @${h} are friends already.`
-          : `Request sent to @${h}.`;
-    });
   };
 
   const block = (p: Someone) =>
@@ -152,7 +138,8 @@ export default function FriendsPanel({ data }: { data: FriendsData }) {
             {data.inbox.map((r) => (
               <li key={r.id} className="rec">
                 <p className="rec-book">
-                  <strong>{r.title}</strong> · {r.author}
+                  <strong>{r.title}</strong>
+                  {r.author && ` · ${r.author}`}
                 </p>
                 <p className="rec-from">
                   From{" "}
@@ -200,30 +187,14 @@ export default function FriendsPanel({ data }: { data: FriendsData }) {
       )}
 
       <section className="settings-section">
-        <h2 className="form-heading">Add a friend</h2>
-        <form className="friends-add" onSubmit={ask}>
-          <label className="field">
-            <span>Their username</span>
-            <input
-              type="text"
-              value={handle}
-              placeholder="@username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              onChange={(e) => setHandle(e.target.value)}
-            />
-          </label>
-          <button type="submit" className="btn btn--primary" disabled={busy !== null || !handle.trim()}>
-            {busy === "ask" ? <><Spinner />Asking…</> : "Ask"}
-          </button>
-        </form>
+        <h2 className="form-heading">Find friends</h2>
+        <FriendSearch />
       </section>
 
       <section className="settings-section">
         <h2 className="form-heading">Your friends</h2>
         {data.friends.length === 0 ? (
-          <p className="settings-lede">No friends here yet. Ask someone by their username.</p>
+          <p className="settings-lede">No friends here yet. Search for someone above.</p>
         ) : (
           <ul className="friend-list">
             {data.friends.map((p) => (
@@ -264,7 +235,7 @@ export default function FriendsPanel({ data }: { data: FriendsData }) {
                   disabled={busy !== null}
                   onClick={() => act(`withdraw-${p.id}`, `/api/friends/requests/${p.id}`, "DELETE")}
                 >
-                  Take back
+                  Cancel friend request
                 </button>
               </Person>
             ))}
@@ -279,7 +250,8 @@ export default function FriendsPanel({ data }: { data: FriendsData }) {
             {data.sent.map((r) => (
               <li key={r.id} className="rec rec--sent">
                 <p className="rec-book">
-                  <strong>{r.title}</strong> · {r.author}
+                  <strong>{r.title}</strong>
+                  {r.author && ` · ${r.author}`}
                 </p>
                 <p className="rec-from">
                   To {r.who.handle ? <a href={`/u/${r.who.handle}`}>{nameOf(r.who)}</a> : nameOf(r.who)},{" "}

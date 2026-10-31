@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { readFileSync } from "fs";
 import { describe, expect, inject, it } from "vitest";
 import { reader, type Reader } from "./client";
@@ -179,14 +180,15 @@ describe("blocking", () => {
 });
 
 describe("friends", () => {
-  it("are under the profile, not a tab of their own; the Profile tab badges what's new, and opening them reads it", async () => {
+  it("are under the profile, not a tab of their own; the bell badges what's new, and opening them reads it", async () => {
     const ada = await withProfile("Ada");
     const ben = await withProfile("Ben");
     await ask(ben.r, ada.p.handle);
 
     const library = await (await ada.r.fetch("/")).text();
     expect(library).not.toContain('href="/friends"');
-    expect(library).toMatch(/href="\/profile"[^>]*>Profile<span class="appbar-badge"[^>]*>1</);
+    expect(library).toMatch(/aria-label="Notifications, 1 new"/);
+    expect(library).toMatch(/<span class="appbar-badge">1</);
 
     const profile = await (await ada.r.fetch(`/u/${ada.p.handle}`)).text();
     expect(profile).toContain(`href="/u/${ada.p.handle}/friends"`);
@@ -241,13 +243,16 @@ describe("profile buttons", () => {
     const ada = await withProfile("Ada", { visibility: "public" });
     const ben = await withProfile("Ben");
     const page = async () => (await ben.r.fetch(`/u/${ada.p.handle}`)).text();
-    expect(await page()).toContain("Add as a friend");
+    expect(await page()).toContain("Add friend");
     await ask(ben.r, ada.p.handle);
-    expect(await page()).toContain("Request sent");
+    expect(await page()).toContain("Cancel friend request");
+    const theirs = await (await ada.r.fetch(`/u/${ben.p.handle}`)).text();
+    expect(theirs).toContain(">Accept<");
+    expect(theirs).toContain(">Decline<");
     await ask(ada.r, ben.p.handle);
-    expect(await page()).toContain(`class="badge">Friends<`);
+    expect(await page()).toContain("Unfriend");
     // Signed out: no buttons.
-    expect(await (await visitor().fetch(`/u/${ada.p.handle}`)).text()).not.toContain("Add as a friend");
+    expect(await (await visitor().fetch(`/u/${ada.p.handle}`)).text()).not.toContain("Add friend");
   });
 });
 
@@ -260,5 +265,97 @@ describe("logs", () => {
     const log = readFileSync(inject("socialLog"), "utf8");
     expect(log).toContain('"event":"friend.requested"');
     expect(log).not.toContain(ben.p.handle);
+  });
+});
+
+describe("finding people", () => {
+  interface Found extends Someone {
+    standing: string;
+  }
+  const search = async (r: Reader, q: string) =>
+    (await r.get<{ results: Found[] }>(`/api/friends/search?q=${encodeURIComponent(q)}`)).results;
+  // A word nobody else in the test database has.
+  const word = () => `z${randomUUID().replaceAll("-", "").slice(0, 12)}`;
+
+  it("goes by part of a name or username, in any case, closest first", async () => {
+    const w = word();
+    const ada = await withProfile("Ada");
+    const byName = await withProfile(`Grace ${w}`);
+    const byHandle = await withProfile("Ben", { handle: `${w}_x`.slice(0, 24) });
+    expect(ids(await search(ada.r, w.toUpperCase()))).toEqual([byHandle.id, byName.id]);
+    expect(ids(await search(ada.r, `@${byHandle.p.handle}`))).toEqual([byHandle.id]);
+  });
+
+  it("says where each person stands, and follows it", async () => {
+    const w = word();
+    const ada = await withProfile("Ada");
+    const ben = await withProfile(`Ben ${w}`);
+    const standingOfBen = async () => (await search(ada.r, w))[0].standing;
+    expect(await standingOfBen()).toBe("none");
+    await ask(ada.r, ben.p.handle);
+    expect(await standingOfBen()).toBe("sent");
+    expect((await search(ben.r, ada.p.handle))[0].standing).toBe("received");
+    await ask(ben.r, ada.p.handle);
+    expect(await standingOfBen()).toBe("friends");
+  });
+
+  it("leaves out the reader, anyone blocked either way, and email addresses", async () => {
+    const w = word();
+    const ada = await withProfile(`Ada ${w}`);
+    const ben = await withProfile(`Ben ${w}`);
+    const cy = await withProfile(`Cy ${w}`);
+    expect(ids(await search(ada.r, w))).toEqual([ben.id, cy.id]);
+    expect(await search(ada.r, cy.r.email)).toEqual([]);
+
+    expect((await ada.r.fetch(`/api/blocks/${ben.id}`, { method: "PUT" })).status).toBe(200);
+    expect(ids(await search(ada.r, w))).toEqual([cy.id]);
+    expect(ids(await search(ben.r, w))).toEqual([cy.id]);
+  });
+
+  it("treats % and _ as themselves, and needs two characters", async () => {
+    const ada = await withProfile("Ada");
+    expect(await search(ada.r, "%%")).toEqual([]);
+    expect(await search(ada.r, "a")).toEqual([]);
+    const w = word();
+    const under = await withProfile("Ben", { handle: `${w.slice(0, 6)}_${w.slice(6, 12)}` });
+    expect(ids(await search(ada.r, `${w.slice(0, 6)}_`))).toEqual([under.id]);
+    expect(await search(ada.r, `${w.slice(0, 5)}__`)).toEqual([]);
+  });
+
+  it("is for signed-in readers, and only so often", async () => {
+    expect((await visitor().fetch("/api/friends/search?q=ada")).status).toBe(401);
+    const ada = await withProfile("Ada");
+    for (let i = 0; i < 60; i++) await search(ada.r, "ab");
+    const res = await ada.r.fetch("/api/friends/search?q=ab");
+    expect(res.status).toBe(429);
+  });
+});
+
+describe("the bell", () => {
+  it("lists requests waiting for an answer until they're answered, with the news kept apart", async () => {
+    const ada = await withProfile("Ada");
+    const ben = await withProfile("Ben");
+    const cy = await withProfile("Cy");
+    await ask(ben.r, ada.p.handle);
+    await ask(cy.r, ada.p.handle);
+    const incoming = async () => ids((await ada.r.get<{ incoming: Someone[] }>("/api/notifications")).incoming);
+    expect((await incoming()).sort()).toEqual([ben.id, cy.id].sort());
+
+    // Seen, but still waiting for an answer.
+    expect((await ada.r.fetch("/api/notifications/read", { method: "POST" })).status).toBe(200);
+    expect((await news(ada.r)).unread).toBe(0);
+    expect((await incoming()).sort()).toEqual([ben.id, cy.id].sort());
+    expect(await (await ada.r.fetch("/")).text()).toContain('aria-label="Notifications"');
+
+    expect((await ada.r.json(`/api/friends/requests/${ben.id}`, "POST", { accept: true })).status).toBe(200);
+    expect((await ada.r.json(`/api/friends/requests/${cy.id}`, "POST", { accept: false })).status).toBe(200);
+    expect(await incoming()).toEqual([]);
+    expect(await news(ben.r)).toMatchObject({ unread: 1, notifications: [{ kind: "friend_accepted", actor: { id: ada.id } }] });
+    expect((await news(cy.r)).notifications).toEqual([]);
+  });
+
+  it("isn't there without social features", async () => {
+    const r = await reader();
+    expect(await (await r.fetch("/")).text()).not.toContain("Notifications");
   });
 });

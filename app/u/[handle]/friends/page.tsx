@@ -16,7 +16,7 @@ import { listInbox, listSent, markRecsSeen } from "@/lib/social/recs";
 // tile on someone else's profile shows the same list in a dialog; this page is
 // for opening it in its own tab. The reader's own page is where they
 // manage it all (components/FriendsPanel.tsx); opening it counts as having
-// seen the news, which clears the badge on Profile.
+// seen the news, which clears the badge on the bell.
 
 type Props = { params: Promise<{ handle: string }> };
 
