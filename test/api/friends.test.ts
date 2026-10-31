@@ -60,7 +60,7 @@ describe("without SOCIAL", () => {
 describe("friend requests", () => {
   it("are sent by handle, answered, and make both readers friends", async () => {
     const ada = await withProfile("Ada");
-    const ben = await withProfile("Ben", { visibility: "friends" });
+    const ben = await withProfile("Ben", { visibility: "private" });
 
     expect(await (await ask(ada.r, `@${ben.p.handle.toUpperCase()}`)).json()).toEqual({ result: "sent" });
     expect(ids((await friendsOf(ada.r)).requests.outgoing)).toEqual([ben.id]);
@@ -188,6 +188,7 @@ describe("friends", () => {
     const library = await (await ada.r.fetch("/")).text();
     expect(library).not.toContain('href="/friends"');
     expect(library).toMatch(/aria-label="Notifications, 1 new"/);
+    expect(library).toContain('aria-label="Menu"');
     expect(library).toMatch(/<span class="appbar-badge">1</);
 
     const profile = await (await ada.r.fetch(`/u/${ada.p.handle}`)).text();
@@ -200,16 +201,42 @@ describe("friends", () => {
     expect((await news(ada.r)).unread).toBe(0);
     expect(await (await ada.r.fetch("/")).text()).not.toContain("appbar-badge");
 
+    // An accepted request is shown nowhere on it, so the bell keeps that one.
+    expect((await ada.r.json(`/api/friends/requests/${ben.id}`, "POST", { accept: true })).status).toBe(200);
+    await ada.r.fetch(`/u/${ada.p.handle}/friends`);
+    await ben.r.fetch(`/u/${ben.p.handle}/friends`);
+    expect((await news(ben.r)).unread).toBe(1);
+
     // The old Friends tab leads there.
     const old = await ada.r.fetch("/friends");
     expect(old.status).toBe(307);
     expect(old.headers.get("location")).toMatch(new RegExp(`/u/${ada.p.handle}/friends$`));
   });
 
-  it("are shown to everyone, whatever each one's reading visibility, but never anyone blocked", async () => {
+  it("are only counted on a private profile, for anyone but its friends", async () => {
     const ada = await withProfile("Ada", { visibility: "private" });
+    const pal = await withProfile("Pal", { visibility: "public" });
+    const cal = await withProfile("Cal");
+    await befriend(ada, pal);
+    const profile = `/u/${ada.p.handle}`;
+    for (const r of [visitor(), cal.r]) {
+      const html = await (await r.fetch(profile)).text();
+      expect(html).toMatch(/profile-friend-count">1</);
+      expect(html).toContain("Only their friends can see who they are");
+      expect(html).not.toContain(pal.p.handle);
+      expect(html).not.toContain("See all friends");
+      expect((await r.fetch(`${profile}/friends`)).status).toBe(404);
+    }
+    expect(await (await pal.r.fetch(profile)).text()).toContain(`href="/u/${pal.p.handle}"`);
+    expect((await pal.r.fetch(`${profile}/friends`)).status).toBe(200);
+    // They stay in the list of a public friend.
+    expect(await (await visitor().fetch(`/u/${pal.p.handle}/friends`)).text()).toContain(`href="/u/${ada.p.handle}"`);
+  });
+
+  it("are shown to everyone on a public profile, but never anyone blocked", async () => {
+    const ada = await withProfile("Ada", { visibility: "public" });
     const open = await withProfile("Opal", { visibility: "public" });
-    const pal = await withProfile("Pal", { visibility: "friends" });
+    const pal = await withProfile("Pal", { visibility: "private" });
     const shy = await withProfile("Shy", { visibility: "private" });
     for (const f of [open, pal, shy]) await befriend(ada, f);
 
@@ -357,5 +384,31 @@ describe("the bell", () => {
   it("isn't there without social features", async () => {
     const r = await reader();
     expect(await (await r.fetch("/")).text()).not.toContain("Notifications");
+  });
+});
+
+describe("the friends page's tabs", () => {
+  const selected = (page: string, tab: string) =>
+    new RegExp(`id="friends-tab-${tab}"[^>]*aria-selected="true"|aria-selected="true"[^>]*id="friends-tab-${tab}"`).test(page);
+
+  it("opens on Friends, or the tab asked for, even by way of /friends", async () => {
+    const ada = await withProfile("Ada");
+    const page = async (query = "") => (await ada.r.fetch(`/u/${ada.p.handle}/friends${query}`)).text();
+    expect(selected(await page(), "friends")).toBe(true);
+    expect(selected(await page("?tab=requests"), "requests")).toBe(true);
+    expect(selected(await page("?tab=nonsense"), "friends")).toBe(true);
+    const by = await ada.r.fetch("/friends?tab=recommendations");
+    expect(by.headers.get("location")).toContain(`/u/${ada.p.handle}/friends?tab=recommendations`);
+  });
+
+  it("has everything on the page for its tabs", async () => {
+    const ada = await withProfile("Ada");
+    const ben = await withProfile("Ben");
+    await ask(ben.r, ada.p.handle);
+    const page = await (await ada.r.fetch(`/u/${ada.p.handle}/friends`)).text();
+    expect(page).toContain("Book Recommendations");
+    expect(page).toContain("Asking to be your friend");
+    expect(page).toContain("Find new friends");
+    expect(page).not.toContain("Lately");
   });
 });

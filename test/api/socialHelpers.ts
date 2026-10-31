@@ -9,9 +9,7 @@ import { reader, socialBaseUrl, Visitor, type Reader } from "./client";
 export interface Profile {
   handle: string;
   bio: string | null;
-  visibility: "private" | "friends" | "public";
-  shareReading: boolean;
-  shareRatings: boolean;
+  visibility: "private" | "public";
 }
 
 // Unique across test files and runs (each file has its own copy of this module).

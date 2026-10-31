@@ -64,11 +64,11 @@ export default function FriendSearch() {
     <div className="friends-find">
       <div className="friends-add">
         <label className="field">
-          <span>Name or username</span>
+          <span>Find new friends</span>
           <input
             type="search"
             value={typed}
-            placeholder="Who are you looking for?"
+            placeholder="Search by name or username"
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="off"

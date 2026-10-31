@@ -8,6 +8,8 @@ import { getDb, schema } from "@/lib/db";
 import SettingsPanel from "@/components/SettingsPanel";
 import { isSettingsTab } from "@/lib/settingsTabs";
 import { listBlocked } from "@/lib/social/friends";
+import { todayIso } from "@/lib/progress";
+import { getGoal } from "@/lib/social/goals";
 import { ensureProfile } from "@/lib/social/profile";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -22,6 +24,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         .where(eq(schema.user.id, session.user.id))
     : [];
 
+  const thisYear = Number(todayIso().slice(0, 4));
   return (
     <main className="page">
       <header className="masthead">
@@ -39,7 +42,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         email={config.email.enabled ? { from: config.email.from } : null}
         emailSettings={config.emailSettings}
         newsletter={config.newsletter ? Boolean(row?.since) : null}
-        social={config.social ? { profile: await ensureProfile(session.user.id), blocked: await listBlocked(session.user.id) } : undefined}
+        social={
+          config.social
+            ? {
+                profile: await ensureProfile(session.user.id),
+                blocked: await listBlocked(session.user.id),
+                goal: { year: thisYear, books: await getGoal(session.user.id, thisYear) },
+              }
+            : undefined
+        }
         initialTab={isSettingsTab(tab) ? tab : "profile"}
       />
       <p className="settings-version">Bookplate version {config.version}</p>

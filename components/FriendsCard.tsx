@@ -9,7 +9,8 @@ import ProfileIcon from "./ProfileIcon";
 // the last one counting the rest. On someone else's profile the full list opens
 // in a dialog to scroll through (the link is for opening it in a new tab, or
 // without JavaScript). On the reader's own it leads to their friends page, where
-// requests and recommendations are.
+// requests and recommendations are. On a private profile, for anyone but a
+// friend, it's only the number.
 
 const FACES = 6;
 
@@ -17,13 +18,15 @@ export default function FriendsCard({
   span,
   href,
   friends,
+  count,
   title,
   own,
   news,
 }: {
   span: string;
   href: string;
-  friends: Someone[];
+  friends: Someone[]; // empty on a private profile, for anyone but a friend
+  count: number;
   title: string;
   own: boolean;
   news: number;
@@ -54,7 +57,7 @@ export default function FriendsCard({
         <h2>Friends</h2>
         {news > 0 && <span className="profile-news">{`${news} new`}</span>}
       </div>
-      <p className="profile-big profile-friend-count">{friends.length.toLocaleString("en-GB")}</p>
+      <p className="profile-big profile-friend-count">{count.toLocaleString("en-GB")}</p>
       {friends.length > 0 && (
         <ul className="profile-faces">
           {faces.map((f) => (
@@ -78,7 +81,7 @@ export default function FriendsCard({
           {friends.length > 0 ? "See all friends →" : "Find friends →"}
         </a>
       ) : (
-        <p className="profile-note">None to show yet.</p>
+        <p className="profile-note">{count > 0 ? "Only their friends can see who they are." : "None to show yet."}</p>
       )}
       {open && (
         <div className="overlay" onClick={() => setOpen(false)}>

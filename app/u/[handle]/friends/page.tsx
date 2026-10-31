@@ -5,30 +5,33 @@ import Avatar from "@/components/Avatar";
 import FriendsPanel from "@/components/FriendsPanel";
 import { getSession } from "@/lib/auth";
 import { config } from "@/lib/config";
+import { FRIENDS_TABS, type FriendsTab } from "@/lib/friendsTabs";
 import { plural } from "@/lib/progress";
 import { friendsSeenBy, listFriends, listRequests } from "@/lib/social/friends";
-import { listNotifications, markAllRead } from "@/lib/social/notifications";
+import { markRead } from "@/lib/social/notifications";
 import { findPerson } from "@/lib/social/people";
 import { listInbox, listSent, markRecsSeen } from "@/lib/social/recs";
 
-// A reader's friends, for whoever may see the profile: all of them, less anyone
-// blocked with the viewer (lib/social/friends.ts friendsSeenBy). The Friends
+// A reader's friends, for whoever may see the whole of the profile (on a private
+// one, friends): all of them, less anyone blocked with the viewer
+// (lib/social/friends.ts friendsSeenBy). The Friends
 // tile on someone else's profile shows the same list in a dialog; this page is
 // for opening it in its own tab. The reader's own page is where they
 // manage it all (components/FriendsPanel.tsx); opening it counts as having
-// seen the news, which clears the badge on the bell.
+// seen the requests and recommendations on it, which leaves the bell's badge
+// only what's shown nowhere else.
 
-type Props = { params: Promise<{ handle: string }> };
+type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ tab?: string }> };
 
 export const metadata: Metadata = { title: "Friends · Bookplate", robots: { index: false, follow: false } };
 
-export default async function FriendsPage({ params }: Props) {
+export default async function FriendsPage({ params, searchParams }: Props) {
   await connection();
   if (!config.social) notFound();
   const session = await getSession().catch(() => null);
   const viewerId = session?.user.id ?? null;
   const person = await findPerson(viewerId, (await params).handle);
-  if (!person) notFound();
+  if (!person?.seesReading) notFound();
   const who = person.name || `@${person.profile.handle}`;
   const back = (
     <a className="profile-back" href={`/u/${person.profile.handle}`}>
@@ -38,14 +41,9 @@ export default async function FriendsPage({ params }: Props) {
 
   if (person.audience === "self") {
     const userId = person.userId;
-    const [friends, requests, notifications, inbox, sent] = await Promise.all([
-      listFriends(userId),
-      listRequests(userId),
-      listNotifications(userId),
-      listInbox(userId),
-      listSent(userId),
-    ]);
-    if (notifications.some((n) => !n.read)) await markAllRead(userId);
+    const [friends, requests, inbox, sent] = await Promise.all([listFriends(userId), listRequests(userId), listInbox(userId), listSent(userId)]);
+    const { tab } = await searchParams;
+    await markRead(userId, ["friend_request", "recommendation"]);
     if (inbox.some((r) => r.state === "new")) await markRecsSeen(userId);
     return (
       <main className="page">
@@ -53,7 +51,10 @@ export default async function FriendsPage({ params }: Props) {
           {back}
           <h1 className="masthead-title">Friends</h1>
         </header>
-        <FriendsPanel data={{ friends, ...requests, notifications, inbox, sent }} />
+        <FriendsPanel
+          data={{ friends, ...requests, inbox, sent }}
+          initialTab={FRIENDS_TABS.find((t): t is FriendsTab => t === tab)}
+        />
         <footer className="colophon">— ex libris —</footer>
       </main>
     );

@@ -55,8 +55,8 @@ export async function findPerson(viewerId: string | null, handle: string): Promi
 export async function personBooks(p: Person) {
   if (!p.seesReading) return [];
   const self = p.audience === "self";
-  const books = visibleBooks(await listBooks(p.userId), self ? "friend" : p.audience, p.profile);
-  return books.map((b) => personBook(b, p.profile, self ? null : p.profile.handle));
+  const books = visibleBooks(await listBooks(p.userId), self ? "friend" : p.audience);
+  return books.map((b) => personBook(b, self ? null : p.profile.handle));
 }
 
 // The profile page's numbers, and for another signed-in reader how their
@@ -69,11 +69,10 @@ export async function loadPersonView(
   { viewerId }: { viewerId: string | null }
 ): Promise<{ stats: ProfileStats; taste: Taste | null; finished: number; goal: number | null }> {
   const today = todayIso();
-  const showProgress = p.seesReading && (p.audience === "self" || p.profile.shareReading);
   const compare = viewerId !== null && p.audience !== "self" && p.seesReading;
   const [books, progress, mine, library, goal] = await Promise.all([
     personBooks(p),
-    showProgress ? listProgress(p.userId) : [],
+    p.seesReading ? listProgress(p.userId) : [],
     compare ? listBooks(viewerId) : null,
     listBooks(p.userId),
     p.seesReading ? getGoal(p.userId, Number(today.slice(0, 4))) : null,

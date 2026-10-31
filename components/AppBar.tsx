@@ -1,5 +1,5 @@
 import Link from "next/link";
-import AppNav from "./AppNav";
+import AppNav, { AppMenu } from "./AppNav";
 import LogoMark from "./LogoMark";
 import NotificationBell from "./NotificationBell";
 import UserMenu, { type AccountPicture } from "./UserMenu";
@@ -27,6 +27,7 @@ export default function AppBar({
             <AppNav social={social !== null} />
             <div className="appbar-account">
               {social && <NotificationBell initial={social.unread} />}
+              <AppMenu social={social !== null} />
               <UserMenu initial={me} />
             </div>
           </>

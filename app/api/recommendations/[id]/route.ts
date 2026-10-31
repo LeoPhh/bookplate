@@ -26,7 +26,8 @@ export async function PATCH(request: Request, { params }: Params) {
   });
 }
 
-// DELETE takes back a recommendation the reader sent, while it's unanswered.
+// DELETE takes back a recommendation the reader sent, unless it's been added
+// to the recipient's shelf.
 export async function DELETE(_request: Request, { params }: Params) {
   return socialRoute(async (userId) => {
     if (!(await withdrawRecommendation(userId, (await params).id))) {

@@ -1,7 +1,6 @@
 import { hasBeenRead } from "../reads";
 import type { Book } from "../types";
 import type { Audience } from "./access";
-import type { Profile } from "./profile";
 
 // What other readers may see of a reader's books. Every field of Book is
 // listed here, so a new one doesn't compile until someone decides: notes,
@@ -17,7 +16,7 @@ const SHOWN = {
   format: false, // where it came from
   status: true,
   copy: false, // whether they own one
-  rating: true, // unless they don't share ratings
+  rating: true,
   dateRead: true,
   pastReads: true,
   notes: false,
@@ -41,25 +40,18 @@ export function profileAvatar(handle: string, image: string | null | undefined):
   return m ? `/u/${handle}/avatar/${m[1]}` : null;
 }
 
-// Which books this audience sees: anyone the profile is shown to sees what
-// was read; friends also see the to-read shelf, and what's being read when
-// it's shared. Books given up on stay private.
-export function visibleBooks(books: Book[], audience: Audience, p: Profile): Book[] {
+// Which books another reader sees, once they may see any: all but those given up on.
+export function visibleBooks(books: Book[], audience: Audience): Book[] {
   if (audience === "self") return books;
-  return books.filter(
-    (b) =>
-      hasBeenRead(b) ||
-      (audience === "friend" && (b.status === "to-read" || (b.status === "reading" && p.shareReading)))
-  );
+  return books.filter((b) => hasBeenRead(b) || b.status === "to-read" || b.status === "reading");
 }
 
 // One book as others see it. With a handle, its cover moves to that profile's
 // cover address, which other readers may load; null keeps the owner's own.
-export function personBook(b: Book, p: Pick<Profile, "shareRatings">, handle: string | null): Book {
+export function personBook(b: Book, handle: string | null): Book {
   const out = {} as Record<string, unknown>;
   for (const k of SHOWN_FIELDS) if (b[k] !== undefined) out[k] = b[k];
   const shown = out as unknown as Book;
-  if (!p.shareRatings) shown.rating = 0;
   if (handle !== null) shown.coverImage = shown.coverImage ? profileCover(handle, shown.coverImage) : undefined;
   return shown;
 }

@@ -24,9 +24,7 @@ const book = (id: string, over: Partial<Book> = {}): Book => ({
 const profile = (over: Partial<Profile> = {}): Profile => ({
   handle: "ada",
   bio: null,
-  visibility: "friends",
-  shareReading: true,
-  shareRatings: true,
+  visibility: "private",
   ...over,
 });
 
@@ -81,12 +79,12 @@ describe("parseProfile", () => {
   it("keeps only the fields sent, tidied", () => {
     expect(parseProfile({ bio: "  Mostly\nnovels  ‮" })).toEqual({ bio: "Mostly novels" });
     expect(parseProfile({ bio: "" })).toEqual({ bio: null });
-    expect(parseProfile({ visibility: "public", shareRatings: false })).toEqual({ visibility: "public", shareRatings: false });
+    expect(parseProfile({ visibility: "public", shareRatings: false })).toEqual({ visibility: "public" });
   });
 
   it("refuses anything else", () => {
     expect(() => parseProfile({ visibility: "everyone" })).toThrow(ProfileError);
-    expect(() => parseProfile({ shareReading: "yes" })).toThrow(ProfileError);
+    expect(() => parseProfile({ visibility: "friends" })).toThrow(ProfileError);
     expect(() => parseProfile({ bio: "x".repeat(161) })).toThrow(ProfileError);
     expect(() => parseProfile({ handle: 42 })).toThrow(ProfileError);
   });
@@ -94,15 +92,15 @@ describe("parseProfile", () => {
 
 describe("who sees the reading on a profile", () => {
   it("follows its visibility, and never a blocked reader", () => {
-    const table: Record<Audience, [boolean, boolean, boolean]> = {
-      // private, friends, public
-      self: [true, true, true],
-      friend: [false, true, true],
-      stranger: [false, false, true],
-      blocked: [false, false, false],
+    const table: Record<Audience, [boolean, boolean]> = {
+      // private, public
+      self: [true, true],
+      friend: [true, true],
+      stranger: [false, true],
+      blocked: [false, false],
     };
     for (const [audience, expected] of Object.entries(table)) {
-      expect((["private", "friends", "public"] as const).map((v) => canSeeReading(audience as Audience, v))).toEqual(expected);
+      expect((["private", "public"] as const).map((v) => canSeeReading(audience as Audience, v))).toEqual(expected);
     }
   });
 
@@ -122,11 +120,10 @@ describe("what others see of a library", () => {
   ];
   const ids = (books: Book[]) => books.map((b) => b.id);
 
-  it("shows strangers what was read, and friends the to-read shelf and what's being read", () => {
-    expect(ids(visibleBooks(library, "stranger", profile()))).toEqual(["read", "again"]);
-    expect(ids(visibleBooks(library, "friend", profile()))).toEqual(["read", "again", "now", "tbr"]);
-    expect(ids(visibleBooks(library, "friend", profile({ shareReading: false })))).toEqual(["read", "again", "tbr"]);
-    expect(ids(visibleBooks(library, "self", profile()))).toEqual(ids(library));
+  it("shows anyone who may see it all but what was given up on, and the owner the lot", () => {
+    expect(ids(visibleBooks(library, "stranger"))).toEqual(["read", "again", "now", "tbr"]);
+    expect(ids(visibleBooks(library, "friend"))).toEqual(["read", "again", "now", "tbr"]);
+    expect(ids(visibleBooks(library, "self"))).toEqual(ids(library));
   });
 
   it("never shows notes, sources, copies or when a book was added", () => {
@@ -143,13 +140,13 @@ describe("what others see of a library", () => {
       notes: "a private thought",
       coverImage: "/api/covers/x.jpg?v=2",
     });
-    const shown = personBook(full, profile(), "ada");
+    const shown = personBook(full, "ada");
     for (const k of ["format", "copy", "notes", "addedAt"]) expect(shown).not.toHaveProperty(k);
     expect(Object.keys(shown).sort()).toEqual([...SHOWN_FIELDS].sort());
     expect(shown.coverImage).toBe("/u/ada/covers/x.jpg?v=2");
-    expect(personBook(full, profile({ shareRatings: false }), "ada").rating).toBe(0);
+    expect(shown.rating).toBe(4);
     // The owner's own view keeps their own cover address.
-    expect(personBook(full, profile(), null).coverImage).toBe("/api/covers/x.jpg?v=2");
+    expect(personBook(full, null).coverImage).toBe("/api/covers/x.jpg?v=2");
   });
 
   it("moves images to the profile's own addresses, and nothing else", () => {

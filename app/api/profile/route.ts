@@ -12,7 +12,7 @@ export async function GET() {
   return Response.json({ profile: await ensureProfile(auth.userId) });
 }
 
-// PATCH { handle?, bio?, visibility?, shareReading?, shareRatings? } changes
+// PATCH { handle?, bio?, visibility? } changes
 // any of it.
 export async function PATCH(request: Request) {
   const off = socialOff();

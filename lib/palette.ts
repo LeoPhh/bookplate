@@ -22,6 +22,12 @@ export const PALETTE: SpineColor[] = [
   { name: "Ink", bg: "#111111", deep: "#000000", ink: "#ffffff" },
 ];
 
+// Parts of a whole, biggest first (a profile's shelves, the Statistics pies).
+// Only ever six: anything past them folds into "Other".
+export const SLICE_COLORS = ["#ff3b1f", "#ffd400", "#00b6d8", "#1a34d6", "#ff5fa2", "#00994d"];
+export const SLICE_OTHER = "#b8b4aa";
+export const SLICE_UNSPECIFIED = "#ece9e1";
+
 export function paletteFor(colorIndex: number): SpineColor {
   const i = ((colorIndex % PALETTE.length) + PALETTE.length) % PALETTE.length;
   return PALETTE[i];

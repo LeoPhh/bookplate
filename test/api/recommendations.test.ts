@@ -26,8 +26,8 @@ const recs = (r: Reader) => r.get<Recs>("/api/recommendations");
 const titles = (list: Rec[]) => list.map((x) => x.title);
 
 async function friends() {
-  const ada = await withProfile("Ada", { visibility: "friends" });
-  const ben = await withProfile("Ben", { visibility: "friends" });
+  const ada = await withProfile("Ada", { visibility: "private" });
+  const ben = await withProfile("Ben", { visibility: "private" });
   await ada.r.json("/api/friends/requests", "POST", { handle: ben.p.handle });
   await ben.r.json("/api/friends/requests", "POST", { handle: ada.p.handle });
   return { ada, ben };
@@ -240,5 +240,23 @@ describe("the export", () => {
     const r = await reader();
     const files = unzipSync(new Uint8Array(await (await r.fetch("/api/export")).arrayBuffer()));
     expect(Object.keys(files)).not.toContain("social.json");
+  });
+
+  it("can be withdrawn after a Not for me, which the sender can't tell from Seen, but not once on the shelf", async () => {
+    const { ada, ben } = await friends();
+    const sentList = async () => (await ada.r.get<{ sent: { id: string; state: string }[] }>("/api/recommendations")).sent;
+    const no = await sent(ada.r, ben.id, { title: "Dune", author: "Frank Herbert" });
+    const yes = await sent(ada.r, ben.id, { title: "Emma", author: "Jane Austen" });
+    expect((await ben.r.json(`/api/recommendations/${no}`, "PATCH", { action: "dismiss" })).status).toBe(200);
+    expect((await ben.r.json(`/api/recommendations/${yes}`, "PATCH", { action: "add" })).status).toBe(200);
+    expect((await sentList()).find((r) => r.id === no)?.state).toBe("seen");
+
+    expect((await ada.r.fetch(`/api/recommendations/${no}`, { method: "DELETE" })).status).toBe(200);
+    expect((await sentList()).map((r) => r.id)).toEqual([yes]);
+
+    expect((await ada.r.fetch(`/api/recommendations/${yes}`, { method: "DELETE" })).status).toBe(404);
+    // Someone else's is still not theirs to withdraw.
+    const other = await sent(ada.r, ben.id, { title: "Ulysses", author: "James Joyce" });
+    expect((await ben.r.fetch(`/api/recommendations/${other}`, { method: "DELETE" })).status).toBe(404);
   });
 });

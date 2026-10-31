@@ -94,9 +94,7 @@ describe("every reader's profile", () => {
     expect((await one.get<{ profile: Profile }>("/api/profile")).profile).toEqual({
       handle: handles[0],
       bio: null,
-      visibility: "friends",
-      shareReading: true,
-      shareRatings: true,
+      visibility: "private",
     });
   });
 
@@ -112,9 +110,9 @@ describe("every reader's profile", () => {
     const r = await socialReader();
     const handle = uniqueHandle("Reader");
     const p = await makeProfile(r, { handle: `@${handle.toUpperCase()}` });
-    expect(p).toEqual({ handle: handle.toLowerCase(), bio: null, visibility: "friends", shareReading: true, shareRatings: true });
-    const changed = await makeProfile(r, { bio: "  Mostly novels ", shareRatings: false });
-    expect(changed).toEqual({ ...p, bio: "Mostly novels", shareRatings: false });
+    expect(p).toEqual({ handle: handle.toLowerCase(), bio: null, visibility: "private" });
+    const changed = await makeProfile(r, { bio: "  Mostly novels " });
+    expect(changed).toEqual({ ...p, bio: "Mostly novels" });
     expect((await r.get<{ profile: Profile }>("/api/profile")).profile).toEqual(changed);
   });
 
@@ -144,7 +142,7 @@ describe("every reader's profile", () => {
 });
 
 describe("who sees a profile", () => {
-  it("is everyone; the reading on it follows its visibility", async () => {
+  it("is everyone; the rest of it is for friends if private, for anyone if public", async () => {
     const { r, p } = await ada({ visibility: "private" });
     const friend = await socialReader();
     const stranger = await socialReader();
@@ -162,13 +160,11 @@ describe("who sees a profile", () => {
         })
       );
 
-    expect(await seen()).toEqual([true, false, false, false]);
-    expect((await page(friend, path)).html).toContain("keeps their books and numbers private");
-    await makeProfile(r, { visibility: "friends" });
     expect(await seen()).toEqual([true, true, false, false]);
-    expect((await page(stranger, path)).html).toContain("shares their books and numbers with friends only");
+    expect((await page(stranger, path)).html).toContain("Only Ada Lovelace’s friends can see their books and numbers");
     await makeProfile(r, { visibility: "public" });
     expect(await seen()).toEqual([true, true, true, true]);
+    expect((await r.json("/api/profile", "PATCH", { visibility: "friends" })).status).toBe(400);
 
     expect((await visitor().fetch(`/u/${uniqueHandle("nobody")}`)).status).toBe(404);
   });
@@ -192,7 +188,7 @@ describe("who sees a profile", () => {
 });
 
 describe("what a profile shows", () => {
-  it("shows strangers what was read; friends also what's being read and the to-read shelf", async () => {
+  it("shows anyone the whole of a public profile, what's being read included", async () => {
     const { r, p } = await ada({ visibility: "public" });
     const friend = await socialReader();
     await befriend(r, friend);
@@ -202,7 +198,7 @@ describe("what a profile shows", () => {
     expect(pub).toContain(`@${p.handle}`);
     expect(pub).toContain("Mostly novels");
     expect(pub).toContain("February Book");
-    expect(pub).not.toContain("Current Book");
+    expect(pub).toContain("Current Book");
 
     const fr = (await page(friend, `/u/${p.handle}`)).html;
     expect(fr).toContain("February Book");
@@ -222,16 +218,22 @@ describe("what a profile shows", () => {
     }
   });
 
-  it("leaves out what's being read, and ratings, when the reader says so", async () => {
-    const { r, p } = await ada({ shareReading: false, shareRatings: false });
+  it("always shows what's being read and ratings to whoever may see the rest", async () => {
+    const { r, p } = await ada({ visibility: "private" });
     const friend = await socialReader();
     await befriend(r, friend);
-    const { html } = await page(friend, `/u/${p.handle}`);
-    expect(html).not.toContain("Current Book");
-    expect(html).not.toContain("Average rating");
-    // Without ratings, the covers are what was finished lately.
-    expect(html).toContain("Recently finished");
-    expect(html).not.toContain("Highest rated");
+    const path = `/u/${p.handle}`;
+    const open = (await page(friend, path)).html;
+    expect(open).toContain("Current Book");
+    expect(open).toContain("Average rating");
+    const closed = (await page(visitor(), path)).html;
+    expect(closed).not.toContain("Current Book");
+    expect(closed).not.toContain("Average rating");
+    // Readers who switched these off before they went keep nothing hidden now.
+    await withDb((c) => c.query("UPDATE profile SET share_reading = false, share_ratings = false WHERE handle = $1", [p.handle]));
+    expect((await page(friend, path)).html).toContain("Average rating");
+    await makeProfile(r, { visibility: "public" });
+    expect((await page(visitor(), path)).html).toContain("Current Book");
   });
 });
 
@@ -271,8 +273,10 @@ describe("the page's hero", () => {
     expect(inn.html).toContain("Add friend");
   });
 
-  it("shows the same example achievements on every profile", async () => {
-    const { p } = await ada({ visibility: "private" });
+  it("shows the same example achievements on every profile that's open to the viewer", async () => {
+    const { r, p } = await ada({ visibility: "private" });
+    expect((await page(visitor(), `/u/${p.handle}`)).html).not.toContain("Coming soon");
+    await makeProfile(r, { visibility: "public" });
     const { html } = await page(visitor(), `/u/${p.handle}`);
     for (const text of ["Coming soon", "Century", "Read every day for one month", "Read 50,000 pages"]) expect(html).toContain(text);
   });
@@ -280,7 +284,7 @@ describe("the page's hero", () => {
 
 describe("the year's goal", () => {
   it("is offered to the owner, shown with the reading, and can go again", async () => {
-    const { r, p } = await ada({ visibility: "friends" });
+    const { r, p } = await ada({ visibility: "private" });
     const friend = await socialReader();
     await befriend(r, friend);
     const path = `/u/${p.handle}`;
@@ -345,7 +349,7 @@ describe("profile images", () => {
     expect(res.headers.get("cache-control")).toContain("private");
 
     expect((await visitor().fetch(`/u/${p.handle}/covers/feb.jpg`)).status).toBe(200);
-    expect((await visitor().fetch(`/u/${p.handle}/covers/tbr.jpg`)).status).toBe(404); // friends only
+    expect((await visitor().fetch(`/u/${p.handle}/covers/tbr.jpg`)).status).toBe(200);
     expect((await visitor().fetch(`/u/${p.handle}/covers/..%2Ffeb.jpg`)).status).toBe(404);
     const friend = await socialReader();
     await befriend(r, friend);
@@ -373,7 +377,7 @@ describe("profile images", () => {
 
 describe("old showcase links", () => {
   it("lead to the reader's profile only while their reading is public", async () => {
-    const { r, p } = await ada({ visibility: "friends" });
+    const { r, p } = await ada({ visibility: "private" });
     const id = "AbCdEfGhIjKlMnOp";
     const owner = await userId(r);
     await withDb((c) => c.query("INSERT INTO showcase (id, user_id, year, name) VALUES ($1, $2, $3, 'A pen name')", [id, owner, YEAR]));
@@ -425,18 +429,6 @@ describe("taste", () => {
     expect(await (await r.fetch(`/u/${p.handle}`)).text()).not.toContain("You’ve both read");
     expect(await (await visitor().fetch(`/u/${p.handle}`)).text()).not.toContain("You’ve both read");
   });
-
-  it("never uses ratings the reader doesn't share", async () => {
-    const { r, p } = await ada({ visibility: "public", shareRatings: false });
-    const ben = await socialReader("Ben");
-    for (const id of ["m1", "m2", "m3"]) {
-      await r.json(`/api/books/${id}`, "PUT", book(id, { title: `Shared ${id}`, status: "read", rating: 5 }));
-      await ben.json(`/api/books/${id}`, "PUT", book(id, { title: `Shared ${id}`, status: "read", rating: 5 }));
-    }
-    const html = await (await ben.fetch(`/u/${p.handle}`)).text();
-    expect(html).toContain("You’ve both read");
-    expect(html).not.toContain("Taste match");
-  });
 });
 
 describe("link previews", () => {
@@ -448,7 +440,7 @@ describe("link previews", () => {
     expect(img.status).toBe(200);
     expect(img.headers.get("content-type")).toBe("image/png");
 
-    await makeProfile(r, { visibility: "friends" });
+    await makeProfile(r, { visibility: "private" });
     expect((await visitor().fetch(`/u/${p.handle}/card`)).status).toBe(404);
     const friendsOnly = await (await r.fetch(`/u/${p.handle}`)).text();
     expect(friendsOnly).not.toContain('property="og:');
@@ -475,6 +467,25 @@ describe("taking a profile down", () => {
 
     // The reader gets a fresh profile: no bio, friends only.
     const fresh = (await r.get<{ profile: Profile }>("/api/profile")).profile;
-    expect(fresh).toMatchObject({ bio: null, visibility: "friends" });
+    expect(fresh).toMatchObject({ bio: null, visibility: "private" });
+  });
+});
+
+describe("Settings' profile form", () => {
+  it("asks about visibility and this year's goal, and nothing about reading or ratings", async () => {
+    const r = await socialReader();
+    const html = await (await r.fetch("/settings")).text();
+    expect(html).toContain("Profile Visibility");
+    expect(html).toContain(`Reading goal for ${YEAR}`);
+    expect(html).toContain("About You (Optional)");
+    expect(html).toContain("Only your friends can see your whole profile");
+    expect(html).not.toContain("My ratings");
+    expect(html).not.toContain("Who sees your reading");
+  });
+
+  it("explains a username it can't use", async () => {
+    const r = await socialReader();
+    const res = await r.json("/api/profile", "PATCH", { handle: "x" });
+    expect(((await res.json()) as { error: string }).error).toBe("A username can only be 3–24 letters, digits or underscores.");
   });
 });

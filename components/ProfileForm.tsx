@@ -4,27 +4,49 @@ import { useState } from "react";
 import type { Profile, Visibility } from "@/lib/social/profile";
 import Spinner from "./Spinner";
 
-// Settings → Profile → Profile page: the username (a handle in the code),
-// a line about yourself, who sees the page and what's on it.
+// Settings → Profile → Profile page: the username (a handle in the code), a line
+// about yourself, this year's reading goal, and whether the profile's private.
 
 const HANDLE_MAX = 24;
 const BIO_MAX = 160;
+const GOAL_MAX = 500;
 
 const VISIBILITY: { id: Visibility; label: string; text: string }[] = [
-  { id: "private", label: "Only me", text: "Nobody else sees your books or numbers." },
-  { id: "friends", label: "Friends", text: "Your friends see them; nobody else does." },
-  { id: "public", label: "Everyone", text: "Anyone who opens your profile, signed in or not. Search engines aren’t told about it." },
+  {
+    id: "private",
+    label: "Private",
+    text: "Only your friends can see your whole profile. Everyone else sees your name, photo, username, bio and bookplate, and how many books you’ve read and friends you have, but nothing else.",
+  },
+  {
+    id: "public",
+    label: "Public",
+    text: "Anyone can see your whole profile, signed in or not. Search engines aren’t told about it.",
+  },
 ];
 
-export default function ProfileForm({ initial }: { initial: Profile }) {
+export default function ProfileForm({ initial, goal }: { initial: Profile; goal: { year: number; books: number | null } }) {
   const [saved, setSaved] = useState(initial);
+  const [savedGoal, setSavedGoal] = useState(goal.books);
   const [handle, setHandle] = useState(initial.handle);
   const [bio, setBio] = useState(initial.bio ?? "");
+  const [books, setBooks] = useState(goal.books === null ? "" : String(goal.books));
   const [visibility, setVisibility] = useState<Visibility>(initial.visibility);
-  const [shareReading, setShareReading] = useState(initial.shareReading);
-  const [shareRatings, setShareRatings] = useState(initial.shareRatings);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const saveGoal = async () => {
+    const wanted = books.trim() === "" ? null : Number(books);
+    if (wanted === savedGoal) return;
+    const res = await fetch(
+      "/api/goal",
+      wanted === null
+        ? { method: "DELETE" }
+        : { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ books: wanted }) }
+    );
+    const data: { error?: string } = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Your goal could not be saved.");
+    setSavedGoal(wanted);
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +56,13 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, bio, visibility, shareReading, shareRatings }),
+        body: JSON.stringify({ handle, bio, visibility }),
       });
       const data: { profile?: Profile; error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || !data.profile) throw new Error(data.error ?? "Your profile could not be saved.");
       setSaved(data.profile);
       setHandle(data.profile.handle);
+      await saveGoal();
       setResult({ ok: true, text: "Saved." });
     } catch (err) {
       setResult({ ok: false, text: err instanceof Error ? err.message : "Your profile could not be saved." });
@@ -67,15 +90,15 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         How friends find you: @{handle.replace(/^@/, "").toLowerCase() || "yourname"}. Letters, digits and underscores.
       </p>
       <label className="field">
-        <span>About you</span>
+        <span>About You (Optional)</span>
         <textarea rows={2} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} />
       </label>
-      <p className="settings-lede">
-        Anyone can open your profile and see your name, photo, username, bio and friends, when you joined and how many
-        books you&rsquo;ve read. The rest of your reading — which books, your other numbers and your goal — is up to you.
-      </p>
+      <label className="field profile-goal-field">
+        <span>{`Reading goal for ${goal.year} (Optional)`}</span>
+        <input type="number" min={1} max={GOAL_MAX} step={1} value={books} placeholder="Books to finish" onChange={(e) => setBooks(e.target.value)} />
+      </label>
       <fieldset className="profile-visibility">
-        <legend>Who sees your reading</legend>
+        <legend>Profile Visibility</legend>
         {VISIBILITY.map((v) => (
           <label key={v.id} className="checkline checkline--wrap">
             <input
@@ -91,30 +114,6 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
           </label>
         ))}
       </fieldset>
-      <label className="checkline checkline--wrap switch-line">
-        <input
-          type="checkbox"
-          role="switch"
-          className="switch"
-          checked={shareReading}
-          onChange={(e) => setShareReading(e.target.checked)}
-        />
-        <span>
-          <strong>What I&rsquo;m reading now.</strong> With how far along you are. Only friends see it.
-        </span>
-      </label>
-      <label className="checkline checkline--wrap switch-line">
-        <input
-          type="checkbox"
-          role="switch"
-          className="switch"
-          checked={shareRatings}
-          onChange={(e) => setShareRatings(e.target.checked)}
-        />
-        <span>
-          <strong>My ratings.</strong> Stars on your books and your average rating.
-        </span>
-      </label>
       <p className="settings-lede">Your notes, words, sources, copies and email are never shown to anyone.</p>
       <div className="settings-row">
         <button type="submit" className="btn btn--primary" disabled={busy}>

@@ -2,11 +2,11 @@ import { sql } from "drizzle-orm";
 import { getDb } from "../db";
 import type { Visibility } from "./profile";
 
-// Who may see what of another reader's. A profile itself (name, photo,
-// username, bio, friends, when they joined, how many books they've finished) is
-// open to anyone but a reader blocked either way; the reading on it (books, the
-// other numbers, their goal) follows the profile's visibility. Every
-// cross-reader read goes through audienceFor and canSeeReading, and anything
+// Who may see what of another reader's, as on Instagram. The top of a profile
+// (name, photo, username, bio, bookplate, how many books and friends they have)
+// is open to anyone but a reader blocked either way. The rest (books, the other
+// numbers, their goal, who their friends are) is for anyone on a public profile,
+// and on a private one for friends only. Every cross-reader read goes through audienceFor and canSeeReading, and anything
 // hidden is "not found", never "forbidden".
 
 // What the viewer is to the owner. Signed-out visitors are strangers.
@@ -28,13 +28,13 @@ export async function audienceFor(viewerId: string | null, ownerId: string): Pro
   return rows[0]?.friend ? "friend" : "stranger";
 }
 
-// Whether this audience sees the reading on a profile with this visibility.
+// Whether this audience sees the whole of a profile with this visibility.
 export function canSeeReading(audience: Audience, visibility: Visibility): boolean {
   switch (audience) {
     case "self":
       return true;
     case "friend":
-      return visibility !== "private";
+      return true;
     case "stranger":
       return visibility === "public";
     case "blocked":

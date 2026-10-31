@@ -201,8 +201,9 @@ export const profile = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     handle: text("handle").notNull(), // lower case, [a-z0-9_]{3,24}
     bio: text("bio"),
-    visibility: text("visibility").notNull().default("friends"), // private | friends | public
-    shareReading: boolean("share_reading").notNull().default(true), // what's being read now
+    visibility: text("visibility").notNull().default("private"), // private | public
+    // No longer read: what's being read now and ratings always show.
+    shareReading: boolean("share_reading").notNull().default(true),
     shareRatings: boolean("share_ratings").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

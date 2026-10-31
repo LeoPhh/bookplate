@@ -85,7 +85,7 @@ export default async function PersonPage({ params }: Props) {
         finished={finished}
         goal={goal}
         today={todayIso()}
-        friends={{ all: friends, href: `${base}/friends`, news }}
+        friends={{ all: person.seesReading ? friends : [], count: friends.length, href: `${base}/friends`, news }}
         shareUrl={self ? `${config.publicUrl}${base}` : undefined}
         actions={
           viewerId && !self ? (

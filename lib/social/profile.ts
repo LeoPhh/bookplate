@@ -2,19 +2,16 @@ import { eq, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "../db";
 
 // A reader's profile: the handle others find them by (@ada; "username" on
-// screen), a line about themselves, and who may see their reading. Every
-// reader has one, made with their account (ensureProfile); they choose who
-// sees it.
+// screen), a line about themselves, and whether it's private or public. Every
+// reader has one, made with their account (ensureProfile).
 
-export const VISIBILITIES = ["private", "friends", "public"] as const;
+export const VISIBILITIES = ["private", "public"] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
 export interface Profile {
   handle: string;
   bio: string | null;
-  visibility: Visibility; // private: only them; friends; public: anyone with the link
-  shareReading: boolean; // what they're reading now, with how far along
-  shareRatings: boolean;
+  visibility: Visibility; // private: all of it for friends only; public: for anyone
 }
 
 export const HANDLE_MIN = 3;
@@ -39,7 +36,7 @@ export const normaliseHandle = (raw: string) => raw.trim().replace(/^@/, "").toL
 export function checkHandle(raw: string): string {
   const handle = normaliseHandle(raw);
   if (!HANDLE.test(handle)) {
-    throw new ProfileError(`A username is ${HANDLE_MIN}–${HANDLE_MAX} letters, digits or underscores.`);
+    throw new ProfileError(`A username can only be ${HANDLE_MIN}–${HANDLE_MAX} letters, digits or underscores.`);
   }
   if (isReserved(handle)) throw new ProfileError("That username is taken.");
   return handle;
@@ -95,11 +92,6 @@ export function parseProfile(body: unknown): Partial<Profile> {
     if (!VISIBILITIES.includes(o.visibility as Visibility)) throw new ProfileError("Invalid visibility.");
     out.visibility = o.visibility as Visibility;
   }
-  for (const k of ["shareReading", "shareRatings"] as const) {
-    if (o[k] === undefined) continue;
-    if (typeof o[k] !== "boolean") throw new ProfileError(`${k} must be true or false.`);
-    out[k] = o[k];
-  }
   return out;
 }
 
@@ -107,8 +99,6 @@ const toProfile = (r: typeof profile.$inferSelect): Profile => ({
   handle: r.handle,
   bio: r.bio,
   visibility: r.visibility as Visibility,
-  shareReading: r.shareReading,
-  shareRatings: r.shareRatings,
 });
 
 export async function getProfile(userId: string): Promise<Profile | null> {
@@ -130,7 +120,7 @@ const isUniqueViolation = (e: unknown): boolean => {
 };
 
 // The reader's profile, made first if they have none yet: a handle from
-// their name, seen by their friends. Made at sign-up, for older accounts by
+// their name, private to start with. Made at sign-up, for older accounts by
 // housekeeping, and again here after remove-profile took one down.
 export async function ensureProfile(userId: string): Promise<Profile> {
   const current = await getProfile(userId);

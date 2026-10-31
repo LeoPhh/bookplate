@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
+import MoreMenu from "./MoreMenu";
 import RecommendDialog from "./RecommendDialog";
 import Spinner from "./Spinner";
 
@@ -30,24 +31,6 @@ export default function ProfileActions({
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"unfriend" | "block" | null>(null);
   const [recommending, setRecommending] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menu = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (!menu.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
 
   const act = async (path: string, method: string, body?: unknown, then?: () => void) => {
     setBusy(true);
@@ -106,26 +89,11 @@ export default function ProfileActions({
           </button>
         </>
       )}
-      <div className="profile-menu" ref={menu}>
-        <button
-          type="button"
-          className="btn profile-menu-button"
-          aria-label="More options"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          disabled={busy}
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          <svg viewBox="0 0 14 14" aria-hidden="true">
-            <circle cx="2" cy="7" r="1.5" />
-            <circle cx="7" cy="7" r="1.5" />
-            <circle cx="12" cy="7" r="1.5" />
-          </svg>
-        </button>
-        {menuOpen && (
-          <div className="user-menu-panel profile-menu-panel" role="menu">
+      <MoreMenu label="More options" disabled={busy}>
+        {(close) => (
+          <>
             {reportHref && (
-              <a className="user-menu-item" role="menuitem" href={reportHref} onClick={() => setMenuOpen(false)}>
+              <a className="user-menu-item" role="menuitem" href={reportHref} onClick={close}>
                 Report this profile
               </a>
             )}
@@ -134,15 +102,15 @@ export default function ProfileActions({
               className="user-menu-item profile-menu-danger"
               role="menuitem"
               onClick={() => {
-                setMenuOpen(false);
+                close();
                 setConfirm("block");
               }}
             >
               Block
             </button>
-          </div>
+          </>
         )}
-      </div>
+      </MoreMenu>
       {error && (
         <p className="settings-note settings-note--error" role="alert">
           {error}

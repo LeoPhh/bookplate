@@ -212,11 +212,13 @@ export async function dismissRecommendation(userId: string, id: string): Promise
   await getDb().update(recommendation).set({ state: "dismissed", updatedAt: sql`now()` }).where(eq(recommendation.id, id));
 }
 
-// The sender takes back one not answered yet.
+// The sender takes back one that isn't on the recipient's shelf. One they said
+// wasn't for them goes too: to the sender it only looks seen, so refusing here
+// would give the answer away.
 export async function withdrawRecommendation(userId: string, id: string): Promise<boolean> {
   const gone = await getDb()
     .delete(recommendation)
-    .where(and(eq(recommendation.id, id), eq(recommendation.fromUser, userId), inArray(recommendation.state, ["new", "seen"])))
+    .where(and(eq(recommendation.id, id), eq(recommendation.fromUser, userId), inArray(recommendation.state, ["new", "seen", "dismissed"])))
     .returning();
   if (gone.length) {
     await getDb()

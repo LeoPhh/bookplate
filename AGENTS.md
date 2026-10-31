@@ -32,12 +32,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
   the mark (a link to the Library), and when signed in the sections
   (Library, Vocabulary, Statistics; with `SOCIAL=true`, then Profile, with
   friends under each profile at `/u/<handle>/friends`), the notification bell
-  (with `SOCIAL=true`) and the account menu. On phones the sections become
-  the bottom tab bar. It never links out of the app.
-- Social features (`SOCIAL=true`, `lib/social/`) read across readers. A
-  profile (name, photo, username, bio, friends, join date, number of books
-  finished) is open to anyone not blocked either way; its reading (books, other
-  numbers, goal) follows its visibility. Every such
+  (with `SOCIAL=true`) and the account menu. On phones the sections move
+  into a menu beside the profile picture (`AppMenu`). It never links out of the app.
+- Social features (`SOCIAL=true`, `lib/social/`) read across readers, on
+  Instagram's model. The top of a profile (name, photo, username, bio, bookplate,
+  number of books finished, number of friends) is open to anyone not blocked
+  either way. The rest (books, other numbers, goal, who their friends are) is
+  for friends only on a private profile, and for anyone on a public one. Every such
   read goes through `audienceFor`/`canSeeReading` (`lib/social/access.ts`) and
   answers "not found", never "forbidden"; books pass through the allow-list in
   `lib/social/projection.ts`; another reader's images are served only from

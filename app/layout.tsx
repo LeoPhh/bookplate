@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
 };
 
-// viewportFit "cover" lets the phone tab bar sit under the home indicator;
+// viewportFit "cover" lets dialogs and pages run to the screen's edges;
 // globals.css pads it with env(safe-area-inset-*).
 export const viewport: Viewport = {
   width: "device-width",

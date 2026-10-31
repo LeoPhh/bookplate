@@ -5,13 +5,14 @@ import { Book, BookFormat, FORMAT_LABELS, isCustomSource, ProgressEntry, sourceL
 import { fmtShortDate, plural, summarize } from "@/lib/progress";
 import { averageRating, ratedReads } from "@/lib/ratings";
 import { finishes, finishesIn, hasBeenRead, timesRead } from "@/lib/reads";
+import PieChart from "./PieChart";
 import ProgressBar from "./ProgressBar";
 import { paletteFor } from "@/lib/palette";
 import StarRating from "./StarRating";
 import { useFeature } from "./Features";
 
-// Single-series magnitude charts: one hue (vermilion — about 3.6:1 on the
-// white card surface), direct labels, no legend.
+// Magnitude charts: one hue (vermilion — about 3.6:1 on the white card
+// surface), direct labels, no legend. Parts of a whole are pies (PieChart.tsx).
 // Chart colours come from CSS custom properties defined in globals.css.
 const SERIES = "var(--chart-series)";
 const SERIES_HOVER = "var(--chart-series-hover)";
@@ -34,6 +35,7 @@ type Drill =
   | { kind: "year"; year: number }
   | { kind: "genres" }
   | { kind: "genre"; genre: string }
+  | { kind: "sources" }
   | { kind: "source"; source: string | null } // null = no source set
   | { kind: "rating"; rating: number };
 
@@ -387,16 +389,21 @@ export default function StatsView({ books, progress, onSelect }: Props) {
     for (const b of books) {
       if (isCustomSource(b.format)) custom.set(b.format, (custom.get(b.format) ?? 0) + 1);
     }
-    const sources: { source: string | null; label: string; count: number }[] = [
+    const allSources: { source: string | null; label: string; count: number }[] = [
       ...(Object.keys(FORMAT_LABELS) as BookFormat[]).map((f) => ({
         source: f as string | null,
         label: FORMAT_LABELS[f],
         count: books.filter((b) => b.format === f).length,
       })),
       ...[...custom.entries()].map(([source, count]) => ({ source: source as string | null, label: source, count })),
-    ].sort((a, b) => b.count - a.count);
+    ]
+      .filter((s) => s.count > 0)
+      .sort((a, b) => b.count - a.count);
     const unsourced = books.filter((b) => !b.format).length;
-    if (unsourced > 0) sources.push({ source: null, label: "Unspecified", count: unsourced });
+    if (unsourced > 0) allSources.push({ source: null, label: "Unspecified", count: unsourced });
+    const sources = allSources.slice(0, 6);
+    const restSources = allSources.slice(6).reduce((s, x) => s + x.count, 0);
+    if (restSources > 0) sources.push({ source: null, label: "Other", count: restSources });
 
     return {
       read,
@@ -409,6 +416,7 @@ export default function StatsView({ books, progress, onSelect }: Props) {
       genres,
       allGenres,
       sources,
+      allSources,
       mostReread,
       years: yearCounts(books),
     };
@@ -509,6 +517,23 @@ export default function StatsView({ books, progress, onSelect }: Props) {
       );
     }
 
+    if (drill.kind === "sources") {
+      const rows = stats.allSources.map((s) => ({
+        label: s.label,
+        count: s.count,
+        action: () => setDrill({ kind: "source", source: s.source }),
+      }));
+      return (
+        <DrillDialog
+          title="All sources"
+          sub={`${stats.allSources.length} sources across ${books.length} books. Click one for its books`}
+          onClose={() => setDrill(null)}
+        >
+          <BarList rows={rows} total={books.length} />
+        </DrillDialog>
+      );
+    }
+
     if (drill.kind === "source") {
       const list = books
         .filter((b) => (drill.source === null ? !b.format : b.format === drill.source))
@@ -520,6 +545,11 @@ export default function StatsView({ books, progress, onSelect }: Props) {
           sub={`${list.length} ${list.length === 1 ? "book" : "books"}, best first`}
           onClose={() => setDrill(null)}
         >
+          {stats.allSources.length > 6 && (
+            <button type="button" className="drill-back" onClick={() => setDrill({ kind: "sources" })}>
+              ‹ All sources
+            </button>
+          )}
           {renderBookList(list)}
         </DrillDialog>
       );
@@ -553,7 +583,7 @@ export default function StatsView({ books, progress, onSelect }: Props) {
   const sourceRows = stats.sources.map((s) => ({
     label: s.label,
     count: s.count,
-    action: () => setDrill({ kind: "source", source: s.source }),
+    action: () => setDrill(s.label === "Other" ? { kind: "sources" } : { kind: "source", source: s.source }),
   }));
 
   return (
@@ -615,8 +645,8 @@ export default function StatsView({ books, progress, onSelect }: Props) {
         </div>
         <div className="chart-card">
           <h2 className="chart-title">Genres on the shelf</h2>
-          <p className="chart-sub">Most common first. Click one for its books</p>
-          <BarList rows={genreRows} />
+          <p className="chart-sub">Share of the library by genre. Click one for its books</p>
+          <PieChart rows={genreRows} label="Genres on the shelf" empty="Add a book and its genre will appear here." />
           {stats.allGenres.length > 6 && (
             <button type="button" className="drill-back chart-more" onClick={() => setDrill({ kind: "genres" })}>
               See all {stats.allGenres.length} genres ›
@@ -626,8 +656,13 @@ export default function StatsView({ books, progress, onSelect }: Props) {
         {showSource && (
           <div className="chart-card">
             <h2 className="chart-title">Where they came from</h2>
-            <p className="chart-sub">Share of the library by source</p>
-            <BarList rows={sourceRows} total={books.length} />
+            <p className="chart-sub">Share of the library by source. Click one for its books</p>
+            <PieChart rows={sourceRows} label="Where they came from" empty="Add a book and where it came from will appear here." />
+            {stats.allSources.length > 6 && (
+              <button type="button" className="drill-back chart-more" onClick={() => setDrill({ kind: "sources" })}>
+                See all {stats.allSources.length} sources ›
+              </button>
+            )}
           </div>
         )}
       </div>

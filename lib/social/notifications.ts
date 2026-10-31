@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, desc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { getDb, schema } from "../db";
 
 // Things for a reader to see: a friend request, a request accepted, and later
@@ -84,6 +84,14 @@ export async function markAllRead(userId: string): Promise<void> {
     .update(notification)
     .set({ readAt: sql`now()` })
     .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
+}
+
+// Only these kinds have been seen (what the friends page shows).
+export async function markRead(userId: string, kinds: NotificationKind[]): Promise<void> {
+  await getDb()
+    .update(notification)
+    .set({ readAt: sql`now()` })
+    .where(and(eq(notification.userId, userId), isNull(notification.readAt), inArray(notification.kind, kinds)));
 }
 
 // Housekeeping: read notifications go after 90 days.

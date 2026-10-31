@@ -1,3 +1,4 @@
+import { SLICE_COLORS, SLICE_OTHER } from "@/lib/palette";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import BookCover from "@/components/BookCover";
@@ -26,7 +27,7 @@ const READING_SHOWN = 3;
 const LONG_NAME = 14;
 
 // Fixed colours for the bar, biggest genre first.
-const SHELF_COLORS = ["#ff3b1f", "#ffd400", "#00b6d8", "#1a34d6", "#ff5fa2", "#00994d", "#b8b4aa"];
+const SHELF_COLORS = [...SLICE_COLORS, SLICE_OTHER];
 
 function monthYear(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -67,7 +68,7 @@ function CardHead({ icon, children }: { icon: ProfileIconName; children: React.R
   );
 }
 
-function Covers({ books, rated }: { books: Book[]; rated: boolean }) {
+function Covers({ books }: { books: Book[] }) {
   return (
     <ol className="profile-covers">
       {books.map((b) => (
@@ -75,7 +76,7 @@ function Covers({ books, rated }: { books: Book[]; rated: boolean }) {
           <div className="profile-cover">
             <BookCover book={b} />
           </div>
-          {rated && b.rating > 0 && <StarRating value={b.rating} size="sm" />}
+          {b.rating > 0 && <StarRating value={b.rating} size="sm" />}
         </li>
       ))}
     </ol>
@@ -175,9 +176,10 @@ export default function ProfileView({
   goal: number | null;
   today: string;
   actions?: React.ReactNode; // friend and block buttons, for other signed-in readers
-  // The reader's friends (less anyone blocked with the viewer), and where the
-  // full list is; `news` is how much is waiting there for the owner.
-  friends: { all: Someone[]; href: string; news?: number };
+  // The reader's friends (less anyone blocked with the viewer), when this viewer
+  // may see who they are, how many there are in any case, and where the full
+  // list is; `news` is how much is waiting there for the owner.
+  friends: { all: Someone[]; count: number; href: string; news?: number };
   shareUrl?: string; // the owner's own page: the address the copy button copies
 }) {
   const { profile, name } = person;
@@ -198,7 +200,7 @@ export default function ProfileView({
   const width = hasGoal ? 4 : 6;
   const stat = firstRow ? `profile-card--${width / firstRow}` : "";
   const half = pages && rating ? "profile-card--half" : "";
-  const secondRow = canRead ? (reading || last || firstBook ? 2 : 1) : 2;
+  const secondRow = canRead && (reading || last || firstBook) ? 2 : 1;
   const second = `profile-card--${width / secondRow}`;
   const bookWord = finished === 1 ? "book" : "books";
 
@@ -279,7 +281,7 @@ export default function ProfileView({
           <section className={`profile-card ${second}`}>
             <CardHead icon="lock">Reading</CardHead>
             <p className="profile-hidden-text">
-              {profile.visibility === "friends" ? `${shown} shares their books and numbers with friends only.` : `${shown} keeps their books and numbers private.`}
+              {`This profile is private. Only ${shown}’s friends can see their books and numbers.`}
             </p>
           </section>
         )}
@@ -314,18 +316,18 @@ export default function ProfileView({
             </Link>
           </section>
         )}
-        <Achievements span={second} />
+        {canRead && <Achievements span={second} />}
 
         {stats.best.length > 0 ? (
           <section className="profile-card profile-card--6">
             <CardHead icon="star">Highest rated</CardHead>
-            <Covers books={stats.best} rated={profile.shareRatings} />
+            <Covers books={stats.best} />
           </section>
         ) : (
           stats.recent.length > 0 && (
             <section className="profile-card profile-card--6">
               <CardHead icon="shelf">Recently finished</CardHead>
-              <Covers books={stats.recent} rated={false} />
+              <Covers books={stats.recent} />
             </section>
           )
         )}
@@ -344,7 +346,7 @@ export default function ProfileView({
                 {` about, from ${plural(taste.rated, "book")} you’ve both rated.`}
               </p>
             )}
-            <Covers books={taste.common.slice(0, COMMON_MAX)} rated={profile.shareRatings} />
+            <Covers books={taste.common.slice(0, COMMON_MAX)} />
           </section>
         )}
 
@@ -371,6 +373,7 @@ export default function ProfileView({
           span={stats.shelves.length > 0 ? "profile-card--2" : "profile-card--6"}
           href={friends.href}
           friends={friends.all}
+          count={friends.count}
           title={`${shown}’s friends`}
           own={self}
           news={friends.news ?? 0}

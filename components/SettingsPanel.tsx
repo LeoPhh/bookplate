@@ -806,7 +806,7 @@ export default function SettingsPanel({
   // Whether the account gets the newsletter; null when the server has none.
   newsletter: boolean | null;
   // The reader's profile page, and who they've blocked; undefined without SOCIAL=true.
-  social?: { profile: SocialProfile; blocked: { id: string; name: string; handle: string | null }[] };
+  social?: { profile: SocialProfile; blocked: { id: string; name: string; handle: string | null }[]; goal: { year: number; books: number | null } };
   initialTab: SettingsTab;
 }) {
   const [tab, setTab] = useState(initialTab);
@@ -867,7 +867,7 @@ export default function SettingsPanel({
         {social && (
           <section className="settings-section">
             <h2 className="form-heading">Profile page</h2>
-            <ProfileForm initial={social.profile} />
+            <ProfileForm initial={social.profile} goal={social.goal} />
           </section>
         )}
 

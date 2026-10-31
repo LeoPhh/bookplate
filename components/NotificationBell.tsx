@@ -198,7 +198,7 @@ export default function NotificationBell({ initial }: { initial: number }) {
                       <strong>{n.actor ? nameOf(n.actor) : "Someone"}</strong> {NEWS[n.kind as keyof typeof NEWS]}
                     </>
                   );
-                  const href = n.kind === "recommendation" ? "/friends" : n.actor?.handle ? `/u/${n.actor.handle}` : null;
+                  const href = n.kind === "recommendation" ? "/friends?tab=recommendations" : n.actor?.handle ? `/u/${n.actor.handle}` : null;
                   return (
                     <li key={n.id} className={n.read ? "notify-item" : "notify-item notify-item--new"}>
                       {href ? (

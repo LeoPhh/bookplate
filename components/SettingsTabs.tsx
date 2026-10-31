@@ -1,18 +1,21 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
-import type { SettingsTab } from "@/lib/settingsTabs";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
-// The Settings page's tab bar: labels on a rule, the open one underlined in
-// the accent. A real tablist: the arrow keys (and Home/End) move between tabs.
-export default function SettingsTabs({
+// A tab bar, on Settings and the friends page: labels on a rule, the open one
+// underlined in the accent. A real tablist: the arrow keys (and Home/End) move between tabs.
+export default function SettingsTabs<T extends string>({
   tabs,
   active,
   onChange,
+  name = "Settings",
+  idPrefix = "settings",
 }: {
-  tabs: readonly { id: SettingsTab; label: string }[];
-  active: SettingsTab;
-  onChange: (id: SettingsTab) => void;
+  tabs: readonly { id: T; label: ReactNode }[];
+  active: T;
+  onChange: (id: T) => void;
+  name?: string;
+  idPrefix?: string;
 }) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -31,7 +34,7 @@ export default function SettingsTabs({
   };
 
   return (
-    <div className="settings-tabs" role="tablist" aria-label="Settings" onKeyDown={onKey}>
+    <div className="settings-tabs" role="tablist" aria-label={name} onKeyDown={onKey}>
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -40,9 +43,9 @@ export default function SettingsTabs({
           }}
           type="button"
           role="tab"
-          id={`settings-tab-${t.id}`}
+          id={`${idPrefix}-tab-${t.id}`}
           aria-selected={t.id === active}
-          aria-controls={`settings-panel-${t.id}`}
+          aria-controls={`${idPrefix}-panel-${t.id}`}
           tabIndex={t.id === active ? 0 : -1}
           className={t.id === active ? "settings-tab settings-tab--active" : "settings-tab"}
           onClick={() => onChange(t.id)}
