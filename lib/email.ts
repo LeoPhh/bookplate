@@ -209,6 +209,23 @@ export function verifyEmail(to: string, url: string): Email {
   });
 }
 
+// A sign-up with an address that already has a confirmed account: the form
+// looks the same as for a new address, so only the inbox's owner learns this.
+export function existingAccountEmail(to: string): Email {
+  return build(to, {
+    subject: "You already have a Bookplate account",
+    preview: "Someone tried to sign up with this address. Sign in to your library instead.",
+    eyebrow: "Already signed up",
+    title: "You already have an account",
+    paragraphs: [
+      "Someone tried to create a Bookplate account with this address, which already has one. If that was you, sign in below. Forgotten your password? You can choose a new one from the sign-in page.",
+    ],
+    action: { label: "Sign in", url: new URL("/login", config.publicUrl).href },
+    note: "If it wasn’t you, ignore this email. Your account and password stay the same.",
+    why: "You’re receiving this because this address was used to try to create a Bookplate account.",
+  });
+}
+
 export function testEmail(to: string): Email {
   return build(to, {
     subject: "Bookplate test email",

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { randomUUID } from "crypto";
+import { readFileSync } from "fs";
+import { describe, expect, inject, it } from "vitest";
 import { confirmedReader, emailBaseUrl, reader, Visitor } from "./client";
 import { inbox, linkIn, waitForMail } from "./mailpit";
 
@@ -43,6 +45,65 @@ describe("confirming a new account's email", () => {
     expect([302, 307]).toContain(res.status);
     expect((await r.fetch("/api/books")).status).toBe(200);
     expect((await signIn(r.email, r.password)).status).toBe(200);
+  });
+});
+
+describe("signing up with an address that already has an account", () => {
+  const signUpAgain = (email: string) => new Visitor(undefined, emailBaseUrl()).signUp(email, "another-password-1");
+
+  it("looks like any sign-up, and tells the confirmed owner by email", async () => {
+    const r = await confirmedReader();
+    const res = await signUpAgain(r.email);
+    const fresh = await new Visitor(undefined, emailBaseUrl()).signUp(`${randomUUID()}@example.com`, "another-password-1");
+    expect(res.status).toBe(fresh.status);
+    const keys = async (x: Response) => Object.keys(((await x.json()) as { user: object }).user).sort();
+    expect(await keys(res)).toEqual(await keys(fresh));
+
+    const mail = await waitForMail(r.email, "You already have a Bookplate account");
+    expect(linkIn(mail, `${emailBaseUrl()}/login`)).toBe(`${emailBaseUrl()}/login`);
+    expect(mail.text).toContain("Your account and password stay the same.");
+    expect(mail.html).toContain('src="cid:logo@bookplate"');
+    expect(mail.inline).toContainEqual({ contentId: "logo@bookplate", contentType: "image/png" });
+
+    // The account is untouched: the password typed at sign-up did nothing.
+    expect((await signIn(r.email, "another-password-1")).status).toBe(401);
+    expect((await signIn(r.email, r.password)).status).toBe(200);
+  });
+
+  it("sends an unconfirmed owner a fresh link instead, which works", async () => {
+    const r = await reader("Waiting", emailBaseUrl());
+    await waitForMail(r.email, "Confirm your email");
+    expect((await signUpAgain(r.email)).status).toBe(200);
+
+    const mail = await waitForMail(r.email, "Confirm your email", { after: 1 });
+    const link = linkIn(mail, `${emailBaseUrl()}/api/auth/verify-email`);
+    expect(link).toContain(`callbackURL=${encodeURIComponent("/login")}`);
+    expect([302, 307]).toContain((await r.fetch(link)).status);
+    expect((await signIn(r.email, r.password)).status).toBe(200);
+    expect((await inbox(r.email)).filter((m) => m.Subject.includes("already have"))).toHaveLength(0);
+  });
+
+  it("sends at most 3 of these emails per address in a short time", async () => {
+    const r = await confirmedReader();
+    for (let i = 0; i < 5; i++) expect((await signUpAgain(r.email)).status).toBe(200);
+    await waitForMail(r.email, "You already have a Bookplate account", { after: 2 });
+    await new Promise((res) => setTimeout(res, 500)); // let any extra email arrive
+    expect((await inbox(r.email)).filter((m) => m.Subject.includes("already have"))).toHaveLength(3);
+  });
+
+  it("is logged apart from real sign-ups, naming no made-up account", async () => {
+    const r = await confirmedReader();
+    const id = `test-${randomUUID()}`;
+    const v = new Visitor(undefined, emailBaseUrl());
+    await v.signUp(r.email, "another-password-1", "Reader", { ...(await v.signupChallenge()), "X-Request-Id": id });
+    await waitForMail(r.email, "You already have a Bookplate account");
+    const lines = readFileSync(inject("emailLog"), "utf8")
+      .split("\n")
+      .filter((l) => l.includes(id))
+      .map((l) => JSON.parse(l) as { event: string; user?: string });
+    expect(lines.map((l) => l.event)).toContain("auth.sign_up_existing");
+    expect(lines.map((l) => l.event)).not.toContain("auth.sign_up");
+    expect(lines.every((l) => !l.user)).toBe(true);
   });
 });
 

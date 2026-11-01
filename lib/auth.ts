@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, createEmailVerificationToken, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { and, count, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -9,7 +9,7 @@ import { getDb, schema } from "./db";
 import { clearThrottle, recordFailure, throttleWait } from "./authThrottle";
 import { CHALLENGE_HEADER, checkChallenge } from "./botCheck";
 import { CLIENT_IP_HEADER, clientIp } from "./clientIp";
-import { resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
+import { existingAccountEmail, resetPasswordEmail, sendEmail, verifyEmail, type Email } from "./email";
 import { account, log } from "./log";
 import { MIN_PASSWORD_LENGTH } from "./signupChecks";
 import { NAME_MAX } from "./names";
@@ -30,6 +30,9 @@ const SENDS_PER_WINDOW = 3;
 // how far that address can be trusted).
 const SIGNUPS_PER_IP = 5;
 const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
+
+// How long an emailed confirmation link works.
+const VERIFY_LINK_S = 60 * 60;
 
 // A sign-in lasts 30 days from the last visit: using Bookplate extends it
 // (at most once a day), so only a device left unused for a month signs out.
@@ -109,7 +112,7 @@ function createAuth() {
           // Signing in before confirming sends a fresh link (still limited).
           sendOnSignIn: config.requireEmailVerification,
           autoSignInAfterVerification: true,
-          expiresIn: 60 * 60,
+          expiresIn: VERIFY_LINK_S,
         }
       : undefined,
     session: { expiresIn: SESSION_DAYS * DAY_S, updateAge: DAY_S },
@@ -170,12 +173,25 @@ function createAuth() {
         if (ctx.path === "/sign-up/email") {
           if (!isAPIError(result)) {
             await recordFailure(signUpKey(ctx.headers), SIGNUP_WINDOW_MS);
-            const newsletter = config.newsletter && wantsNewsletter(ctx.body);
-            void log.info("auth.sign_up", { user: userIdOf(result), ip: clientIp(ctx.headers), newsletter });
+            const id = userIdOf(result);
             // A sign-up with an address that already has an account answers
             // with a made-up user (so it gives nothing away), whose id matches
-            // no row: the real account's choice stays as it was.
-            const id = userIdOf(result);
+            // no row: the real account stays as it was, and only the inbox's
+            // owner hears about it.
+            const existing = await accountWithEmail(emailOf(ctx.body));
+            if (existing && existing.id !== id) {
+              void log.info("auth.sign_up_existing", { account: account(existing.email), ip: clientIp(ctx.headers) });
+              if (existing.emailVerified) {
+                await sendLimited("existing", existingAccountEmail(existing.email));
+              } else {
+                const token = await createEmailVerificationToken(ctx.context.secret, existing.email, undefined, VERIFY_LINK_S);
+                const callbackURL = encodeURIComponent(String((ctx.body as { callbackURL?: unknown }).callbackURL ?? "/"));
+                await sendLimited("verify", verifyEmail(existing.email, `${ctx.context.baseURL}/verify-email?token=${token}&callbackURL=${callbackURL}`));
+              }
+              return;
+            }
+            const newsletter = config.newsletter && wantsNewsletter(ctx.body);
+            void log.info("auth.sign_up", { user: id, ip: clientIp(ctx.headers), newsletter });
             if (newsletter && id) await setNewsletter(id, true);
           }
           return;
@@ -282,6 +298,14 @@ export async function setNewsletter(userId: string, on: boolean): Promise<void> 
     .update(schema.user)
     .set({ newsletterConsentAt: on ? sql`coalesce(${schema.user.newsletterConsentAt}, now())` : null })
     .where(eq(schema.user.id, userId));
+}
+
+async function accountWithEmail(email: string) {
+  const [row] = await getDb()
+    .select({ id: schema.user.id, email: schema.user.email, emailVerified: schema.user.emailVerified })
+    .from(schema.user)
+    .where(eq(schema.user.email, email));
+  return row;
 }
 
 async function markSeen(userId: string): Promise<void> {
