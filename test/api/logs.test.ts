@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { randomUUID } from "crypto";
+import { Client } from "pg";
 import { describe, expect, inject, it } from "vitest";
 import { book, confirmedReader, emailBaseUrl, jpeg, reader, Visitor } from "./client";
 import { linkIn, waitForMail } from "./mailpit";
@@ -63,6 +64,35 @@ describe("server errors", () => {
     const line = await waitForLine(inject("plainLog"), (l) => l.req === id && l.event === "request.failed");
     expect(line).toMatchObject({ level: "error", route: "/api/covers", method: "POST" });
     expect((line.error as { stack?: string }).stack).toBeTruthy();
+  });
+});
+
+describe("failed queries", () => {
+  // Both copies reach the log collector: ours, and Next.js's plain-text one,
+  // which prints every property of the error.
+  it("are logged without the values they were given", async () => {
+    const title = `Secret-${randomUUID()}`;
+    const constraint = `refuses_${randomUUID().replaceAll("-", "_")}`;
+    const db = new Client({ connectionString: inject("dbUrl") });
+    await db.connect();
+    await db.query(`ALTER TABLE book ADD CONSTRAINT ${constraint} CHECK (title <> '${title}') NOT VALID`);
+    try {
+      const r = await reader();
+      const res = await r.json("/api/books/b1", "PUT", book("b1", { title }));
+      expect(res.status).toBe(500);
+      const id = res.headers.get("x-request-id");
+      const line = await waitForLine(inject("plainLog"), (l) => l.req === id && l.event === "request.failed");
+      expect(JSON.stringify(line.error)).toContain(constraint); // still says what failed
+
+      const deadline = Date.now() + 5_000;
+      const logged = () => readFileSync(inject("plainLog"), "utf8");
+      while (logged().split(constraint).length < 3 && Date.now() < deadline) await new Promise((w) => setTimeout(w, 100));
+      expect(logged().split(constraint).length, "Next.js's own copy never appeared").toBeGreaterThanOrEqual(3);
+      expect(logged()).not.toContain(title);
+    } finally {
+      await db.query(`ALTER TABLE book DROP CONSTRAINT ${constraint}`);
+      await db.end();
+    }
   });
 });
 

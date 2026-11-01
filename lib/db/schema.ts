@@ -242,7 +242,8 @@ export const friendship = pgTable(
   (t) => [
     primaryKey({ columns: [t.userA, t.userB] }),
     index("friendship_user_b_idx").on(t.userB),
-    check("friendship_order", sql`${t.userA} < ${t.userB}`),
+    // Byte order, as pairOf sorts them: the database's own collation may differ.
+    check("friendship_order", sql`${t.userA} COLLATE "C" < ${t.userB} COLLATE "C"`),
   ]
 );
 

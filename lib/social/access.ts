@@ -12,7 +12,7 @@ import type { Visibility } from "./profile";
 // What the viewer is to the owner. Signed-out visitors are strangers.
 export type Audience = "self" | "friend" | "stranger" | "blocked";
 
-// A pair of readers in the order friendships store them (smaller id first).
+// A pair of readers in the order friendships store them (smaller id first, by bytes: friendship_order checks the same).
 export const pairOf = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a]);
 
 export async function audienceFor(viewerId: string | null, ownerId: string): Promise<Audience> {

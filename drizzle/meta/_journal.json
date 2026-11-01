@@ -127,6 +127,13 @@
       "when": 1793458469051,
       "tag": "0017_crazy_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793558872465,
+      "tag": "0018_friendship_byte_order",
+      "breakpoints": true
     }
   ]
 }

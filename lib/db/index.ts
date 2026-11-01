@@ -1,7 +1,10 @@
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { config } from "../config";
+import { removeValuesFromQueryErrors } from "./safeErrors";
 import * as schema from "./schema";
+
+removeValuesFromQueryErrors();
 
 // One pool per server process. Kept on globalThis so dev-mode hot reloads
 // don't open a new pool on every edit.

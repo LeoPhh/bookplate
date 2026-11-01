@@ -1,0 +1,2 @@
+ALTER TABLE "friendship" DROP CONSTRAINT "friendship_order";--> statement-breakpoint
+ALTER TABLE "friendship" ADD CONSTRAINT "friendship_order" CHECK ("friendship"."user_a" COLLATE "C" < "friendship"."user_b" COLLATE "C");

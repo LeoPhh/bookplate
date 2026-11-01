@@ -210,3 +210,49 @@ describe("noting who has imported (0015)", () => {
     }
   });
 });
+
+// Upgrading a database that doesn't sort like the app. Alpine's en_US sorts by
+// bytes, so the default test database can't show this: this one is made to sort
+// like a Debian or managed Postgres, where "c" comes before "K".
+describe("friendship order (0018)", () => {
+  const UP = `bookplate_friendship_order_${process.pid}`;
+  afterAll(() => dropDatabase(UP));
+
+  it("accepts every pair in the app's order, whatever the database's collation, and keeps friendships", async () => {
+    const { Client } = await import("pg");
+    const { pairOf } = await import("@/lib/social/access");
+    await dropDatabase(UP);
+    await withAdmin((c) => c.query(`CREATE DATABASE ${UP} TEMPLATE template0 LOCALE_PROVIDER icu ICU_LOCALE 'en-US'`));
+    const url = new URL(process.env.DATABASE_URL!);
+    url.pathname = `/${UP}`;
+    const c = new Client({ connectionString: url.toString() });
+    await c.connect();
+    const run = async (file: string) => {
+      const text = readFileSync(path.join(__dirname, "../../drizzle", `${file}.sql`), "utf8");
+      for (const statement of text.split("--> statement-breakpoint")) await c.query(statement);
+    };
+    const befriend = (a: string, b: string) => c.query(`INSERT INTO friendship (user_a, user_b) VALUES ($1, $2)`, [a, b]);
+    try {
+      const tags = (journal.entries as { tag: string }[]).map((e) => e.tag);
+      for (const tag of tags.slice(0, tags.indexOf("0018_friendship_byte_order"))) await run(tag);
+      await c.query(`INSERT INTO "user" (id, name, email) VALUES
+        ('Kate', 'K', 'k@example.com'), ('carl', 'C', 'c@example.com'), ('anna', 'A', 'a@example.com'), ('bert', 'B', 'b@example.com')`);
+      const [first, second] = pairOf("carl", "Kate");
+      expect([first, second]).toEqual(["Kate", "carl"]);
+
+      await befriend("anna", "bert");
+      await expect(befriend(first, second)).rejects.toThrow(/friendship_order/); // the bug itself
+
+      await run("0018_friendship_byte_order");
+      await befriend(first, second);
+      await expect(befriend(second, first)).rejects.toThrow(/friendship_order/); // still one order only
+      const { rows } = await c.query(`SELECT user_a, user_b FROM friendship ORDER BY user_a COLLATE "C"`);
+      expect(rows).toEqual([
+        { user_a: "Kate", user_b: "carl" },
+        { user_a: "anna", user_b: "bert" },
+      ]);
+    } finally {
+      await c.end();
+    }
+  });
+});
