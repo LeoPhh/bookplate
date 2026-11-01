@@ -163,6 +163,36 @@ Images run on both `amd64` and `arm64` (Raspberry Pi, Apple Silicon, most
 NAS boxes) and are published to Docker Hub (`leophh/bookplate`) and GitHub
 Container Registry (`ghcr.io/leophh/bookplate`).
 
+### Container permissions
+
+The app runs as `PUID:PGID` (default `1000:1000`). For bind-mounted uploads,
+set `PUID` and `PGID` in `.env` to your host user's `id -u` and `id -g`:
+
+```yaml
+    volumes:
+      - ./uploads:/data/uploads
+```
+
+Startup uses root to adjust app and local upload ownership, then drops privileges.
+Upload permissions are also adjusted so the app can read and write them;
+**bind mounts change host file ownership and permissions too**, so use a dedicated
+uploads directory. S3 skips upload adjustments. Other mounts, including
+`LEGAL_DIR`, must already be readable by the app user.
+
+To run rootless even during startup, add `user:` to the app service:
+
+```yaml
+services:
+  bookplate:
+    user: "1000:1000"
+```
+
+adjustments; mounted uploads and app cache directories must be writable by that
+user.
+
+Without `user:`, `docker compose exec` defaults to root; add `--user UID:GID`
+to run a command as the app user.
+
 ### Updating
 
 ```bash
