@@ -1,10 +1,15 @@
-# Tests every push and pull request, then — only if the tests pass — builds
-# the Docker image for amd64 and arm64 and publishes it to Docker Hub and
-# GitHub Container Registry.
+# Tests every push and pull request and builds the Docker image for amd64 and
+# arm64, each on its own native runner (no emulation). Only once the tests
+# pass is the image published, to Docker Hub and GitHub Container Registry.
 #
-#   push to main  → :edge
-#   tag v1.2.3    → :1.2.3, :1.2, :1, :latest
+#   push to main  → :edge and :sha-<commit>
+#   tag v1.2.3    → :1.2.3, :1.2, :1, :latest, given to the image already
+#                   built for that commit on main (nothing is rebuilt or
+#                   retested; the tag waits for main's run if it's still going)
 #   pull request  → tests and a test build, nothing published
+#
+# So tag a commit that is (or is being) pushed to main, as `npm version` +
+# `git push --follow-tags` does.
 #
 # Needs two repository secrets: DOCKERHUB_USERNAME and DOCKERHUB_TOKEN
 # (a Docker Hub access token with read/write scope).
@@ -21,10 +26,21 @@ permissions:
   contents: read
   packages: write
 
+# A newer push to a pull request replaces its older run. On main every commit
+# finishes, since a tag may be waiting for its image.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The API tests twice over, side by side: images on disk and in S3.
+    strategy:
+      matrix:
+        storage: [disk, s3]
     services:
       postgres:
         image: postgres:17-alpine
@@ -64,37 +80,55 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Lint
+        if: matrix.storage == 'disk'
         run: npm run lint
       - name: Typecheck
+        if: matrix.storage == 'disk'
         run: npx tsc --noEmit
       - name: Unit tests
+        if: matrix.storage == 'disk'
         run: npm test
       - name: Build
         run: npm run build
       - name: API tests (images on disk)
+        if: matrix.storage == 'disk'
         run: npm run test:api
       - name: API tests (images in S3)
+        if: matrix.storage == 's3'
         run: npm run test:api:s3
 
-  image:
-    needs: test
-    runs-on: ubuntu-latest
+  # Each platform on its own runner, alongside the tests. On main the result is
+  # pushed by digest only, untagged, so nothing can pull it until `publish`
+  # names it after the tests pass.
+  build:
+    if: github.ref_type != 'tag'
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    env:
+      DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/bookplate
+      GHCR_REPO: ghcr.io/${{ github.repository_owner }}/bookplate
+      PUSH: ${{ github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: env.PUSH == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
+        if: env.PUSH == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -105,21 +139,133 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/bookplate
-            ghcr.io/${{ github.repository_owner }}/bookplate
+            ${{ env.DOCKERHUB_REPO }}
+            ${{ env.GHCR_REPO }}
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: ${{ env.PUSH == 'true' && format('type=image,"name={0},{1}",push-by-digest=true,name-canonical=true,push=true', env.DOCKERHUB_REPO, env.GHCR_REPO) || 'type=cacheonly' }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Keep the digest for publish
+        if: env.PUSH == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "$RUNNER_TEMP/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        if: env.PUSH == 'true'
+        with:
+          name: digest-${{ matrix.runner }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Both platforms joined into one image and tagged, once the tests pass.
+  publish:
+    if: github.event_name == 'push' && github.ref_type != 'tag'
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/bookplate
+      GHCR_REPO: ghcr.io/${{ github.repository_owner }}/bookplate
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_REPO }}
+            ${{ env.GHCR_REPO }}
           tags: |
             type=edge,branch=main
+            type=sha
+
+      - name: Join the platforms and tag
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "$DOCKERHUB_REPO@sha256:%s " *)
+
+  # A release: the version tags go on the image main already built and tested
+  # for this commit.
+  release:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/bookplate
+      GHCR_REPO: ghcr.io/${{ github.repository_owner }}/bookplate
+    steps:
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_REPO }}
+            ${{ env.GHCR_REPO }}
+          tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=ref,event=pr
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # The tagged commit, read from git: an annotated tag has its own SHA.
+      - uses: actions/checkout@v4
+
+      # main's run for the same commit is usually still going: wait for its image.
+      - name: Wait for main's image of this commit
+        run: |
+          source="$DOCKERHUB_REPO:sha-$(git rev-parse --short=7 HEAD)"
+          for _ in $(seq 80); do
+            if docker buildx imagetools inspect "$source" >/dev/null 2>&1; then
+              echo "SOURCE=$source" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::No image $source after 40 minutes. Did main's run for this commit fail, or was the commit never pushed to main?"
+          exit 1
+
+      - name: Tag the release
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            "$SOURCE"
