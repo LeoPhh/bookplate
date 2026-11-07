@@ -3755,6 +3755,17 @@ a.notify-item-text:hover {
   overflow-wrap: anywhere;
 }
 
+/* With social features the name and email lead to the reader's profile. */
+.user-menu-who--link {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.user-menu-who--link:hover .user-menu-name,
+.user-menu-who--link:hover .user-menu-email:first-child {
+  color: var(--accent);
+}
+
 .user-menu-item {
   display: block;
   width: 100%;

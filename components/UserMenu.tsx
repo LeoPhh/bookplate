@@ -14,9 +14,10 @@ export interface AccountPicture {
 }
 
 // The profile picture in the top-right corner of every page; it opens a small
-// menu with the account's name, Settings, and Sign out. It starts from what the
+// menu with the account's name (a link to their profile, with social features),
+// Settings, and Sign out. It starts from what the
 // server knew and follows the session, so changes in Settings show at once.
-export default function UserMenu({ initial }: { initial: AccountPicture | null }) {
+export default function UserMenu({ initial, social }: { initial: AccountPicture | null; social: boolean }) {
   const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -65,12 +66,18 @@ export default function UserMenu({ initial }: { initial: AccountPicture | null }
       </button>
       {open && (
         <div className="user-menu-panel" role="menu">
-          {user && (
-            <div className="user-menu-who">
-              {user.name && <span className="user-menu-name">{user.name}</span>}
-              <span className="user-menu-email">{user.email}</span>
-            </div>
-          )}
+          {user &&
+            (social ? (
+              <Link href="/profile" className="user-menu-who user-menu-who--link" role="menuitem" onClick={() => setOpen(false)}>
+                {user.name && <span className="user-menu-name">{user.name}</span>}
+                <span className="user-menu-email">{user.email}</span>
+              </Link>
+            ) : (
+              <div className="user-menu-who">
+                {user.name && <span className="user-menu-name">{user.name}</span>}
+                <span className="user-menu-email">{user.email}</span>
+              </div>
+            ))}
           <Link href="/settings" className="user-menu-item" role="menuitem" onClick={() => setOpen(false)}>
             Settings
           </Link>

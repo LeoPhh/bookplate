@@ -28,7 +28,7 @@ export default function AppBar({
             <div className="appbar-account">
               {social && <NotificationBell initial={social.unread} />}
               <AppMenu social={social !== null} />
-              <UserMenu initial={me} />
+              <UserMenu initial={me} social={social !== null} />
             </div>
           </>
         )}

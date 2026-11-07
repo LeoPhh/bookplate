@@ -48,15 +48,11 @@ function readingFor(joined: string, today: string): string {
   return [y ? `${y} ${y === 1 ? "yr" : "yrs"}` : "", m ? `${m} ${m === 1 ? "mth" : "mths"}` : ""].filter(Boolean).join(" ");
 }
 
-// How tall the pages would stand (about 0.1 mm each) and how many a day.
-function pagesNote(pages: number, joined: string, today: string): string {
+// How tall the pages would stand, at about 0.1 mm each.
+function pagesNote(pages: number): string {
   const mm = pages / 10;
   const height = mm >= 1000 ? `${(mm / 1000).toFixed(1)} m` : `${Math.max(1, Math.round(mm / 10))} cm`;
-  const days = Math.round((new Date(`${today}T00:00:00Z`).getTime() - new Date(joined).getTime()) / 86400000);
-  // A daily figure says little until they've been here a while.
-  if (days < 30) return `A stack about ${height} tall.`;
-  const perDay = Math.round(pages / days);
-  return `A stack about ${height} tall, or ${num(perDay)} ${perDay === 1 ? "page" : "pages"} a day since joining.`;
+  return `A stack about ${height} tall.`;
 }
 
 function CardHead({ icon, children }: { icon: ProfileIconName; children: React.ReactNode }) {
@@ -254,7 +250,7 @@ export default function ProfileView({
           <section className={`profile-card ${stat} ${half}`}>
             <CardHead icon="page">Pages</CardHead>
             <p className="profile-big">{num(totals.pages)}</p>
-            <p className="profile-note">{pagesNote(totals.pages, person.joined, today)}</p>
+            <p className="profile-note">{pagesNote(totals.pages)}</p>
           </section>
         )}
         {offerGoal && <GoalCard year={Number(today.slice(0, 4))} read={stats.finishedThisYear} goal={null} owner span={stat} today={today} />}
