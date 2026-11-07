@@ -23,8 +23,10 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     UPLOADS_DIR=/data/uploads
 
-# The uploads volume is owned by the unprivileged `node` user (uid 1000).
-RUN mkdir -p /data/uploads && chown -R node:node /data
+# Use Alpine-maintained privilege dropping; resolve package updates at build time.
+RUN apk add --no-cache su-exec \
+ && mkdir -p /data/uploads && chown -R node:node /data
+COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/bookplate-entrypoint
 
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
@@ -40,7 +42,7 @@ RUN printf '#!/bin/sh\nexec node /app/scripts/reset-password.mjs "$@"\n' > /usr/
  && printf '#!/bin/sh\nexec node /app/scripts/remove-profile.mjs "$@"\n' > /usr/local/bin/remove-profile \
  && chmod 755 /usr/local/bin/remove-profile
 
-USER node
+ENTRYPOINT ["bookplate-entrypoint"]
 EXPOSE 3000
 VOLUME /data/uploads
 
