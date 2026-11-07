@@ -1,6 +1,6 @@
 {
   "name": "bookplate",
-  "version": "4.4.2",
+  "version": "4.4.3",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
